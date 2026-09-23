@@ -2,6 +2,7 @@ import { readdir, readFile, stat } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import matter from "gray-matter";
+import { parseProjectDigest, type ProjectDigest } from "./wip";
 
 const MODULE_DIR = dirname(fileURLToPath(import.meta.url));
 // The tracker root holds the bundled `ai/` blueprint. Sibling project repos
@@ -65,7 +66,7 @@ export interface Issue {
   body: string;
 }
 
-export interface Project {
+export interface Project extends ProjectDigest {
   slug: string;
   title: string;
   status: "active" | "shipped" | "paused" | "unknown";
@@ -73,6 +74,15 @@ export interface Project {
   wipPath: string;
   prdBody: string;
   wipBody: string;
+}
+
+// js-yaml parses an unquoted `created: 2026-09-16` into a Date; keep the
+// ISO day so the client can sort and group without timezone drift.
+export function normalizeCreated(value: unknown): string | undefined {
+  if (value instanceof Date && !Number.isNaN(value.getTime()))
+    return value.toISOString().slice(0, 10);
+  if (value === undefined || value === null || value === "") return undefined;
+  return String(value);
 }
 
 const FILENAME_RE = /^(\d{4})-[a-z0-9-]+\.md$/;
@@ -150,7 +160,7 @@ async function readIssuesFromDir(
           ? normalizeId(fm.parent, "") || undefined
           : undefined,
       labels: Array.isArray(fm.labels) ? fm.labels.map(String) : [],
-      created: fm.created ? String(fm.created) : undefined,
+      created: normalizeCreated(fm.created),
       priority,
       body: parsed.content,
     });
@@ -218,6 +228,7 @@ export async function readAllProjects(basePath = "ai"): Promise<Project[]> {
       wipPath,
       prdBody,
       wipBody,
+      ...parseProjectDigest(wipBody, prdBody),
     });
   }
   return projects.sort((a, b) => a.slug.localeCompare(b.slug));

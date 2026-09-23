@@ -8,6 +8,7 @@ import { COLUMN_LABEL } from '../types';
 const props = defineProps<{
   columnKey: ColumnKey;
   issues: Issue[];
+  highlightId?: string | null;
 }>();
 
 const emit = defineEmits<{
@@ -76,6 +77,7 @@ function onChange(evt: ChangeEvent) {
         <div :data-issue-id="element.id" :data-archived="element.archived ? 'true' : 'false'">
           <Card
             :issue="element"
+            :highlighted="!!highlightId && element.id === highlightId"
             @open="emit('open', element)"
             @toggle-assignee="emit('toggle-assignee', element)"
           />

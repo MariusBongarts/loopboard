@@ -6,7 +6,7 @@ import { toneClass } from '../colors';
 import AgentIcon from './icons/AgentIcon.vue';
 import HumanIcon from './icons/HumanIcon.vue';
 
-const props = defineProps<{ issue: Issue }>();
+const props = defineProps<{ issue: Issue; highlighted?: boolean }>();
 const emit = defineEmits<{
   (e: 'open' | 'toggle-assignee', issue: Issue): void;
 }>();
@@ -25,7 +25,7 @@ function onToggleAssignee(e: MouseEvent) {
 <template>
   <div
     class="card"
-    :class="{ archived: props.issue.archived }"
+    :class="{ archived: props.issue.archived, hl: props.highlighted }"
     @click="emit('open', props.issue)"
   >
     <div class="card-top">

@@ -35,6 +35,11 @@ export interface Issue {
   body: string;
 }
 
+export interface ProjectSession {
+  date: string;
+  note: string;
+}
+
 export interface Project {
   slug: string;
   title: string;
@@ -43,6 +48,13 @@ export interface Project {
   wipPath: string;
   prdBody: string;
   wipBody: string;
+  // Digest parsed server-side from wip.md / prd.md (#0069). Plain text;
+  // issue references appear as `#NNNN`.
+  focus: string;
+  problem: string;
+  solution: string;
+  lastSession?: string;
+  sessions: ProjectSession[];
 }
 
 export type ScenarioStatus = 'covered' | 'partial' | 'fixme' | 'none';
@@ -177,6 +189,14 @@ export const COLUMN_LABEL: Record<ColumnKey, string> = {
 // Each issue lives in the column matching its literal status.
 export function columnForStatus(status: Status): ColumnKey {
   return status as ColumnKey;
+}
+
+// Column order: explicit priority first (1 = top), then id ascending.
+export function byPriority(a: Issue, b: Issue): number {
+  const pa = a.priority ?? Number.POSITIVE_INFINITY;
+  const pb = b.priority ?? Number.POSITIVE_INFINITY;
+  if (pa !== pb) return pa - pb;
+  return a.id.localeCompare(b.id);
 }
 
 export function relativePath(issue: Pick<Issue, 'filename' | 'archived'>): string {
