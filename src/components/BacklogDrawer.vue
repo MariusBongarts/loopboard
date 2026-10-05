@@ -2,6 +2,7 @@
 import { ref } from 'vue';
 import type { Issue } from '../types';
 import { relativePath } from '../types';
+import { useWorkspace } from '../workspace';
 import { toneClass } from '../colors';
 import AgentIcon from './icons/AgentIcon.vue';
 import HumanIcon from './icons/HumanIcon.vue';
@@ -10,6 +11,7 @@ const props = defineProps<{
   open: boolean;
   issues: Issue[];
 }>();
+const { rootName } = useWorkspace();
 const emit = defineEmits<{
   (e: 'close'): void;
   (e: 'open-issue' | 'promote', issue: Issue): void;
@@ -81,6 +83,7 @@ function onRowClick(issue: Issue) {
                 type="button"
                 class="backlog-promote"
                 title="Promote to Todo"
+                aria-label="Promote to Todo"
                 @click="(e) => onPromote(e, iss)"
               >Promote → Todo</button>
               <span v-else class="backlog-promoted">Promoted</span>
@@ -99,7 +102,7 @@ function onRowClick(issue: Issue) {
                 class="card-label"
                 :class="toneClass(l)"
               >{{ l }}</span>
-              <span class="backlog-row-path">{{ relativePath(iss) }}</span>
+              <span class="backlog-row-path">{{ relativePath(iss, rootName) }}</span>
             </div>
           </li>
         </ul>

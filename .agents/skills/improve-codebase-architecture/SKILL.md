@@ -1,6 +1,6 @@
 ---
 name: improve-codebase-architecture
-description: Find deepening opportunities in a codebase, informed by the domain glossary at ai/specs/00-conventions-and-glossary.md and the ADRs in ai/architecture/decisions/. Use when the user wants to improve architecture, find refactoring opportunities, consolidate tightly-coupled modules, or make a codebase more testable and AI-navigable.
+description: Find deepening opportunities in a codebase, informed by the domain glossary at .agents/specs/00-conventions-and-glossary.md and the ADRs in .agents/architecture/decisions/. Use when the user wants to improve architecture, find refactoring opportunities, consolidate tightly-coupled modules, or make a codebase more testable and AI-navigable.
 ---
 
 # Improve Codebase Architecture
@@ -32,7 +32,7 @@ This skill is _informed_ by the project's domain model. The domain language give
 
 ### 1. Explore
 
-Read the project's domain glossary at [`ai/specs/00-conventions-and-glossary.md`](../../../ai/specs/00-conventions-and-glossary.md) and any ADRs in [`ai/architecture/decisions/`](../../../ai/architecture/decisions/) for the area you're touching first.
+Read the project's domain glossary at [`.agents/specs/00-conventions-and-glossary.md`](../../specs/00-conventions-and-glossary.md) and any ADRs in [`.agents/architecture/decisions/`](../../architecture/decisions/) for the area you're touching first.
 
 Then dispatch a Task subagent with `subagent_type: explore` to walk the codebase. Don't follow rigid heuristics — explore organically and note where you experience friction:
 
@@ -53,7 +53,7 @@ Present a numbered list of deepening opportunities. For each candidate:
 - **Solution** — plain English description of what would change
 - **Benefits** — explained in terms of locality and leverage, and also in how tests would improve
 
-**Use the glossary's vocabulary for the domain, and [LANGUAGE.md](LANGUAGE.md) vocabulary for the architecture.** If [`ai/specs/00-conventions-and-glossary.md`](../../../ai/specs/00-conventions-and-glossary.md) defines "Template," talk about "the Template execution module" — not "the FooBarHandler," and not "the Template service."
+**Use the glossary's vocabulary for the domain, and [LANGUAGE.md](LANGUAGE.md) vocabulary for the architecture.** If [`.agents/specs/00-conventions-and-glossary.md`](../../specs/00-conventions-and-glossary.md) defines "Template," talk about "the Template execution module" — not "the FooBarHandler," and not "the Template service."
 
 **ADR conflicts**: if a candidate contradicts an existing ADR, only surface it when the friction is real enough to warrant revisiting the ADR. Mark it clearly (e.g. _"contradicts ADR-0007 — but worth reopening because…"_). Don't list every theoretical refactor an ADR forbids.
 
@@ -65,7 +65,11 @@ Once the user picks a candidate, drop into a grilling conversation. Walk the des
 
 Side effects happen inline as decisions crystallize:
 
-- **Naming a deepened module after a concept not in the glossary?** Add the term to [`ai/specs/00-conventions-and-glossary.md`](../../../ai/specs/00-conventions-and-glossary.md) — same discipline as [`grill-with-docs`](../grill-with-docs/SKILL.md) (format described in [CONTEXT-FORMAT.md](../grill-with-docs/CONTEXT-FORMAT.md)).
+- **Naming a deepened module after a concept not in the glossary?** Add the term to [`.agents/specs/00-conventions-and-glossary.md`](../../specs/00-conventions-and-glossary.md) — same discipline as [`grill-with-docs`](../grill-with-docs/SKILL.md) (format described in [CONTEXT-FORMAT.md](../grill-with-docs/CONTEXT-FORMAT.md)).
 - **Sharpening a fuzzy term during the conversation?** Update the glossary right there, inline.
-- **User rejects the candidate with a load-bearing reason?** Offer an ADR, framed as: _"Want me to record this as an ADR so future architecture reviews don't re-suggest it?"_ Only offer when the reason would actually be needed by a future explorer to avoid re-suggesting the same thing — skip ephemeral reasons ("not worth it right now") and self-evident ones. ADRs live at [`ai/architecture/decisions/NNNN-slug.md`](../../../ai/architecture/decisions/); see [ADR-FORMAT.md](../grill-with-docs/ADR-FORMAT.md).
+- **User rejects the candidate with a load-bearing reason?** Offer an ADR, framed as: _"Want me to record this as an ADR so future architecture reviews don't re-suggest it?"_ Only offer when the reason would actually be needed by a future explorer to avoid re-suggesting the same thing — skip ephemeral reasons ("not worth it right now") and self-evident ones. ADRs live at [`.agents/architecture/decisions/NNNN-slug.md`](../../architecture/decisions/); see [ADR-FORMAT.md](../grill-with-docs/ADR-FORMAT.md).
 - **Want to explore alternative interfaces for the deepened module?** See [INTERFACE-DESIGN.md](INTERFACE-DESIGN.md).
+
+---
+
+_Adapted from [mattpocock/skills](https://github.com/mattpocock/skills) (MIT, © 2026 Matt Pocock). See [CREDITS.md](../CREDITS.md)._

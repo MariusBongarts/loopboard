@@ -1,6 +1,6 @@
 import { readdir, readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
-import { resolveBaseDir } from "./issues";
+import { DEFAULT_BASE_PATH, resolveBaseDir } from "./issues";
 
 function getSpecsDir(basePath: string) {
   return join(resolveBaseDir(basePath), "specs");
@@ -197,7 +197,7 @@ function extractH1Title(body: string, fallback: string): string {
   return m ? m[1].trim() : fallback;
 }
 
-export async function readAllSpecs(basePath = "ai"): Promise<Spec[]> {
+export async function readAllSpecs(basePath = DEFAULT_BASE_PATH): Promise<Spec[]> {
   const specsDir = getSpecsDir(basePath);
   let entries: string[];
   try {

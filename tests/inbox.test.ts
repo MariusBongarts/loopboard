@@ -1,14 +1,22 @@
 import { describe, expect, it } from 'vitest';
 import {
+  boardColumnIssues,
+  boardIssueCount,
   buildFeed,
   dayLabel,
   filterFeed,
   groupByDay,
   issueRefSegments,
   needsYou,
+  prdNumber,
   projectsByLastSession,
   relativeDay,
+  searchFeed,
+  readPinnedSlugs,
+  searchProjects,
   splitNote,
+  splitPinnedProjects,
+  togglePinnedSlug,
 } from '../src/inbox';
 import { STANDALONE, type Issue, type Project } from '../src/types';
 
@@ -153,5 +161,104 @@ describe('issueRefSegments', () => {
 describe('projectsByLastSession', () => {
   it('orders newest session first', () => {
     expect(projectsByLastSession(projects).map((p) => p.slug)).toEqual(['02-b', '01-a']);
+  });
+});
+
+describe('prdNumber', () => {
+  it('reads the leading project number from a slug', () => {
+    expect(prdNumber('29-android-app-release')).toBe('29');
+    expect(prdNumber(STANDALONE)).toBe('');
+    expect(prdNumber(undefined)).toBe('');
+  });
+});
+
+describe('searchFeed', () => {
+  const bySlug = new Map(projects.map((p) => [p.slug, p]));
+  const feed = buildFeed(
+    [
+      issue({ id: '0020', project: '01-a', title: 'Fix the keystore', created: '2026-09-20' }),
+      issue({ id: '0021', project: '02-b', title: 'Pricing page', labels: ['paddle'], created: '2026-09-21' }),
+    ],
+    projects,
+  );
+
+  it('keeps everything without tokens', () => {
+    expect(searchFeed(feed, [], bySlug)).toHaveLength(feed.length);
+  });
+
+  it('matches issue ids, titles and labels', () => {
+    expect(searchFeed(feed, ['0020'], bySlug).map((e) => e.key)).toEqual(['i:0020']);
+    expect(searchFeed(feed, ['paddle'], bySlug).map((e) => e.key)).toEqual(['i:0021']);
+  });
+
+  it('matches session notes and the project name, all tokens required', () => {
+    expect(searchFeed(feed, ['worked', 'b'], bySlug).map((e) => e.key)).toEqual(['s:02-b:2026-09-22']);
+    expect(searchFeed(feed, ['01-a', 'keystore'], bySlug).map((e) => e.key)).toEqual(['i:0020']);
+  });
+});
+
+describe('boardColumnIssues', () => {
+  const board = [
+    issue({ id: '0002', project: '01-a', status: 'done', priority: 2 }),
+    issue({ id: '0001', project: '01-a', status: 'done', priority: 1 }),
+    issue({ id: '0003', project: '01-a', status: 'todo', archived: true, created: '2026-09-01' }),
+    issue({ id: '0004', project: '01-a', status: 'in-review', archived: true, created: '2026-09-20' }),
+    issue({ id: '0005', project: '02-b', status: 'done', archived: true }),
+    issue({ id: '0006', project: '01-a', status: 'todo' }),
+    issue({ id: '0007', status: 'backlog', archived: true, created: '2026-09-10' }),
+  ];
+
+  it('puts every archived issue in this project into Done, after live done cards', () => {
+    expect(boardColumnIssues(board, '01-a', 'done').map((i) => i.id)).toEqual([
+      '0001',
+      '0002',
+      '0004',
+      '0003',
+    ]);
+    expect(boardColumnIssues(board, '01-a', 'todo').map((i) => i.id)).toEqual(['0006']);
+    expect(boardColumnIssues(board, null, 'done').map((i) => i.id)).toEqual(['0007']);
+  });
+
+  it('still honors assignee and search filters', () => {
+    const filtered = boardColumnIssues(
+      board.map((i) => (i.id === '0004' ? { ...i, assignee: 'human', title: 'Keystore' } : i)),
+      '01-a',
+      'done',
+      'human',
+      ['keystore'],
+    );
+    expect(filtered.map((i) => i.id)).toEqual(['0004']);
+  });
+
+  it('counts archived issues on the board and skips live backlog', () => {
+    expect(boardIssueCount(board, '01-a')).toBe(5);
+    expect(boardIssueCount(board, null)).toBe(1);
+  });
+});
+
+describe('pinned projects', () => {
+  it('parses a stored slug list and ignores junk', () => {
+    expect(readPinnedSlugs(null)).toEqual([]);
+    expect(readPinnedSlugs('["07-keyword","32-i18n"]')).toEqual(['07-keyword', '32-i18n']);
+    expect(readPinnedSlugs('nope')).toEqual([]);
+    expect(readPinnedSlugs('[1, "", "ok"]')).toEqual(['ok']);
+  });
+
+  it('pins newest first and unpin removes the slug', () => {
+    expect(togglePinnedSlug(['a'], 'b')).toEqual(['b', 'a']);
+    expect(togglePinnedSlug(['b', 'a'], 'b')).toEqual(['a']);
+  });
+
+  it('lifts pinned projects in stored order and drops unknown slugs', () => {
+    const { pinned, rest } = splitPinnedProjects(projects, ['missing', '02-b', '01-a']);
+    expect(pinned.map((p) => p.slug)).toEqual(['02-b', '01-a']);
+    expect(rest).toEqual([]);
+  });
+});
+
+describe('searchProjects', () => {
+  it('matches slug, title and number', () => {
+    expect(searchProjects(projects, ['02']).map((p) => p.slug)).toEqual(['02-b']);
+    expect(searchProjects(projects, ['a']).map((p) => p.slug)).toEqual(['01-a']);
   });
 });

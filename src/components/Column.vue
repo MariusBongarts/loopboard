@@ -59,7 +59,7 @@ function onChange(evt: ChangeEvent) {
 </script>
 
 <template>
-  <section class="column" :class="`col-${columnKey}`">
+  <section class="column" :class="[`col-${columnKey}`, { 'column-empty': issues.length === 0 }]" :aria-label="COLUMN_LABEL[columnKey]">
     <header class="column-head">
       <span>{{ COLUMN_LABEL[columnKey] }}</span>
       <span class="count">{{ issues.length }}</span>
@@ -71,10 +71,16 @@ function onChange(evt: ChangeEvent) {
       class="column-list"
       ghost-class="dragging"
       :animation="150"
+      filter=".no-drag"
+      :prevent-on-filter="false"
       @change="onChange"
     >
       <template #item="{ element }">
-        <div :data-issue-id="element.id" :data-archived="element.archived ? 'true' : 'false'">
+        <div
+          :data-issue-id="element.id"
+          :data-archived="element.archived ? 'true' : 'false'"
+          :class="{ 'no-drag': element.archived }"
+        >
           <Card
             :issue="element"
             :highlighted="!!highlightId && element.id === highlightId"

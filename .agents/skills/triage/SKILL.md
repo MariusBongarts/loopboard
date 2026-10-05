@@ -5,20 +5,22 @@ description: Move issues through the SCRUM-style status state machine and assign
 
 # Triage
 
-Operate on `ai/issues/*.md` files (and `ai/issues/_archive/*.md` for closed
+Operate on `.agents/issues/*.md` files (and `.agents/issues/_archive/*.md` for closed
 ones). Mutate frontmatter `status:`, `assignee:`, and `parent:` fields,
 append body sections where the workflow requires (e.g. "Why rejected" on
 `wontfix`, `## Questions` on `assignee: human`), and move files between
-`ai/issues/` and `ai/issues/_archive/` when issues close.
+`.agents/issues/` and `.agents/issues/_archive/` when issues close.
 
 The canonical status vocabulary, assignee field, categories, and field shape
-live in [`ai/issues/README.md`](../../../ai/issues/README.md). Read it first
+live in [`.agents/issues/README.md`](../../issues/README.md). Read it first
 if anything below is unclear.
 
 ## State machine
 
 ```text
-   backlog ─► todo ─► in-progress ─► in-review ─► done ─► (archive)
+   backlog ─► todo ─► in-progress ─────────────► done ─► (archive)
+                               └─► in-review ─┘
+                                 (+ human: needs a human check)
       ▲       │                                     │
       └───────┘ (deferred / promoted)                │
       └──────► wontfix ◄──────────────────────────────┘
@@ -33,13 +35,18 @@ if anything below is unclear.
 
 Status semantics (lifecycle only):
 
-- `backlog` — captured idea, not yet scheduled. Lives in the tracker's
+- `backlog` — captured idea, not yet scheduled. Lives in loopboard's
   Backlog drawer, not on the kanban board. Promote to `todo` when ready
   to schedule, or close as `wontfix` if the idea is rejected.
 - `todo` — drafted, ready to be picked up.
 - `in-progress` — actively being worked on.
-- `in-review` — implementation done; awaiting maintainer verification.
-- `done` — verified shipped. Eligible for `_archive/`.
+- `in-review` — implementation done, waiting on a human check the agent
+  can't do (manual UI, OAuth, judgment). Always `assignee: human` with a
+  `## Review` section. Not a default stop on the way to `done`.
+- `done` — implemented and verified (by the agent's verify run + ACs, or
+  by the maintainer). Eligible for `_archive/`. Optional `reviewed:` /
+  `deployed:` dates record later review and deploys; agents never set
+  `reviewed:`.
 - `blocked` — waiting on the issue named in `parent:`. Watch for the parent
   flipping to `done` and clear the block.
 - `wontfix` — closed, not actioned. The body MUST get a "Why rejected" section
@@ -75,7 +82,7 @@ move to archive, override an in-progress flow).
 
 ## Show what needs attention
 
-Query `ai/issues/*.md` and present two buckets, oldest first by `created:`:
+Query `.agents/issues/*.md` and present two buckets, oldest first by `created:`:
 
 1. **`assignee: human`** — the maintainer's plate. Group by reason: issues
    with a `## Questions` section (clarification owed) versus issues that
@@ -113,11 +120,11 @@ first so the lifecycle stays linear from `todo` onwards.
 1. **Gather context.** Read the full issue (frontmatter, body, comments). If
    the issue has a `project:` field, read the project's `wip.md` for context.
    Use the project's domain glossary at
-   [`ai/specs/00-conventions-and-glossary.md`](../../../ai/specs/00-conventions-and-glossary.md)
+   [`.agents/specs/00-conventions-and-glossary.md`](../../specs/00-conventions-and-glossary.md)
    so triage notes match the rest of the repo's vocabulary. Check
-   [`ai/architecture/decisions/`](../../../ai/architecture/decisions/) for
+   [`.agents/architecture/decisions/`](../../architecture/decisions/) for
    prior decisions in the area you're touching. Scan
-   [`ai/issues/_archive/`](../../../ai/issues/_archive/) for prior `wontfix`
+   [`.agents/issues/_archive/`](../../issues/_archive/) for prior `wontfix`
    issues that resemble this one — their "Why rejected" sections are the
    institutional memory.
 
@@ -138,7 +145,7 @@ first so the lifecycle stays linear from `todo` onwards.
 
 5. **Apply the outcome.** Update the issue's frontmatter `status:` and/or
    `assignee:` fields and any related fields (`parent:`, `project:`,
-   `phase:`). For close transitions, move the file to `ai/issues/_archive/`.
+   `phase:`). For close transitions, move the file to `.agents/issues/_archive/`.
 
    - **`assignee: human`** — flip when work needs human input. If the cause
      is missing clarification, append a `## Questions` body section
@@ -150,11 +157,14 @@ first so the lifecycle stays linear from `todo` onwards.
      erase the `## Questions` section — its answers are institutional
      memory.
    - **`wontfix`** — append a "Why rejected" body section, then move the
-     file to `ai/issues/_archive/`. The archive folder is the institutional
+     file to `.agents/issues/_archive/`. The archive folder is the institutional
      memory for rejected ideas.
    - **`blocked`** — set `parent: NNNN` to the blocking issue.
-   - **`done`** — verified shipped. Move to `ai/issues/_archive/` once the
-     associated project's wip.md activity log records the close.
+   - **`in-review`** — only with `assignee: human` and a `## Review` section
+     naming what to check. When the maintainer approves, flip to `done` and
+     set `reviewed: YYYY-MM-DD` if they ask for it.
+   - **`done`** — implemented and verified. Move to `.agents/issues/_archive/`
+     once the associated project's wip.md activity log records the close.
 
 ## Quick state override
 
@@ -206,7 +216,7 @@ This will not be actioned because:
 ```
 
 The `Concept` field is a kebab-case label so future triage sessions can grep
-the archive (`rg "Concept: dark-mode" ai/issues/_archive/`) and surface the
+the archive (`rg "Concept: dark-mode" .agents/issues/_archive/`) and surface the
 prior rejection when a similar issue arrives. This replaces the dedicated
 `.out-of-scope/` directory pattern from external skill libraries — the
 archive is the memory.

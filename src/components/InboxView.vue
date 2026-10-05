@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import PinIcon from './icons/PinIcon.vue';
 import ProjectPane from './ProjectPane.vue';
 import IssueRefText from './IssueRefText.vue';
 import { toneClass } from '../colors';
@@ -13,30 +14,64 @@ import {
   needsYou,
   prdNumber,
   projectsByLastSession,
+  readPinnedSlugs,
   relativeDay,
   searchFeed,
   searchProjects,
+  splitPinnedProjects,
+  togglePinnedSlug,
   splitNote,
   todayIso,
   type FeedItem,
   type InboxFilter,
 } from '../inbox';
-import { STANDALONE, tokenizeQuery, type ColumnKey, type Issue, type Project, type Spec } from '../types';
+import {
+  STANDALONE,
+  tokenizeQuery,
+  type ColumnKey,
+  type Issue,
+  type Project,
+  type Spec,
+  type WorkspaceSummary,
+} from '../types';
 import SpecsView from './SpecsView.vue';
+import WorkspaceSwitcher from './WorkspaceSwitcher.vue';
+import { useRoute, useRouter } from 'vue-router';
+import { readStored, readWorkspaceStored, writeStored, writeWorkspaceStored } from '../storage';
+import { useWorkspace, type View } from '../workspace';
+import ProjectsView from './ProjectsView.vue';
+import ListView from './ListView.vue';
+import type { LiveState } from '../live';
+import { hasModifier, isShortcut, isTyping } from '../shortcuts';
+import { cycleTheme, themeChoice } from '../theme';
 
-const props = defineProps<{ issues: Issue[]; projects: Project[]; specs: Spec[] }>();
+const props = defineProps<{
+  view: View;
+  workspace: WorkspaceSummary | null;
+  live: LiveState;
+  issues: Issue[];
+  projects: Project[];
+  specs: Spec[];
+  request: { slug: string; tab: 'board' | 'prd'; nonce: number } | null;
+}>();
+const router = useRouter();
+const route = useRoute();
+const { id: workspaceId } = useWorkspace();
 const emit = defineEmits<{
   (e: 'refresh'): void;
   (e: 'open-backlog', issues: Issue[]): void;
   (e: 'open-issue' | 'toggle-assignee', issue: Issue): void;
   (e: 'drop', payload: { issue: Issue; column: ColumnKey }): void;
   (e: 'reorder', payload: { column: ColumnKey; ids: string[]; draggedId: string }): void;
+  (e: 'selection', issue: Issue | null): void;
+  (e: 'pane-project', slug: string | null): void;
+  (e: 'new-issue' | 'new-project'): void;
 }>();
 
-const SELECTED_KEY = 'tracker.inbox.selected';
-const VIEW_KEY = 'tracker.inbox.view';
+const SELECTED_KEY = 'inbox.selected';
 
-const RAIL_KEY = 'tracker.inbox.railWidth';
+const PIN_KEY = 'inbox.pinnedProjects';
+const RAIL_KEY = 'loopboard.railWidth';
 const RAIL_DEFAULT = 248;
 const RAIL_MIN = 180;
 const RAIL_MAX = 460;
@@ -44,62 +79,46 @@ const RAIL_MAX = 460;
 const clampRail = (w: number) => Math.round(Math.min(RAIL_MAX, Math.max(RAIL_MIN, w)));
 const railWidth = ref(readRailWidth());
 function readRailWidth(): number {
-  try {
-    const n = Number(localStorage.getItem(RAIL_KEY));
-    return n ? clampRail(n) : RAIL_DEFAULT;
-  } catch {
-    return RAIL_DEFAULT;
-  }
+  const n = Number(readStored(RAIL_KEY) ?? readStored('tracker.inbox.railWidth'));
+  return n ? clampRail(n) : RAIL_DEFAULT;
 }
 const inboxEl = ref<HTMLElement | null>(null);
 function onResizeStart(e: PointerEvent) {
-  const handle = e.currentTarget as HTMLElement;
-  handle.setPointerCapture(e.pointerId);
   const left = inboxEl.value?.getBoundingClientRect().left ?? 0;
+  document.body.classList.add('is-resizing');
   const move = (ev: PointerEvent) => {
     railWidth.value = clampRail(ev.clientX - left);
   };
   const up = () => {
-    handle.removeEventListener('pointermove', move);
-    handle.removeEventListener('pointerup', up);
-    try {
-      localStorage.setItem(RAIL_KEY, String(railWidth.value));
-    } catch {
-      /* ignore */
-    }
+    window.removeEventListener('pointermove', move);
+    window.removeEventListener('pointerup', up);
+    document.body.classList.remove('is-resizing');
+    writeStored(RAIL_KEY, String(railWidth.value));
   };
-  handle.addEventListener('pointermove', move);
-  handle.addEventListener('pointerup', up);
+  window.addEventListener('pointermove', move);
+  window.addEventListener('pointerup', up);
 }
 function resetRailWidth() {
   railWidth.value = RAIL_DEFAULT;
-  try {
-    localStorage.removeItem(RAIL_KEY);
-  } catch {
-    /* ignore */
-  }
+  writeStored(RAIL_KEY, null);
 }
 
 const query = ref('');
 const tokens = computed(() => tokenizeQuery(query.value));
 const searchInput = ref<HTMLInputElement | null>(null);
+const specsView = ref<InstanceType<typeof SpecsView> | null>(null);
 
-type View = 'feed' | 'specs';
-const view = ref<View>(readView());
-function readView(): View {
-  try {
-    return localStorage.getItem(VIEW_KEY) === 'specs' ? 'specs' : 'feed';
-  } catch {
-    return 'feed';
-  }
+const view = computed(() => props.view);
+// The route owns the view (#0008): /w/:ws is the feed, /w/:ws/specs the specs.
+function showView(v: View) {
+  if (v === props.view) return;
+  router.push(v === 'feed' ? `/w/${workspaceId.value}` : `/w/${workspaceId.value}/${v}`);
 }
-watch(view, (v) => {
-  try {
-    localStorage.setItem(VIEW_KEY, v);
-  } catch {
-    /* ignore */
-  }
-});
+
+function openFromOverview(slug: string) {
+  showView('feed');
+  openOverride.value = slug;
+}
 const DAY_PAGE = 8;
 
 const FILTERS: { key: InboxFilter; label: string; title: string }[] = [
@@ -108,6 +127,17 @@ const FILTERS: { key: InboxFilter; label: string; title: string }[] = [
   { key: 'sessions', label: 'Sessions', title: 'Sessions' },
   { key: 'issues', label: 'Issues', title: 'Issues' },
 ];
+
+// Hide the feed to give the board the full width; remembered per browser.
+const feedHidden = ref(readStored('loopboard.feedHidden') === '1');
+watch(feedHidden, (h) => writeStored('loopboard.feedHidden', h ? '1' : null));
+
+const RAIL_FILTERS = FILTERS.filter((f) => f.key === 'all' || f.key === 'you');
+const { views } = useWorkspace();
+
+function openIssues(query: Record<string, string> = {}) {
+  router.push({ path: `/w/${workspaceId.value}/issues`, query });
+}
 
 const today = todayIso();
 const filter = ref<InboxFilter>('all');
@@ -121,18 +151,12 @@ const scrollEl = ref<HTMLElement | null>(null);
 const sentinel = ref<HTMLElement | null>(null);
 
 function readSelected(): string | null {
-  try {
-    return localStorage.getItem(SELECTED_KEY);
-  } catch {
-    return null;
-  }
+  // A link like /w/:ws?item=i:0042 (from the cross-workspace view) wins.
+  if (typeof route.query.item === 'string') return route.query.item;
+  return readWorkspaceStored(workspaceId.value, SELECTED_KEY);
 }
 watch(selectedKey, (k) => {
-  try {
-    if (k) localStorage.setItem(SELECTED_KEY, k);
-  } catch {
-    /* ignore */
-  }
+  if (k) writeWorkspaceStored(workspaceId.value, SELECTED_KEY, k);
 });
 
 const projectsBySlug = computed(() => new Map(props.projects.map((p) => [p.slug, p])));
@@ -150,11 +174,27 @@ const counts = computed(() => ({
   issues: feed.value.filter((e) => e.kind === 'issue').length,
 }));
 
+const pinnedSlugs = ref(readPins());
+function readPins(): string[] {
+  return readPinnedSlugs(readWorkspaceStored(workspaceId.value, PIN_KEY));
+}
+function togglePin(slug: string) {
+  pinnedSlugs.value = togglePinnedSlug(pinnedSlugs.value, slug);
+  writeWorkspaceStored(workspaceId.value, PIN_KEY, JSON.stringify(pinnedSlugs.value));
+}
+
 const railProjects = computed(() => searchProjects(props.projects, tokens.value));
-const railActive = computed(() =>
-  projectsByLastSession(railProjects.value.filter((p) => p.status !== 'shipped' && p.status !== 'paused')),
-);
-const railPaused = computed(() => projectsByLastSession(railProjects.value.filter((p) => p.status === 'paused')));
+const railSections = computed(() => {
+  const visible = railProjects.value.filter((p) => p.status !== 'shipped');
+  const { pinned, rest } = splitPinnedProjects(visible, pinnedSlugs.value);
+  const sections: { label: string; projects: Project[] }[] = [];
+  if (pinned.length) sections.push({ label: 'Pinned', projects: pinned });
+  const active = projectsByLastSession(rest.filter((p) => p.status !== 'paused'));
+  if (active.length) sections.push({ label: 'Projects · last session', projects: active });
+  const paused = projectsByLastSession(rest.filter((p) => p.status === 'paused'));
+  if (paused.length) sections.push({ label: 'Paused', projects: paused });
+  return sections;
+});
 
 const selected = computed<FeedItem | null>(
   () => feed.value.find((e) => e.key === selectedKey.value) ?? null,
@@ -171,6 +211,25 @@ watch(
 );
 
 const paneKey = computed(() => openOverride.value ?? selected.value?.projectKey ?? null);
+watch(
+  () => (selected.value?.kind === 'issue' ? selected.value.issue : null),
+  (issue) => emit('selection', issue),
+  { immediate: true },
+);
+watch(
+  () => (paneKey.value && paneKey.value !== STANDALONE ? paneKey.value : null),
+  (slug) => emit('pane-project', slug),
+  { immediate: true },
+);
+// "Show this project" from ⌘K or after creating one (#0020, #0021).
+watch(
+  () => props.request?.nonce,
+  () => {
+    if (!props.request) return;
+    showView('feed');
+    openOverride.value = props.request.slug;
+  },
+);
 const paneProject = computed<Project | null>(() =>
   paneKey.value && paneKey.value !== STANDALONE ? projectsBySlug.value.get(paneKey.value) ?? null : null,
 );
@@ -203,7 +262,8 @@ function resetList() {
 }
 
 function setFilter(f: InboxFilter) {
-  view.value = 'feed';
+  showView('feed');
+  feedHidden.value = false;
   filter.value = f;
   scope.value = null;
   openOverride.value = null;
@@ -220,7 +280,7 @@ function setChip(f: InboxFilter) {
 }
 
 function scopeTo(slug: string) {
-  view.value = 'feed';
+  showView('feed');
   scope.value = slug;
   filter.value = 'all';
   openOverride.value = null;
@@ -253,7 +313,7 @@ async function move(delta: number) {
 }
 
 watch(query, () => {
-  view.value = 'feed';
+  showView('feed');
   resetList();
   if (!visible.value.some((e) => e.key === selectedKey.value) && visible.value[0]) {
     selectedKey.value = visible.value[0].key;
@@ -262,18 +322,21 @@ watch(query, () => {
 });
 
 function onKeydown(e: KeyboardEvent) {
-  const t = e.target as HTMLElement | null;
-  if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
-  if (e.metaKey || e.ctrlKey || e.altKey) return;
-  if (e.key === '/' && !document.querySelector('.drawer')) {
+  if (isTyping(e) || hasModifier(e)) return;
+  const overlay = document.querySelector('.drawer, .modal-backdrop');
+  if (isShortcut(e, 'search') && !overlay) {
     e.preventDefault();
-    searchInput.value?.focus();
-    searchInput.value?.select();
+    // In the Specs view "/" searches scenarios, not the feed.
+    if (view.value === 'specs') specsView.value?.focusSearch();
+    else {
+      searchInput.value?.focus();
+      searchInput.value?.select();
+    }
     return;
   }
-  if (view.value !== 'feed' || document.querySelector('.drawer')) return;
-  if (e.key === 'j') move(1);
-  else if (e.key === 'k') move(-1);
+  if (view.value !== 'feed' || overlay) return;
+  if (isShortcut(e, 'next')) move(1);
+  else if (isShortcut(e, 'prev')) move(-1);
 }
 
 function openById(id: string) {
@@ -327,16 +390,51 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="inbox" :class="{ 'inbox-specs-mode': view === 'specs' }">
+  <div
+    ref="inboxEl"
+    class="inbox"
+    :class="{ 'inbox-specs-mode': view !== 'feed', 'feed-hidden': feedHidden && view === 'feed' }"
+    :style="{ '--rail-w': `${railWidth}px` }"
+  >
     <nav class="inbox-rail" aria-label="Inbox navigation">
       <div class="rail-head">
-        <span class="rail-brand">Issue <em>Tracker</em></span>
-        <button type="button" class="rail-refresh" title="Re-read files from disk" @click="emit('refresh')">
-          Refresh
+        <WorkspaceSwitcher :current="props.workspace" />
+        <button type="button" class="rail-new" title="New issue (C)" aria-label="New issue" @click="emit('new-issue')">
+          <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M7 2v10M2 7h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" /></svg>
         </button>
+        <button
+          v-if="props.live === 'offline'"
+          type="button"
+          class="live-badge offline"
+          title="Lost the connection to loopboard — retrying. Click to reload now."
+          @click="emit('refresh')"
+        >
+          Offline
+        </button>
+        <span
+          v-else
+          class="live-dot"
+          :class="props.live"
+          role="status"
+          :aria-label="props.live === 'live' ? 'Live — updates as files change' : 'Connecting'"
+          :title="props.live === 'live' ? 'Live — updates as files change' : 'Connecting…'"
+        />
       </div>
+      <div class="rail-search-wrap">
+        <input
+          ref="searchInput"
+          v-model="query"
+          type="search"
+          class="rail-search"
+          placeholder="Search issues, sessions, PRDs"
+          aria-label="Search issues, sessions and PRDs"
+          @keydown.esc="query = ''"
+        />
+        <kbd v-if="!query">/</kbd>
+      </div>
+      <!-- The rail lists destinations; the feed's chips filter it (#0031). -->
       <button
-        v-for="f in FILTERS"
+        v-for="f in RAIL_FILTERS"
         :key="f.key"
         type="button"
         class="rail-nav"
@@ -346,47 +444,105 @@ onBeforeUnmount(() => {
         <span class="rail-name">{{ f.title }}</span>
         <span class="rail-count" :class="{ hot: f.key === 'you' && counts.you > 0 }">{{ counts[f.key] }}</span>
       </button>
+      <button type="button" class="rail-nav" :class="{ on: view === 'issues' && !route.query.view }" @click="openIssues()">
+        <span class="rail-name">Issues</span>
+        <span class="rail-count">{{ counts.issues }}</span>
+      </button>
+      <button
+        type="button"
+        class="rail-nav"
+        :class="{ on: view === 'projects' }"
+        @click="showView('projects')"
+      >
+        <span class="rail-name">Projects</span>
+        <span class="rail-count">{{ props.projects.length }}</span>
+      </button>
       <button
         type="button"
         class="rail-nav"
         :class="{ on: view === 'specs' }"
-        @click="view = 'specs'"
+        @click="showView('specs')"
       >
         <span class="rail-name">Specs</span>
         <span class="rail-count">{{ props.specs.length }}</span>
       </button>
-      <div class="rail-sec">Projects · last session</div>
-      <button
-        v-for="p in railActive"
-        :key="p.slug"
-        type="button"
-        class="rail-nav"
-        :class="{ on: view === 'feed' && scope === p.slug }"
-        @click="scopeTo(p.slug)"
-      >
-        <span class="rail-dot" :class="toneClass(p.slug)" />
-        <span class="rail-name">{{ p.title }}</span>
-        <span class="rail-count">{{ relativeDay(p.lastSession, today) }}</span>
-      </button>
-      <template v-if="railPaused.length">
-        <div class="rail-sec">Paused</div>
+      <template v-if="views.length">
+        <div class="rail-sec">Views</div>
         <button
-          v-for="p in railPaused"
-          :key="p.slug"
+          v-for="v in views"
+          :key="v.id"
           type="button"
           class="rail-nav"
-          :class="{ on: view === 'feed' && scope === p.slug }"
-          @click="scopeTo(p.slug)"
+          :class="{ on: view === 'issues' && route.query.view === v.id }"
+          @click="openIssues({ ...v.query, view: v.id })"
         >
-          <span class="rail-dot" :class="toneClass(p.slug)" />
-          <span class="rail-name">{{ p.title }}</span>
-          <span class="rail-count">{{ relativeDay(p.lastSession, today) }}</span>
+          <span class="rail-name">{{ v.name }}</span>
         </button>
       </template>
+      <template v-for="section in railSections" :key="section.label">
+        <div class="rail-sec">
+          {{ section.label }}
+          <button
+            v-if="section === railSections[0]"
+            type="button"
+            class="rail-sec-add"
+            title="New project"
+            aria-label="New project"
+            @click="emit('new-project')"
+          >+</button>
+        </div>
+        <div
+          v-for="p in section.projects"
+          :key="p.slug"
+          class="rail-row"
+          :class="{ on: view === 'feed' && scope === p.slug }"
+        >
+          <button type="button" class="rail-nav" @click="scopeTo(p.slug)">
+            <span class="rail-dot" :class="toneClass(p.slug)" />
+            <span class="prd-num">{{ prdNumber(p.slug) }}</span>
+            <span class="rail-name">{{ p.title }}</span>
+            <span class="rail-count">{{ relativeDay(p.lastSession, today) }}</span>
+          </button>
+          <button
+            type="button"
+            class="rail-pin"
+            :class="{ on: pinnedSlugs.includes(p.slug) }"
+            :aria-pressed="pinnedSlugs.includes(p.slug)"
+            :aria-label="`${pinnedSlugs.includes(p.slug) ? 'Unpin' : 'Pin'} ${p.title}`"
+            :title="pinnedSlugs.includes(p.slug) ? 'Unpin' : 'Pin'"
+            @click="togglePin(p.slug)"
+          >
+            <PinIcon :filled="pinnedSlugs.includes(p.slug)" />
+          </button>
+        </div>
+      </template>
+      <div v-if="!railSections.length" class="rail-sec">
+        Projects
+        <button type="button" class="rail-sec-add" title="New project" aria-label="New project" @click="emit('new-project')">+</button>
+      </div>
+      <div class="rail-foot">
+        <RouterLink class="rail-nav" :to="{ path: '/help', query: { from: workspaceId } }">
+          <span class="rail-name">Help</span>
+          <kbd>?</kbd>
+        </RouterLink>
+        <button
+          type="button"
+          class="rail-theme"
+          :title="`Theme: ${themeChoice} — click to change`"
+          :aria-label="`Theme: ${themeChoice}`"
+          @click="cycleTheme()"
+        >{{ themeChoice === 'dark' ? '☾' : themeChoice === 'light' ? '☀' : '◐' }}</button>
+      </div>
     </nav>
 
-    <section v-if="view === 'specs'" class="inbox-specs">
-      <SpecsView :specs="props.specs" />
+    <section v-if="view === 'issues'" class="inbox-specs">
+      <ListView />
+    </section>
+    <section v-else-if="view === 'projects'" class="inbox-specs">
+      <ProjectsView :projects="props.projects" :issues="props.issues" @open="openFromOverview" />
+    </section>
+    <section v-else-if="view === 'specs'" class="inbox-specs">
+      <SpecsView ref="specsView" :specs="props.specs" />
     </section>
 
     <section v-show="view === 'feed'" class="inbox-list" aria-label="Activity">
@@ -394,6 +550,7 @@ onBeforeUnmount(() => {
         <div class="list-head-row">
           <h2>{{ listTitle }}</h2>
           <button v-if="scope" type="button" class="list-clear" @click="setFilter(filter)">All projects</button>
+          <button type="button" class="feed-toggle" title="Hide the feed — give the board the full width" aria-label="Hide feed" @click="feedHidden = true">⇤</button>
         </div>
         <div class="list-filters">
           <button
@@ -408,7 +565,21 @@ onBeforeUnmount(() => {
       </header>
 
       <div ref="scrollEl" class="list-scroll">
-        <p v-if="visible.length === 0" class="list-empty">Nothing here.</p>
+        <div v-if="feed.length === 0" class="first-steps">
+          <h3>Nothing here yet</h3>
+          <p>Ask your agent, in this repo:</p>
+          <ol>
+            <li><q>Grill me on &lt;your idea&gt;</q> — it interviews you until the plan is clear.</li>
+            <li><q>Write a PRD for this</q> — a project appears in the rail.</li>
+            <li><q>Break it into issues</q> — they show up here as they're filed.</li>
+          </ol>
+          <p class="first-steps-own">
+            Or file one yourself:
+            <button type="button" class="first-steps-new" @click="emit('new-issue')">New issue</button> <kbd>C</kbd>
+          </p>
+          <RouterLink :to="{ path: '/help', query: { from: workspaceId } }">How the loop works →</RouterLink>
+        </div>
+        <p v-else-if="visible.length === 0" class="list-empty">Nothing here.</p>
         <section v-for="d in shownDays" :key="d.date || 'none'" class="feed-day">
           <h3 class="feed-day-head">
             <span>{{ dayLabel(d.date, today) }}</span>
@@ -436,6 +607,7 @@ onBeforeUnmount(() => {
                   @click.stop="openProject(item.projectKey)"
                 >
                   <span class="rail-dot" :class="item.projectKey === STANDALONE ? '' : toneClass(item.projectKey)" />
+                  <span v-if="prdNumber(item.projectKey)" class="prd-num">{{ prdNumber(item.projectKey) }}</span>
                   {{ projectTitle(item.projectKey) }}
                 </button>
                 <span class="feed-kind">{{ item.kind === 'session' ? 'Session' : `#${item.issue.id}` }}</span>
@@ -458,6 +630,7 @@ onBeforeUnmount(() => {
     </section>
 
     <section v-show="view === 'feed'" class="inbox-pane">
+      <button v-if="feedHidden" type="button" class="feed-toggle feed-show" title="Show the feed" aria-label="Show feed" @click="feedHidden = false">⇥ Feed</button>
       <ProjectPane
         v-if="paneValid"
         :project="paneProject"
@@ -465,6 +638,7 @@ onBeforeUnmount(() => {
         :today="today"
         :highlight-id="highlightId"
         :pinned-label="pinnedLabel"
+        :request-tab="props.request && props.request.slug === paneKey ? props.request : null"
         @open-issue="(i) => emit('open-issue', i)"
         @open-backlog="(list) => emit('open-backlog', list)"
         @open-id="openById"
@@ -489,7 +663,18 @@ onBeforeUnmount(() => {
           </div>
         </template>
       </ProjectPane>
-      <p v-else class="list-empty">Select an item to see its project's board.</p>
+      <p v-else class="list-empty">
+        {{ feed.length === 0 ? 'The board appears here once there are issues.' : "Select an item to see its project's board." }}
+      </p>
     </section>
+    <div
+      class="rail-resizer"
+      role="separator"
+      aria-orientation="vertical"
+      aria-label="Resize sidebar"
+      title="Drag to resize · double-click to reset"
+      @pointerdown.prevent="onResizeStart"
+      @dblclick="resetRailWidth"
+    />
   </div>
 </template>

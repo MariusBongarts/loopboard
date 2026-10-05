@@ -1,4 +1,12 @@
-import { STANDALONE, searchMatches, type Issue, type Project } from './types';
+import {
+  ALWAYS_VISIBLE_COLUMNS,
+  STANDALONE,
+  byPriority,
+  searchMatches,
+  type ColumnKey,
+  type Issue,
+  type Project,
+} from './types';
 
 // Inbox (#0069): one date-sorted feed of project sessions and filed issues,
 // grouped by day. Selecting an item opens its project's board.
@@ -188,8 +196,83 @@ export function searchProjects(projects: Project[], tokens: string[]): Project[]
   });
 }
 
+function inProject(issue: Issue, projectSlug: string | null): boolean {
+  return projectSlug ? issue.project === projectSlug : !issue.project;
+}
+
+export function passesBoardFilters(
+  issue: Issue,
+  who: 'all' | Issue['assignee'],
+  tokens: string[],
+): boolean {
+  return (who === 'all' || issue.assignee === who) && searchMatches(issue, tokens);
+}
+
+// Archived issues have left the workflow, so the board shows them in Done
+// after the live done cards (newest archive first).
+export function boardColumnIssues(
+  issues: Issue[],
+  projectSlug: string | null,
+  column: ColumnKey,
+  who: 'all' | Issue['assignee'] = 'all',
+  tokens: string[] = [],
+): Issue[] {
+  const live = issues
+    .filter(
+      (i) =>
+        !i.archived &&
+        inProject(i, projectSlug) &&
+        i.status === column &&
+        passesBoardFilters(i, who, tokens),
+    )
+    .sort(byPriority);
+  if (column !== 'done') return live;
+  const archived = issues
+    .filter((i) => i.archived && inProject(i, projectSlug) && passesBoardFilters(i, who, tokens))
+    .sort((a, b) => (b.created ?? '').localeCompare(a.created ?? '') || b.id.localeCompare(a.id));
+  return [...live, ...archived];
+}
+
+export function boardIssueCount(issues: Issue[], projectSlug: string | null): number {
+  return issues.filter(
+    (i) =>
+      inProject(i, projectSlug) &&
+      (i.archived || ALWAYS_VISIBLE_COLUMNS.includes(i.status)),
+  ).length;
+}
+
 export function projectsByLastSession(projects: Project[]): Project[] {
   return [...projects].sort(
     (a, b) => (b.lastSession ?? '').localeCompare(a.lastSession ?? '') || a.slug.localeCompare(b.slug),
   );
+}
+
+export function readPinnedSlugs(raw: string | null): string[] {
+  if (!raw) return [];
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((s): s is string => typeof s === 'string' && s.length > 0);
+  } catch {
+    return [];
+  }
+}
+
+// Newest pin first. Pinning an already-pinned slug removes it.
+export function togglePinnedSlug(slugs: string[], slug: string): string[] {
+  return slugs.includes(slug) ? slugs.filter((s) => s !== slug) : [slug, ...slugs];
+}
+
+// Pinned projects keep the stored pin order. Unknown slugs are dropped.
+export function splitPinnedProjects<T extends { slug: string }>(
+  projects: T[],
+  pinnedSlugs: string[],
+): { pinned: T[]; rest: T[] } {
+  const bySlug = new Map(projects.map((p) => [p.slug, p]));
+  const pinned = pinnedSlugs.flatMap((slug) => {
+    const project = bySlug.get(slug);
+    return project ? [project] : [];
+  });
+  const pinnedSet = new Set(pinned.map((p) => p.slug));
+  return { pinned, rest: projects.filter((p) => !pinnedSet.has(p.slug)) };
 }

@@ -17,6 +17,11 @@ export type PreWorkflowStatus = typeof PRE_WORKFLOW_STATUSES[number];
 export type Status = typeof ALL_STATUSES[number];
 export type Assignee = typeof ASSIGNEES[number];
 
+// Finished work: done, or closed as wontfix.
+export function isClosed(status: string): boolean {
+  return status === 'done' || status === 'wontfix';
+}
+
 export interface Issue {
   id: string;
   filename: string;
@@ -33,6 +38,8 @@ export interface Issue {
   // Sort rank within a column (1 = top). Optional; not severity.
   priority?: number;
   body: string;
+  reviewed?: string;
+  deployed?: string;
 }
 
 export interface ProjectSession {
@@ -142,7 +149,20 @@ export function scenarioMatches(scenario: Scenario, tokens: string[]): boolean {
   return tokens.every((t) => haystack.includes(t));
 }
 
+export interface Workspace {
+  id: string;
+  name: string;
+  repoPath: string;
+  root: string;
+}
+
+export interface WorkspaceSummary extends Workspace {
+  available: boolean;
+  issueCount: number;
+}
+
 export interface ApiData {
+  workspace: WorkspaceSummary;
   issues: Issue[];
   projects: Project[];
   specs: Spec[];
@@ -199,8 +219,9 @@ export function byPriority(a: Issue, b: Issue): number {
   return a.id.localeCompare(b.id);
 }
 
-export function relativePath(issue: Pick<Issue, 'filename' | 'archived'>): string {
-  return issue.archived ? `ai/issues/_archive/${issue.filename}` : `ai/issues/${issue.filename}`;
+// Path as the repo sees it, e.g. `.agents/issues/0001-x.md` or `ai/issues/…`.
+export function relativePath(issue: Pick<Issue, 'filename' | 'archived'>, rootName = '.agents'): string {
+  return issue.archived ? `${rootName}/issues/_archive/${issue.filename}` : `${rootName}/issues/${issue.filename}`;
 }
 
 export function tokenizeQuery(query: string): string[] {

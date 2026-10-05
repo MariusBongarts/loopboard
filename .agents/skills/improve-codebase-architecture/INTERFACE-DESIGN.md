@@ -27,7 +27,7 @@ Prompt each sub-agent with a separate technical brief (file paths, coupling deta
 - Agent 3: "Optimise for the most common caller — make the default case trivial."
 - Agent 4 (if applicable): "Design around ports & adapters for cross-seam dependencies."
 
-Include both [LANGUAGE.md](LANGUAGE.md) vocabulary (architecture terms) and the domain glossary at [`ai/specs/00-conventions-and-glossary.md`](../../../ai/specs/00-conventions-and-glossary.md) (MorningMail terms — Template, Module, Execution, etc.) in each brief so each sub-agent names things consistently across both languages.
+Include both [LANGUAGE.md](LANGUAGE.md) vocabulary (architecture terms) and the domain glossary at [`.agents/specs/00-conventions-and-glossary.md`](../../specs/00-conventions-and-glossary.md) (domain terms) in each brief so each sub-agent names things consistently across both languages.
 
 Each sub-agent outputs:
 

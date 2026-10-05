@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>loopboard Brand Kit</title>
+  <!--
+    The Brand Kit (#0033). It loads the app's real stylesheet and fonts, so every
+    swatch and component below is the live value — nothing is copied. Open it with
+    `pnpm dev` at http://localhost:5180/.agents/design/Brand%20Kit.html (or straight
+    from disk after `pnpm install`).
+
+    Rules for agents doing UI work are in the "Rules" section; follow them.
+  -->
+  <link rel="stylesheet" href="../../node_modules/@fontsource-variable/fraunces/full.css" />
+  <link rel="stylesheet" href="../../node_modules/@fontsource-variable/fraunces/full-italic.css" />
+  <link rel="stylesheet" href="../../node_modules/@fontsource-variable/geist/index.css" />
+  <link rel="stylesheet" href="../../node_modules/@fontsource-variable/jetbrains-mono/index.css" />
+  <link rel="stylesheet" href="../../src/styles.css" />
+  <style>
+    body { overflow: auto; }
+    .kit { max-width: 1040px; margin: 0 auto; padding: 36px 28px 90px; font-family: var(--sans); color: var(--ink); }
+    .kit-top { display: flex; align-items: center; justify-content: space-between; }
+    .kit h1 { font-family: var(--serif); font-size: 40px; font-weight: 500; letter-spacing: -0.02em; margin: 18px 0 6px; }
+    .kit h2 { font-family: var(--serif); font-size: 24px; font-weight: 500; margin: 44px 0 12px; padding-top: 16px; border-top: 1px solid var(--rule); }
+    .kit h3 { font-size: 12px; font-weight: 600; color: var(--ink-4); text-transform: uppercase; letter-spacing: 0.06em; margin: 22px 0 8px; }
+    .kit p, .kit li { font-size: 14px; line-height: 1.6; color: var(--ink-2); }
+    .swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+    .swatch { border: 1px solid var(--rule); border-radius: 10px; overflow: hidden; background: var(--paper); }
+    .swatch-chip { height: 54px; }
+    .swatch-name { padding: 6px 8px 0; font: 600 12px var(--mono); }
+    .swatch-value { padding: 0 8px 8px; font: 11px var(--mono); color: var(--ink-4); }
+    .row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+    .marks { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+    .mark-opt { border: 1px solid var(--rule); border-radius: 12px; padding: 22px; display: grid; gap: 14px; justify-items: start; background: var(--paper); }
+    .mark-opt.chosen { border-color: var(--ember-deep); box-shadow: 0 0 0 3px color-mix(in oklch, var(--ember-deep) 18%, transparent); }
+    .mark-a { font-family: var(--serif); font-size: 34px; font-weight: 600; letter-spacing: -0.02em; }
+    .mark-a em { font-style: italic; font-weight: 500; color: var(--ember-deep); }
+    .mark-b { display: flex; align-items: center; gap: 10px; font: 600 26px var(--sans); letter-spacing: -0.02em; }
+    .mark-c { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 14px; background: var(--ink); color: var(--paper); font: 600 italic 26px var(--serif); }
+    .type-sample { display: grid; grid-template-columns: 140px 1fr; gap: 6px 18px; align-items: baseline; }
+    .type-sample code { font: 11px var(--mono); color: var(--ink-4); }
+    .demo-board { display: grid; grid-template-columns: repeat(3, 230px); gap: 10px; }
+    .theme-toggle { display: inline-flex; gap: 4px; }
+  </style>
+</head>
+<body>
+  <main class="kit">
+    <div class="kit-top">
+      <span class="wordmark" style="font-size: 20px">loop<em>board</em></span>
+      <div class="seg theme-toggle" role="radiogroup" aria-label="Theme">
+        <button type="button" class="on" data-set-theme="light">Light</button>
+        <button type="button" data-set-theme="dark">Dark</button>
+      </div>
+    </div>
+    <h1>Brand Kit</h1>
+    <p>Warm paper, ink and one ember accent: an editor's desk, not a dashboard. Everything on this page is rendered
+      from <code>src/styles.css</code> — change a token there and this page changes with it.</p>
+
+    <h2>Rules</h2>
+    <ul>
+      <li><strong>Tokens only.</strong> Colors come from the CSS custom properties below; never hard-code a color. Mixes use <code>color-mix(in oklch, var(--token) N%, …)</code>. Both themes must pass <code>pnpm contrast</code> (WCAG AA for text and status/project chips).</li>
+      <li><strong>One accent.</strong> Ember marks the primary action, the current selection and the brand. Tones (ember, blue, moss, rose, plum, amber, teal) are identity colors for projects and labels — never decoration.</li>
+      <li><strong>Type has jobs.</strong> Fraunces (serif) for titles and reading text, Geist (sans) for interface, JetBrains Mono for ids, paths and keys.</li>
+      <li><strong>Quiet by default.</strong> Hover reveals secondary actions (pin, copy prompt); badges appear only when they say something (waiting, reviewed, deployed).</li>
+      <li><strong>Plain words, sentence case.</strong> "Needs you", "Copy agent prompt", "Changed on disk". Say what happens, not how it works. No exclamation marks.</li>
+      <li><strong>Keyboard first.</strong> Every new action gets a ⌘K command; plain-key shortcuts go in <code>src/shortcuts.ts</code> so Help lists them.</li>
+      <li><strong>Dialogs</strong> use <code>BaseDialog</code>; segmented choices use <code>Segmented</code>; confirmations are inline ("Remove… → Remove / Keep"), not native <code>confirm()</code>.</li>
+    </ul>
+
+    <h2>Wordmark</h2>
+    <p>Option A is the default (used in the app and the favicon pairs with B's mark). The maintainer decides — see the
+      open questions in the launch project's <code>wip.md</code>.</p>
+    <div class="marks">
+      <div class="mark-opt chosen"><span class="mark-a">loop<em>board</em></span><span class="marker marker-reviewed">A · default</span></div>
+      <div class="mark-opt"><span class="mark-b"><img src="../../public/favicon.svg" width="34" height="34" alt="" />loopboard</span><span class="marker">B · mark + sans</span></div>
+      <div class="mark-opt"><span class="mark-c">lb</span><span class="marker">C · monogram</span></div>
+    </div>
+
+    <h2>Color</h2>
+    <h3>Paper and ink</h3>
+    <div class="swatches" data-tokens="paper paper-2 paper-3 rule rule-soft ink ink-2 ink-3 ink-4"></div>
+    <h3>Accent and tones</h3>
+    <div class="swatches" data-tokens="ember ember-deep ember-soft ink-blue ink-blue-soft moss moss-deep moss-soft rose rose-deep rose-soft plum plum-deep plum-soft amber amber-deep amber-soft teal teal-deep teal-soft"></div>
+
+    <h2>Type</h2>
+    <div class="type-sample">
+      <code>--serif · 34/500</code><span style="font: 500 34px var(--serif); letter-spacing: -0.02em">Give the tracker a home</span>
+      <code>--serif · 15 reading</code><span style="font: 15px/1.6 var(--serif)">As a maintainer with hundreds of issues across dozens of projects, I want a home that shows what needs me.</span>
+      <code>--sans · 13.5 UI</code><span style="font: 13.5px var(--sans)">Inbox · Needs you · Issues · Projects · Specs</span>
+      <code>--mono · 11.5</code><span style="font: 11.5px var(--mono)">.agents/issues/0042-malformed-issue-files.md · #0042 · ⌘K</span>
+    </div>
+
+    <h2>Components</h2>
+    <h3>Buttons and controls</h3>
+    <div class="row">
+      <button type="button">Cancel</button>
+      <button type="button" class="primary">Create issue</button>
+      <button type="button" class="danger">Remove</button>
+      <div class="seg" role="radiogroup" aria-label="Sample"><button class="on">Everyone</button><button>You</button><button>Agent</button></div>
+      <button type="button" class="fchip on">All</button><button type="button" class="fchip">Needs you</button>
+      <span class="live-dot live"></span>
+    </div>
+    <h3>Status, assignee and markers</h3>
+    <div class="row">
+      <span class="feed-status s-todo">todo</span><span class="feed-status s-in-progress">in-progress</span><span class="feed-status s-in-review">in-review</span><span class="feed-status s-done">done</span><span class="feed-status s-blocked">blocked</span>
+      <span class="feed-who agent">agent</span><span class="feed-who human">human</span>
+      <span class="marker marker-waiting">waiting on #0002</span><span class="marker marker-reviewed">✓ reviewed</span><span class="marker marker-deployed">↑ deployed</span>
+    </div>
+    <h3>Project and label tones</h3>
+    <div class="row">
+      <span class="card-project tone-ember">01-launch</span><span class="card-project tone-blue">02-export</span><span class="card-project tone-moss">03-sync</span><span class="card-project tone-rose">04-billing</span><span class="card-project tone-plum">05-search</span><span class="card-project tone-amber">06-docs</span><span class="card-project tone-teal">07-mobile</span>
+      <span class="card-label tone-blue">ui</span><span class="card-label tone-rose">bug</span>
+    </div>
+    <h3>Board</h3>
+    <div class="demo-board">
+      <section class="column col-todo"><header class="column-head"><span>Todo</span><span class="count">2</span></header>
+        <div class="column-list"><div class="card"><div class="card-top"><span class="card-id">#0042</span><span class="card-cat task">task</span></div><div class="card-title">Wire the export button</div><div class="card-path">.agents/issues/0042-wire-the-export-button.md</div><div class="card-meta"><span class="marker marker-waiting">waiting on #0041</span><span class="card-project tone-ember">01-launch</span></div></div></div>
+      </section>
+      <section class="column col-in-progress"><header class="column-head"><span>In progress</span><span class="count">1</span></header>
+        <div class="column-list"><div class="card hl"><div class="card-top"><span class="card-id">#0041</span><span class="card-cat user-story">user-story</span></div><div class="card-title">Cache the feed</div><div class="card-path">.agents/issues/0041-cache-the-feed.md</div><div class="card-meta"><span class="card-project tone-ember">01-launch</span><span class="card-label tone-blue">ui</span></div></div></div>
+      </section>
+      <section class="column col-done"><header class="column-head"><span>Done</span><span class="count">1</span></header>
+        <div class="column-list"><div class="card"><div class="card-top"><span class="card-id">#0040</span><span class="card-cat bug">bug</span></div><div class="card-title">Ghost issues after a malformed file</div><div class="card-path">.agents/issues/0040-ghost-issues.md</div><div class="card-meta"><span class="marker marker-reviewed">✓ reviewed</span></div></div></div>
+      </section>
+    </div>
+    <h3>Toast</h3>
+    <div class="row"><div class="toast" style="position: static">Created #0043 <button class="toast-action">Open</button></div></div>
+  </main>
+  <script>
+    // Swatches read the live token values: nothing here is copied.
+    function renderSwatches() {
+      const style = getComputedStyle(document.documentElement);
+      for (const box of document.querySelectorAll('[data-tokens]')) {
+        box.innerHTML = '';
+        for (const name of box.dataset.tokens.split(' ')) {
+          const value = style.getPropertyValue(`--${name}`).trim();
+          const el = document.createElement('div');
+          el.className = 'swatch';
+          el.innerHTML = `<div class="swatch-chip" style="background: var(--${name})"></div><div class="swatch-name">--${name}</div><div class="swatch-value"></div>`;
+          el.querySelector('.swatch-value').textContent = value;
+          box.append(el);
+        }
+      }
+    }
+    for (const btn of document.querySelectorAll('[data-set-theme]')) {
+      btn.addEventListener('click', () => {
+        document.documentElement.dataset.theme = btn.dataset.setTheme;
+        for (const b of document.querySelectorAll('[data-set-theme]')) b.classList.toggle('on', b === btn);
+        renderSwatches();
+      });
+    }
+    renderSwatches();
+  </script>
+</body>
+</html>

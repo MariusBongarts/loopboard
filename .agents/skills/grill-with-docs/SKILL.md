@@ -21,17 +21,16 @@ instead.
 
 During exploration, also read the project's domain model:
 
-- **Glossary** — [`ai/specs/00-conventions-and-glossary.md`](../../../ai/specs/00-conventions-and-glossary.md).
+- **Glossary** — [`.agents/specs/00-conventions-and-glossary.md`](../../specs/00-conventions-and-glossary.md).
   This is the canonical source of truth for shared terminology.
-- **ADRs** — [`ai/architecture/decisions/NNNN-slug.md`](../../../ai/architecture/decisions/).
+- **ADRs** — [`.agents/architecture/decisions/NNNN-slug.md`](../../architecture/decisions/).
   Lazy-created. Each ADR records one architectural decision and why.
 
-This is a single-context repo (MorningMail.ai). There is no `CONTEXT-MAP.md`.
+Treat the repo as a single context: there is no `CONTEXT-MAP.md`.
 
-The glossary file already exists with terms like Template, Module, Execution,
-Credits, Plans, Subscription gate, Agent. **Add new terms inline** to that
-file as they get sharpened during the grilling session — don't fork a
-separate `CONTEXT.md`. Use the existing format, see
+If the glossary file exists, **add new terms inline** to it as they get
+sharpened during the grilling session — don't fork a separate `CONTEXT.md`.
+If it doesn't exist yet, create it with the first term. Use the existing format, see
 [CONTEXT-FORMAT.md](./CONTEXT-FORMAT.md).
 
 The ADR directory may be empty initially; create files lazily, see
@@ -74,7 +73,7 @@ there's a contradiction, surface it.
 ### Update the glossary inline
 
 When a term is resolved, add it to
-[`ai/specs/00-conventions-and-glossary.md`](../../../ai/specs/00-conventions-and-glossary.md)
+[`.agents/specs/00-conventions-and-glossary.md`](../../specs/00-conventions-and-glossary.md)
 right there. Don't batch these up — capture them as they happen. Use the
 existing bullet format described in [CONTEXT-FORMAT.md](./CONTEXT-FORMAT.md).
 
@@ -90,3 +89,7 @@ Only offer to create an ADR when all three are true:
 
 If any of the three is missing, skip the ADR. Use the format in
 [ADR-FORMAT.md](./ADR-FORMAT.md).
+
+---
+
+_Adapted from [mattpocock/skills](https://github.com/mattpocock/skills) (MIT, © 2026 Matt Pocock). See [CREDITS.md](../CREDITS.md)._

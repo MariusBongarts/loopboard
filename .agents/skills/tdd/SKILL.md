@@ -44,7 +44,7 @@ RIGHT (vertical):
 
 ### 1. Planning
 
-When exploring the codebase, use the project's domain glossary at [`ai/specs/00-conventions-and-glossary.md`](../../../ai/specs/00-conventions-and-glossary.md) so test names and interface vocabulary match the project's language, and respect any ADRs in [`ai/architecture/decisions/`](../../../ai/architecture/decisions/) in the area you're touching.
+When exploring the codebase, use the project's domain glossary at [`.agents/specs/00-conventions-and-glossary.md`](../../specs/00-conventions-and-glossary.md) so test names and interface vocabulary match the project's language, and respect any ADRs in [`.agents/architecture/decisions/`](../../architecture/decisions/) in the area you're touching.
 
 Before writing any code:
 
@@ -107,3 +107,7 @@ After all tests pass, look for [refactor candidates](refactoring.md):
 [ ] Code is minimal for this test
 [ ] No speculative features added
 ```
+
+---
+
+_Adapted from [mattpocock/skills](https://github.com/mattpocock/skills) (MIT, © 2026 Matt Pocock). See [CREDITS.md](../CREDITS.md)._

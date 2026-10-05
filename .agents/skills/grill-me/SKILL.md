@@ -8,3 +8,7 @@ Interview me relentlessly about every aspect of this plan until we reach a share
 Ask the questions one at a time using the available UI interface.
 
 If a question can be answered by exploring the codebase, explore the codebase instead.
+
+---
+
+_Adapted from [mattpocock/skills](https://github.com/mattpocock/skills) (MIT, © 2026 Matt Pocock). See [CREDITS.md](../CREDITS.md)._

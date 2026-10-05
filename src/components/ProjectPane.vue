@@ -3,13 +3,20 @@ import { computed, nextTick, ref, watch } from 'vue';
 import CollapsibleStrip from './CollapsibleStrip.vue';
 import Column from './Column.vue';
 import IssueRefText from './IssueRefText.vue';
+import Segmented from './Segmented.vue';
+import { useIssueActions } from '../actions';
+import { useWorkspace } from '../workspace';
+import DocEditor from './DocEditor.vue';
+import IssueList from './IssueList.vue';
+import { groupIssues } from '../list';
+import { useOverflowEdges } from '../overflow';
+import { readStored, writeStored } from '../storage';
+import { passesBoardFilters } from '../inbox';
 import { toneClass } from '../colors';
-import { needsYou, relativeDay } from '../inbox';
+import { boardColumnIssues, boardIssueCount, needsYou, prdNumber, relativeDay } from '../inbox';
 import { issueFromDocClick, renderProjectDoc } from '../projectDoc';
 import {
   ALWAYS_VISIBLE_COLUMNS,
-  byPriority,
-  searchMatches,
   tokenizeQuery,
   type Assignee,
   type ColumnKey,
@@ -26,7 +33,9 @@ const props = defineProps<{
   today: string;
   highlightId?: string | null;
   pinnedLabel?: string;
+  requestTab?: { tab: 'board' | 'prd'; nonce: number } | null;
 }>();
+const actions = useIssueActions();
 
 const emit = defineEmits<{
   (e: 'open-issue' | 'toggle-assignee', issue: Issue): void;
@@ -37,7 +46,23 @@ const emit = defineEmits<{
 }>();
 
 const tab = ref<Tab>('board');
+// PRD and WIP are editable in place (#0027).
+const editingDoc = ref(false);
+watch(
+  () => [props.project?.slug, tab.value],
+  () => (editingDoc.value = false),
+);
+const docPath = computed(() => (props.project ? `projects/${props.project.slug}/${tab.value}.md` : ''));
+const docVersion = computed(() => (props.project ? (tab.value === 'prd' ? props.project.prdBody : props.project.wipBody) : ''));
 const who = ref<'all' | Assignee>('all');
+// Done but not reviewed yet (#0040): a review queue, not a column.
+const unreviewedOnly = ref(false);
+// Hide issues whose parent isn't done yet (#0028).
+const hideWaiting = ref(false);
+// Board or dense list (#0031), remembered per browser.
+const layout = ref<'board' | 'list'>(readStored('loopboard.paneLayout') === 'list' ? 'list' : 'board');
+watch(layout, (l) => writeStored('loopboard.paneLayout', l));
+const { relations } = useWorkspace();
 const query = ref('');
 
 watch(
@@ -46,12 +71,24 @@ watch(
     tab.value = 'board';
     who.value = 'all';
     query.value = '';
+    unreviewedOnly.value = false;
+    hideWaiting.value = false;
   },
+);
+
+watch(
+  () => props.requestTab?.nonce,
+  () => {
+    if (props.requestTab) tab.value = props.requestTab.tab;
+  },
+  { immediate: true },
 );
 
 // A newly selected issue must be visible: back to the board, no filters,
 // and scrolled into view once the columns render.
 const rootEl = ref<HTMLElement | null>(null);
+const boardEl = ref<HTMLElement | null>(null);
+const boardEdges = useOverflowEdges(boardEl);
 watch(
   () => props.highlightId,
   async (id) => {
@@ -74,20 +111,28 @@ const scoped = computed(() =>
 );
 const mineCount = computed(() => scoped.value.filter(needsYou).length);
 const backlogIssues = computed(() => scoped.value.filter((i) => i.status === 'backlog'));
-const boardCount = computed(
-  () => scoped.value.filter((i) => ALWAYS_VISIBLE_COLUMNS.includes(i.status)).length,
+const boardCount = computed(() =>
+  boardIssueCount(props.issues, props.project?.slug ?? null),
 );
 const tokens = computed(() => tokenizeQuery(query.value));
 
-function issuesIn(col: ColumnKey): Issue[] {
-  return scoped.value
-    .filter(
+const waitingCount = computed(() => scoped.value.filter((i) => relations.value.isWaiting(i)).length);
+const unreviewedCount = computed(() => scoped.value.filter((i) => i.status === 'done' && !i.reviewed).length);
+const listGroups = computed(() =>
+  groupIssues(
+    scoped.value.filter(
       (i) =>
-        i.status === col &&
-        (who.value === 'all' || i.assignee === who.value) &&
-        searchMatches(i, tokens.value),
-    )
-    .sort(byPriority);
+        passesBoardFilters(i, who.value, tokens.value) &&
+        (!hideWaiting.value || !relations.value.isWaiting(i)) &&
+        (!unreviewedOnly.value || (i.status === 'done' && !i.reviewed)),
+    ),
+    'status',
+  ),
+);
+function issuesIn(col: ColumnKey): Issue[] {
+  const list = boardColumnIssues(props.issues, props.project?.slug ?? null, col, who.value, tokens.value);
+  const shown = hideWaiting.value ? list.filter((i) => !relations.value.isWaiting(i)) : list;
+  return unreviewedOnly.value ? shown.filter((i) => i.status === 'done' && !i.reviewed && !i.archived) : shown;
 }
 
 const docHtml = computed(() => {
@@ -109,6 +154,7 @@ const title = computed(() => props.project?.title ?? 'Standalone issues');
     <header class="pane-head">
       <div class="pane-title-row">
         <span v-if="props.project" class="pane-dot" :class="toneClass(props.project.slug)" />
+        <span v-if="props.project && prdNumber(props.project.slug)" class="prd-num">{{ prdNumber(props.project.slug) }}</span>
         <h2 class="pane-title">{{ title }}</h2>
         <span class="pane-meta">
           <template v-if="props.project">
@@ -119,10 +165,17 @@ const title = computed(() => props.project?.title ?? 'Standalone issues');
           </template>
           <template v-else>Issues without a project</template>
         </span>
+        <button
+          v-if="props.project"
+          type="button"
+          class="pane-prompt"
+          title="Copy a prompt that hands this project to your agent"
+          @click="actions.copyProjectPrompt(props.project)"
+        >Copy agent prompt</button>
       </div>
       <CollapsibleStrip
         v-if="props.project?.focus"
-        storage-key="tracker.pane.focusCollapsed"
+        storage-key="loopboard.pane.focusCollapsed"
         label="Current focus"
         class="pane-focus"
         :class="toneClass(props.project.slug)"
@@ -131,7 +184,7 @@ const title = computed(() => props.project?.title ?? 'Standalone issues');
       </CollapsibleStrip>
       <CollapsibleStrip
         v-if="$slots.pinned"
-        storage-key="tracker.pane.pinnedCollapsed"
+        storage-key="loopboard.pane.pinnedCollapsed"
         :label="props.pinnedLabel"
         class="pane-pinned"
       >
@@ -153,14 +206,42 @@ const title = computed(() => props.project?.title ?? 'Standalone issues');
 
     <div v-if="tab === 'board'" class="pane-body">
       <div class="pane-board-tools">
-        <div class="seg" role="group" aria-label="Assignee">
-          <button :class="{ on: who === 'all' }" @click="who = 'all'">Everyone</button>
-          <button :class="{ on: who === 'human' }" @click="who = 'human'">
-            Mine<template v-if="mineCount"> · {{ mineCount }}</template>
-          </button>
-          <button :class="{ on: who === 'agent' }" @click="who = 'agent'">Agent</button>
-        </div>
+        <Segmented
+          v-model="layout"
+          label="Layout"
+          :options="[
+            { value: 'board', label: 'Board' },
+            { value: 'list', label: 'List' },
+          ]"
+        />
+        <Segmented
+          v-model="who"
+          label="Assignee"
+          :options="[
+            { value: 'all', label: 'Everyone' },
+            { value: 'human', label: mineCount ? `You · ${mineCount}` : 'You' },
+            { value: 'agent', label: 'Agent' },
+          ]"
+        />
         <input v-model="query" type="search" class="pane-search" placeholder="Filter this board" aria-label="Filter this board" />
+        <button
+          v-if="waitingCount || hideWaiting"
+          type="button"
+          class="pane-toggle"
+          :class="{ on: hideWaiting }"
+          :aria-pressed="hideWaiting"
+          title="Hide issues whose parent issue isn't done yet"
+          @click="hideWaiting = !hideWaiting"
+        >Hide waiting {{ waitingCount }}</button>
+        <button
+          v-if="unreviewedCount || unreviewedOnly"
+          type="button"
+          class="pane-toggle"
+          :class="{ on: unreviewedOnly }"
+          :aria-pressed="unreviewedOnly"
+          title="Done issues nobody has marked reviewed yet — the review queue"
+          @click="unreviewedOnly = !unreviewedOnly"
+        >Unreviewed {{ unreviewedCount }}</button>
         <button
           v-if="backlogIssues.length"
           type="button"
@@ -168,7 +249,8 @@ const title = computed(() => props.project?.title ?? 'Standalone issues');
           @click="emit('open-backlog', backlogIssues)"
         >Backlog {{ backlogIssues.length }}</button>
       </div>
-      <div class="pane-board">
+      <IssueList v-if="layout === 'list'" :groups="listGroups" :active-id="props.highlightId" @open="(i) => emit('open-issue', i)" />
+      <div v-else ref="boardEl" class="pane-board" :class="{ 'more-left': boardEdges.left.value, 'more-right': boardEdges.right.value }">
         <Column
           v-for="col in ALWAYS_VISIBLE_COLUMNS"
           :key="col"
@@ -192,7 +274,13 @@ const title = computed(() => props.project?.title ?? 'Standalone issues');
     </div>
 
     <div v-else class="pane-body">
-      <div class="drawer-body project-body pane-doc" @click="onDocClick" v-html="docHtml" />
+      <DocEditor v-if="editingDoc" :path="docPath" :version="docVersion" @close="editingDoc = false" />
+      <template v-else>
+        <div class="pane-doc-tools">
+          <button type="button" @click="editingDoc = true">Edit {{ tab === 'prd' ? 'PRD' : 'WIP' }}</button>
+        </div>
+        <div class="drawer-body project-body pane-doc" @click="onDocClick" v-html="docHtml" />
+      </template>
     </div>
   </div>
 </template>

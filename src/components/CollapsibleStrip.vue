@@ -1,25 +1,17 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
+import { readStored, writeStored } from '../storage';
 
 // Collapsed state is remembered per strip across projects and reloads.
 const props = defineProps<{ storageKey: string; label?: string }>();
 
 function read(): boolean {
-  try {
-    return localStorage.getItem(props.storageKey) === '1';
-  } catch {
-    return false;
-  }
+  const legacy = props.storageKey.replace(/^loopboard\./, 'tracker.');
+  return (readStored(props.storageKey) ?? readStored(legacy)) === '1';
 }
 
 const collapsed = ref(read());
-watch(collapsed, (v) => {
-  try {
-    localStorage.setItem(props.storageKey, v ? '1' : '0');
-  } catch {
-    /* ignore */
-  }
-});
+watch(collapsed, (v) => writeStored(props.storageKey, v ? '1' : '0'));
 
 // While collapsed, the whole strip is the expand target — the one-line
 // preview must not trigger the links or buttons it contains.

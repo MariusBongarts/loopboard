@@ -1,12 +1,12 @@
 # Glossary format
 
 The canonical glossary lives at
-[`ai/specs/00-conventions-and-glossary.md`](../../../ai/specs/00-conventions-and-glossary.md).
+[`.agents/specs/00-conventions-and-glossary.md`](../../specs/00-conventions-and-glossary.md).
 It is a flat bullet list. Every entry follows the same shape:
 
 ```markdown
 - **Term** — concise definition, one or two sentences. Reference the related
-  Firestore collection, code path, or sibling term where helpful (use bold for
+  collection, code path, or sibling term where helpful (use bold for
   cross-references to other glossary terms).
 ```
 
@@ -44,7 +44,7 @@ Match that style when adding terms. Keep entries tight (1–2 sentences). Use
 - **Only include terms specific to this project's domain.** General programming
   concepts (timeouts, error types, utility patterns) don't belong even when
   the project uses them extensively.
-- **Cross-reference code lightly.** Names of Firestore collections,
+- **Cross-reference code lightly.** Names of collections,
   TypeScript types, or env vars are useful anchors. File paths and line
   numbers are not — they go stale.
 

@@ -1,5 +1,7 @@
-import { readFile, writeFile } from 'node:fs/promises';
-import matter from 'gray-matter';
+import { readFile } from 'node:fs/promises';
+import { setLine } from '../shared/frontmatter';
+import { writeFileAtomic } from './files';
+import { parseFrontmatter } from './frontmatter';
 import { ALL_STATUSES, ASSIGNEES, type Assignee, type Status } from './issues';
 
 export interface IssuePatch {
@@ -7,6 +9,9 @@ export interface IssuePatch {
   assignee?: string;
   priority?: number;
   reason?: string;
+  // Optional review/deploy markers (#0039, #0040): a date sets, null removes.
+  reviewed?: string | null;
+  deployed?: string | null;
 }
 
 export interface MutationResult {
@@ -14,13 +19,13 @@ export interface MutationResult {
   status?: Status;
   assignee?: Assignee;
   priority?: number;
+  reviewed?: string | null;
+  deployed?: string | null;
   appendedWhyRejected: boolean;
 }
 
 const FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---/;
-const STATUS_LINE_RE = /^(status:\s*)([^\r\n]*)$/m;
-const ASSIGNEE_LINE_RE = /^(assignee:\s*)([^\r\n]*)$/m;
-const PRIORITY_LINE_RE = /^(priority:\s*)([^\r\n]*)$/m;
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 function isStatus(value: string): value is Status {
   return (ALL_STATUSES as readonly string[]).includes(value);
@@ -37,12 +42,20 @@ export async function mutateIssue(
   if (
     patch.status === undefined &&
     patch.assignee === undefined &&
-    patch.priority === undefined
+    patch.priority === undefined &&
+    patch.reviewed === undefined &&
+    patch.deployed === undefined
   ) {
     throw Object.assign(
-      new Error('patch must include at least one of status, assignee, priority'),
+      new Error('patch must include at least one of status, assignee, priority, reviewed, deployed'),
       { statusCode: 400 },
     );
+  }
+  for (const key of ['reviewed', 'deployed'] as const) {
+    const v = patch[key];
+    if (v !== undefined && v !== null && !DATE_RE.test(v)) {
+      throw Object.assign(new Error(`${key} must be a YYYY-MM-DD date or null`), { statusCode: 400 });
+    }
   }
   if (patch.status !== undefined && !isStatus(patch.status)) {
     throw Object.assign(new Error(`unknown status: ${patch.status}`), { statusCode: 400 });
@@ -61,7 +74,7 @@ export async function mutateIssue(
   }
 
   const raw = await readFile(filePath, 'utf8');
-  const parsed = matter(raw);
+  const parsed = parseFrontmatter(raw);
   const fm = parsed.data as Record<string, unknown>;
   const currentStatus = String(fm.status ?? 'todo');
 
@@ -72,48 +85,18 @@ export async function mutateIssue(
 
   let fmBlock = fmMatch[1];
 
-  if (patch.status !== undefined) {
-    if (STATUS_LINE_RE.test(fmBlock)) {
-      fmBlock = fmBlock.replace(STATUS_LINE_RE, `$1${patch.status}`);
-    } else {
-      fmBlock = `${fmBlock}\nstatus: ${patch.status}`;
-    }
-  }
-
-  if (patch.assignee !== undefined) {
-    if (ASSIGNEE_LINE_RE.test(fmBlock)) {
-      fmBlock = fmBlock.replace(ASSIGNEE_LINE_RE, `$1${patch.assignee}`);
-    } else if (STATUS_LINE_RE.test(fmBlock)) {
-      // Insert immediately after the status: line so related fields stay
-      // visually grouped in frontmatter.
-      fmBlock = fmBlock.replace(
-        STATUS_LINE_RE,
-        (m) => `${m}\nassignee: ${patch.assignee}`,
-      );
-    } else {
-      fmBlock = `${fmBlock}\nassignee: ${patch.assignee}`;
-    }
-  }
-
+  if (patch.status !== undefined) fmBlock = setLine(fmBlock, 'status', patch.status, []);
+  if (patch.assignee !== undefined) fmBlock = setLine(fmBlock, 'assignee', patch.assignee, ['status']);
   if (patch.priority !== undefined) {
-    if (PRIORITY_LINE_RE.test(fmBlock)) {
-      fmBlock = fmBlock.replace(PRIORITY_LINE_RE, `$1${patch.priority}`);
-    } else if (ASSIGNEE_LINE_RE.test(fmBlock)) {
-      fmBlock = fmBlock.replace(
-        ASSIGNEE_LINE_RE,
-        (m) => `${m}\npriority: ${patch.priority}`,
-      );
-    } else if (STATUS_LINE_RE.test(fmBlock)) {
-      fmBlock = fmBlock.replace(
-        STATUS_LINE_RE,
-        (m) => `${m}\npriority: ${patch.priority}`,
-      );
-    } else {
-      fmBlock = `${fmBlock}\npriority: ${patch.priority}`;
-    }
+    fmBlock = setLine(fmBlock, 'priority', String(patch.priority), ['assignee', 'status']);
   }
+  if (patch.reviewed !== undefined) fmBlock = setLine(fmBlock, 'reviewed', patch.reviewed, ['created']);
+  if (patch.deployed !== undefined) fmBlock = setLine(fmBlock, 'deployed', patch.deployed, ['reviewed', 'created']);
 
-  let body = parsed.content;
+  const body = parsed.content;
+  // Replace only the frontmatter block inside the original text, so the body
+  // — down to the blank line after `---` — keeps its exact bytes.
+  let rebuilt = raw.replace(FRONTMATTER_RE, () => `---\n${fmBlock}\n---`);
   let appended = false;
 
   const enteringWontfix =
@@ -127,20 +110,21 @@ export async function mutateIssue(
       );
     }
     if (!/^##\s+Why rejected\b/m.test(body)) {
-      const sep = body.endsWith('\n\n') ? '' : body.endsWith('\n') ? '\n' : '\n\n';
-      body = `${body}${sep}## Why rejected\n\n${trimmedReason}\n`;
+      const sep = rebuilt.endsWith('\n\n') ? '' : rebuilt.endsWith('\n') ? '\n' : '\n\n';
+      rebuilt = `${rebuilt}${sep}## Why rejected\n\n${trimmedReason}\n`;
       appended = true;
     }
   }
 
-  const rebuilt = `---\n${fmBlock}\n---${body.startsWith('\n') ? '' : '\n'}${body}`;
-  await writeFile(filePath, rebuilt, 'utf8');
+  await writeFileAtomic(filePath, rebuilt);
 
   return {
     ok: true,
     status: patch.status as Status | undefined,
     assignee: patch.assignee as Assignee | undefined,
     priority: patch.priority,
+    reviewed: patch.reviewed,
+    deployed: patch.deployed,
     appendedWhyRejected: appended,
   };
 }

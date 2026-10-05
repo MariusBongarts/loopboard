@@ -1,16 +1,17 @@
 import { readdir, readFile, stat } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import matter from "gray-matter";
+import { parseFrontmatter } from "./frontmatter";
 import { parseProjectDigest, type ProjectDigest } from "./wip";
 
 const MODULE_DIR = dirname(fileURLToPath(import.meta.url));
-// The tracker root holds the bundled `ai/` blueprint. Sibling project repos
-// (morningmail, webhighlights, …) are reached by `../<repo>/ai` from here.
+// The tracker repo dogfoods its own `.agents/` root; other repos are reached
+// via BASE_PATH (relative to this repo or absolute).
 export const REPO_ROOT = resolve(MODULE_DIR, "..");
+export const DEFAULT_BASE_PATH = ".agents";
 
 // `resolve` (unlike `join`) honors absolute paths in `basePath`, so callers
-// can point at an `ai/` directory anywhere on disk via BASE_PATH=/abs/path.
+// can point at a root anywhere on disk via BASE_PATH=/abs/path.
 export function resolveBaseDir(basePath: string) {
   return resolve(REPO_ROOT, basePath);
 }
@@ -63,6 +64,8 @@ export interface Issue {
   // Sort rank within a column (1 = top). Not severity. Optional;
   // unprioritized issues sort after prioritized ones, by id.
   priority?: number;
+  reviewed?: string;
+  deployed?: string;
   body: string;
 }
 
@@ -120,12 +123,12 @@ async function readIssuesFromDir(
     // A single malformed issue file (e.g. an unquoted colon in `title:`)
     // must not 500 the whole `/api/data` response. PRD §"Testing decisions"
     // mandates "malformed files skipped". See #0095.
-    let parsed: ReturnType<typeof matter>;
+    let parsed: ReturnType<typeof parseFrontmatter>;
     try {
-      parsed = matter(raw);
+      parsed = parseFrontmatter(raw);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      console.warn(`[tracker] skipping ${entry}: ${msg}`);
+      console.warn(`[loopboard] skipping ${entry}: ${msg}`);
       continue;
     }
     const fm = parsed.data as Record<string, unknown>;
@@ -161,6 +164,8 @@ async function readIssuesFromDir(
           : undefined,
       labels: Array.isArray(fm.labels) ? fm.labels.map(String) : [],
       created: normalizeCreated(fm.created),
+      reviewed: normalizeCreated(fm.reviewed),
+      deployed: normalizeCreated(fm.deployed),
       priority,
       body: parsed.content,
     });
@@ -168,7 +173,7 @@ async function readIssuesFromDir(
   return issues;
 }
 
-export async function readAllIssues(basePath = "ai"): Promise<Issue[]> {
+export async function readAllIssues(basePath = DEFAULT_BASE_PATH): Promise<Issue[]> {
   const issuesDir = getIssuesDir(basePath);
   const archiveDir = getArchiveDir(basePath);
   const [active, archived] = await Promise.all([
@@ -178,7 +183,7 @@ export async function readAllIssues(basePath = "ai"): Promise<Issue[]> {
   return [...active, ...archived].sort((a, b) => a.id.localeCompare(b.id));
 }
 
-export async function readAllProjects(basePath = "ai"): Promise<Project[]> {
+export async function readAllProjects(basePath = DEFAULT_BASE_PATH): Promise<Project[]> {
   const projectsDir = getProjectsDir(basePath);
   let entries: string[];
   try {
@@ -237,7 +242,7 @@ export async function readAllProjects(basePath = "ai"): Promise<Project[]> {
 export function findIssueFile(
   id: string,
   archived: boolean,
-  basePath = "ai"
+  basePath = DEFAULT_BASE_PATH
 ): string | null {
   const dir = archived ? getArchiveDir(basePath) : getIssuesDir(basePath);
   return _findIssueFileSync(dir, id);

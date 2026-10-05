@@ -20,9 +20,9 @@ Conventions for projects, PRDs, and the surrounding workflow live in
 
 Explore the repo to understand the current state of the codebase, if you haven't
 already. Use the project's domain glossary at
-[`ai/specs/00-conventions-and-glossary.md`](../../../ai/specs/00-conventions-and-glossary.md)
+[`.agents/specs/00-conventions-and-glossary.md`](../../specs/00-conventions-and-glossary.md)
 so PRD terminology matches the rest of the repo. Respect any prior decisions in
-[`ai/architecture/decisions/`](../../../ai/architecture/decisions/) — don't
+[`.agents/architecture/decisions/`](../../architecture/decisions/) — don't
 re-litigate decided ground.
 
 ### 2. Sketch the modules
@@ -40,19 +40,20 @@ which modules they want tests written for (see
 
 ### 3. Pick the project number and slug
 
-The project ID is the next 2-digit number after the highest existing
-`ai/projects/NN-...` folder. The slug is kebab-case derived from the project
+Get the project ID from `npx loopboard next-id project` (it counts every
+branch and worktree); without the CLI, take the next 2-digit number after the
+highest existing `.agents/projects/NN-...` folder. The slug is kebab-case derived from the project
 title. Example: `03-builder-tone-and-length`.
 
 ### 4. Create the project folder
 
-Create `ai/projects/NN-slug/` with two files seeded from the templates:
+Create `.agents/projects/NN-slug/` with two files seeded from the templates:
 
 - `prd.md` — copied from
-  [`ai/projects/_templates/prd.md`](../../../ai/projects/_templates/prd.md),
+  [`.agents/projects/_templates/prd.md`](../../projects/_templates/prd.md),
   filled with synthesized content from the conversation.
 - `wip.md` — copied from
-  [`ai/projects/_templates/wip.md`](../../../ai/projects/_templates/wip.md),
+  [`.agents/projects/_templates/wip.md`](../../projects/_templates/wip.md),
   with `Last updated`, the project title in the heading, and an initial
   `Activity log` entry recording the kickoff.
 
@@ -79,5 +80,9 @@ Write the PRD using the template. Keep these in mind:
 
 Once the PRD is committed, suggest running
 [`to-issues`](../to-issues/SKILL.md) to break it into vertical-slice issues
-under `ai/issues/`. The PRD's User stories list is the natural starting point
+under `.agents/issues/`. The PRD's User stories list is the natural starting point
 for that breakdown.
+
+---
+
+_Adapted from [mattpocock/skills](https://github.com/mattpocock/skills) (MIT, © 2026 Matt Pocock). See [CREDITS.md](../CREDITS.md)._

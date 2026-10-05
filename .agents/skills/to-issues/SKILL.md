@@ -1,11 +1,11 @@
 ---
 name: to-issues
-description: Break a plan, PRD, or spec into independently-grabbable issues at ai/issues/ using vertical-slice (tracer-bullet) granularity. Use when the user wants to convert a plan into issues, create implementation tickets, or break work into atomic increments.
+description: Break a plan, PRD, or spec into independently-grabbable issues at .agents/issues/ using vertical-slice (tracer-bullet) granularity. Use when the user wants to convert a plan into issues, create implementation tickets, or break work into atomic increments.
 ---
 
 # To Issues
 
-Break a plan into independently-grabbable issues at `ai/issues/NNNN-slug.md`
+Break a plan into independently-grabbable issues at `.agents/issues/NNNN-slug.md`
 using **vertical slices** (tracer bullets). Each slice cuts through every
 integration layer end-to-end (schema, API, UI, tests) — never a horizontal
 slice of one layer.
@@ -26,9 +26,9 @@ argument, fetch and read it — including its PRD when it's a project.
 If you have not already explored the codebase, do so to understand the current
 state of the code. Issue titles and descriptions should use the project's
 domain glossary at
-[`ai/specs/00-conventions-and-glossary.md`](../../../ai/specs/00-conventions-and-glossary.md),
+[`.agents/specs/00-conventions-and-glossary.md`](../../specs/00-conventions-and-glossary.md),
 and respect prior decisions in
-[`ai/architecture/decisions/`](../../../ai/architecture/decisions/).
+[`.agents/architecture/decisions/`](../../architecture/decisions/).
 
 ### 3. Draft vertical slices
 
@@ -60,7 +60,7 @@ Choose the right `status:` and `assignee:`:
   fully specified, ready for the agent to pick up).
 - Set `status: backlog` (assignee still `agent`) when filing a slice
   that captures a future idea but isn't ready to schedule — it lands
-  in the tracker's Backlog drawer instead of the active `Todo` column,
+  in loopboard's Backlog drawer instead of the active `Todo` column,
   so it doesn't dilute the maintainer's "what's next?" view. Promote
   to `todo` when the call to schedule is made. The slicing act itself
   IS usually the scheduling decision, so reach for `backlog` only when
@@ -100,18 +100,19 @@ Iterate until the user approves.
 
 ### 5. Create the issue files
 
-For each approved slice, create a new file at `ai/issues/NNNN-slug.md` using
+For each approved slice, create a new file at `.agents/issues/NNNN-slug.md` using
 the per-category template:
 
-- [`ai/issues/_templates/user-story.md`](../../../ai/issues/_templates/user-story.md)
-- [`ai/issues/_templates/bug.md`](../../../ai/issues/_templates/bug.md)
-- [`ai/issues/_templates/task.md`](../../../ai/issues/_templates/task.md)
+- [`.agents/issues/_templates/user-story.md`](../../issues/_templates/user-story.md)
+- [`.agents/issues/_templates/bug.md`](../../issues/_templates/bug.md)
+- [`.agents/issues/_templates/task.md`](../../issues/_templates/task.md)
 
 Numbering rules:
 
-- The issue ID is `max(existing) + 1` across both `ai/issues/*.md` and
-  `ai/issues/_archive/*.md`. Compute it once at the start of the batch and
-  increment locally.
+- Get the first ID with `npx loopboard next-id issue` once at the start of the
+  batch, then increment locally. It counts the archive, other branches and
+  other worktrees, so parallel agents don't collide. Without the CLI, use
+  `max(existing) + 1` across `.agents/issues/` and `.agents/issues/_archive/`.
 - The slug is kebab-case derived from the title.
 
 Frontmatter to populate:
@@ -127,6 +128,7 @@ project: NN-slug         # set if the slice belongs to a project
 phase: 1                 # set if the project's wip.md uses phase grouping
 parent: NNNN             # set if blocked-by another issue
 labels: []               # freeform — reuse existing labels where possible
+source: github#N         # set when the slice comes from an external report
 created: YYYY-MM-DD
 ---
 ```
@@ -150,3 +152,7 @@ If the slices belong to a project, update the project's `wip.md`:
 The user (or an AI agent) now picks the first `todo` issue, flips it to
 `in-progress`, and starts work. The [`triage`](../triage/SKILL.md) skill helps
 move issues through the state machine when needed.
+
+---
+
+_Adapted from [mattpocock/skills](https://github.com/mattpocock/skills) (MIT, © 2026 Matt Pocock). See [CREDITS.md](../CREDITS.md)._

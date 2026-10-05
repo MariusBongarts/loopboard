@@ -1,7 +1,7 @@
 # ADR format
 
 ADRs live at
-[`ai/architecture/decisions/NNNN-slug.md`](../../../ai/architecture/decisions/)
+[`.agents/architecture/decisions/NNNN-slug.md`](../../architecture/decisions/)
 with sequential 4-digit numbering: `0001-event-sourced-orders.md`,
 `0002-postgres-for-write-model.md`, etc.
 
@@ -32,7 +32,7 @@ Only include these when they add genuine value. Most ADRs won't need them.
 
 ## Numbering
 
-Scan `ai/architecture/decisions/` for the highest existing number and
+Scan `.agents/architecture/decisions/` for the highest existing number and
 increment by one. Pad to 4 digits.
 
 ## When to offer an ADR

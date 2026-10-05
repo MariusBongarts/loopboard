@@ -181,3 +181,44 @@ Body.
     expect(out).toMatch(/labels: \[\]\npriority: 7\n---/);
   });
 });
+
+describe('mutateIssue — review and deploy markers (#0040)', () => {
+  const issue = `---
+id: 0001
+title: Foo
+status: done
+assignee: agent
+labels: []
+created: 2026-10-01
+---
+
+Body.
+`;
+
+  it('inserts reviewed: after created: and deployed: after reviewed:', async () => {
+    const file = await writeFixture('0001-foo.md', issue);
+    await mutateIssue(file, { reviewed: '2026-10-05' });
+    await mutateIssue(file, { deployed: '2026-10-06' });
+    expect(await readFile(file, 'utf8')).toContain('created: 2026-10-01\nreviewed: 2026-10-05\ndeployed: 2026-10-06\n---\n\nBody.\n');
+  });
+
+  it('removes a marker with null and leaves everything else', async () => {
+    const file = await writeFixture('0001-foo.md', issue.replace('created: 2026-10-01', 'created: 2026-10-01\nreviewed: 2026-10-05'));
+    await mutateIssue(file, { reviewed: null });
+    expect(await readFile(file, 'utf8')).toBe(issue);
+  });
+
+  it('rejects a malformed date', async () => {
+    const file = await writeFixture('0001-foo.md', issue);
+    await expect(mutateIssue(file, { reviewed: 'yesterday' })).rejects.toThrow(/YYYY-MM-DD/);
+  });
+});
+
+describe('mutateIssue — byte preservation', () => {
+  it('keeps the blank line after the frontmatter and every body byte', async () => {
+    const original = '---\nid: 0001\ntitle: Foo\nstatus: todo\nassignee: agent\n---\n\n## Body\n\nText.\n';
+    const file = await writeFixture('0001-foo.md', original);
+    await mutateIssue(file, { status: 'in-progress' });
+    expect(await readFile(file, 'utf8')).toBe(original.replace('status: todo', 'status: in-progress'));
+  });
+});

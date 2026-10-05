@@ -1,7 +1,11 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 import SpecTOC from './SpecTOC.vue';
+import { readWorkspaceStored, writeWorkspaceStored } from '../storage';
+import { useWorkspace } from '../workspace';
+import { useRoute } from 'vue-router';
 import SpecSection from './SpecSection.vue';
+import DocEditor from './DocEditor.vue';
 import {
   SCENARIO_STATUS_GLYPH,
   SCENARIO_STATUS_LABEL,
@@ -16,10 +20,15 @@ import {
 
 const props = defineProps<{ specs: Spec[] }>();
 
-const SELECTED_KEY = 'tracker.specs.selectedId';
-const STATUS_KEY = 'tracker.specs.enabledStatuses';
+const SELECTED_KEY = 'specs.selectedId';
+const STATUS_KEY = 'specs.enabledStatuses';
+const { id: workspaceId } = useWorkspace();
+const route = useRoute();
 
 const selectedId = ref<string | null>(null);
+// Specs are editable in place (#0027); coverage recomputes from live data.
+const editing = ref(false);
+watch(selectedId, () => (editing.value = false));
 const rawQuery = ref('');
 const debouncedQuery = ref('');
 const enabledStatuses = ref<Set<ScenarioStatus>>(new Set(SCENARIO_STATUSES));
@@ -34,14 +43,12 @@ watch(rawQuery, (val) => {
 });
 
 onMounted(() => {
+  const savedId = readWorkspaceStored(workspaceId.value, SELECTED_KEY);
+  if (!route.query.spec && savedId && props.specs.some((s) => s.id === savedId)) {
+    selectedId.value = savedId;
+  }
   try {
-    const saved = localStorage.getItem(SELECTED_KEY);
-    if (saved && props.specs.some((s) => s.id === saved)) {
-      selectedId.value = saved;
-    }
-  } catch { /* localStorage may be disabled */ }
-  try {
-    const saved = localStorage.getItem(STATUS_KEY);
+    const saved = readWorkspaceStored(workspaceId.value, STATUS_KEY);
     if (saved) {
       const parsed = JSON.parse(saved) as ScenarioStatus[];
       if (Array.isArray(parsed) && parsed.length > 0) {
@@ -52,19 +59,24 @@ onMounted(() => {
         );
       }
     }
-  } catch { /* invalid JSON or disabled storage */ }
+  } catch { /* invalid JSON */ }
 });
 
+// ⌘K opens a spec with ?spec=<id> (#0021).
+watch(
+  () => route.query.spec,
+  (spec) => {
+    if (typeof spec === 'string' && props.specs.some((s) => s.id === spec)) selectedId.value = spec;
+  },
+  { immediate: true },
+);
+
 watch(selectedId, (id) => {
-  try {
-    if (id) localStorage.setItem(SELECTED_KEY, id);
-  } catch { /* ignore */ }
+  if (id) writeWorkspaceStored(workspaceId.value, SELECTED_KEY, id);
 });
 
 watch(enabledStatuses, (set) => {
-  try {
-    localStorage.setItem(STATUS_KEY, JSON.stringify([...set]));
-  } catch { /* ignore */ }
+  writeWorkspaceStored(workspaceId.value, STATUS_KEY, JSON.stringify([...set]));
 }, { deep: true });
 
 watch(
@@ -72,6 +84,12 @@ watch(
   (specs) => {
     if (specs.length === 0) {
       selectedId.value = null;
+      return;
+    }
+    // A ?spec= link wins once the specs have loaded (#0021).
+    const wanted = typeof route.query.spec === 'string' ? route.query.spec : null;
+    if (wanted && specs.some((s) => s.id === wanted)) {
+      selectedId.value = wanted;
       return;
     }
     if (!selectedId.value || !specs.some((s) => s.id === selectedId.value)) {
@@ -218,12 +236,16 @@ defineExpose({ focusSearch });
         @select="(id) => (selectedId = id)"
       />
       <main class="spec-pane">
-        <SpecSection
-          v-if="selectedSpec"
-          :spec="selectedSpec"
-          :visible-scenarios="visibleScenarios"
-          :has-filters="hasFilters"
+        <DocEditor
+          v-if="selectedSpec && editing"
+          :path="`specs/${selectedSpec.filename}`"
+          :version="JSON.stringify(selectedSpec)"
+          @close="editing = false"
         />
+        <template v-else-if="selectedSpec">
+          <div class="pane-doc-tools"><button type="button" class="spec-edit" @click="editing = true">Edit spec</button></div>
+          <SpecSection :spec="selectedSpec" :visible-scenarios="visibleScenarios" :has-filters="hasFilters" />
+        </template>
         <div v-else-if="hasFilters && visibleSpecsForToc.length === 0" class="spec-pane-empty">
           <p class="eyebrow">No matches</p>
           <h2>No scenarios match the current filters.</h2>
