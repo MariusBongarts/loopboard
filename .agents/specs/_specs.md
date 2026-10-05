@@ -6,7 +6,7 @@
 > [`../architecture/_architecture.md`](../architecture/_architecture.md).
 >
 > Scope: running loopboard, workspaces, the rail and feed, the project pane
-> and board, changing issues from the board, drawers, and the Specs view.
+> and board, changing issues, the issue panel and page, and the Specs view.
 
 Start with [§ 0 — Conventions & Glossary](00-conventions-and-glossary.md) for
 shared terminology.
@@ -18,7 +18,7 @@ shared terminology.
 - [2. Rail and feed](02-rail-and-feed.md)
 - [3. Project pane and board](03-project-pane-and-board.md)
 - [4. Changing issues from the board](04-changing-issues.md)
-- [5. Issue drawer and backlog](05-issue-drawer-and-backlog.md)
+- [5. Issue view and backlog](05-issue-view-and-backlog.md)
 - [6. Specs view](06-specs-view.md)
 - [7. Workspaces](07-workspaces.md)
 - [8. Setup and upgrades](08-setup-and-upgrades.md)
@@ -48,7 +48,7 @@ a legacy `ai/` repo) with their own config dir — never against this repo's
 | § 2 — Rail and feed | [`02-rail-and-feed.spec.ts`](../../tests/e2e/02-rail-and-feed.spec.ts) |
 | § 3 — Project pane and board | [`03-project-pane-and-board.spec.ts`](../../tests/e2e/03-project-pane-and-board.spec.ts) |
 | § 4 — Changing issues | [`04-changing-issues.spec.ts`](../../tests/e2e/04-changing-issues.spec.ts) |
-| § 5 — Issue drawer and backlog | [`05-issue-drawer-and-backlog.spec.ts`](../../tests/e2e/05-issue-drawer-and-backlog.spec.ts) |
+| § 5 — Issue view and backlog | [`05-issue-view-and-backlog.spec.ts`](../../tests/e2e/05-issue-view-and-backlog.spec.ts) |
 | § 6 — Specs view | [`06-specs-view.spec.ts`](../../tests/e2e/06-specs-view.spec.ts) |
 | § 7 — Workspaces | [`07-workspaces.spec.ts`](../../tests/e2e/07-workspaces.spec.ts) |
 | § 9 — Help and onboarding | [`09-help-and-onboarding.spec.ts`](../../tests/e2e/09-help-and-onboarding.spec.ts) |

@@ -1,0 +1,56 @@
+name: README demo
+
+# Re-records the README demo GIFs (#0036) from the current UI. Recording is
+# deterministic, so a pull request only opens when the demo actually changed.
+on:
+  push:
+    branches: [main]
+    paths: ['src/**', 'server/**', 'shared/**', 'index.html', 'public/**', 'scripts/demo/**', 'package.json', 'pnpm-lock.yaml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: readme-demo
+  cancel-in-progress: true
+
+jobs:
+  record:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm demo
+      - uses: actions/upload-artifact@v4
+        with:
+          name: readme-demo
+          path: docs/media/
+          retention-days: 14
+      - name: Open a pull request when the demo changed
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ -z "$(git status --porcelain -- docs/media)" ]; then
+            echo "The README demo is up to date."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c bot/readme-demo
+          git add docs/media
+          git commit -m "Refresh the README demo" -m "Re-recorded by pnpm demo at $GITHUB_SHA."
+          git push --force origin bot/readme-demo
+          if [ -z "$(gh pr list --head bot/readme-demo --state open --json number --jq '.[].number')" ]; then
+            gh pr create --head bot/readme-demo --title "Refresh the README demo" \
+              --body "The UI shown in the README demo changed. Re-recorded by \`pnpm demo\` at $GITHUB_SHA — look at both GIFs before merging." \
+              || echo "::warning::Pushed bot/readme-demo but couldn't open a pull request. Allow GitHub Actions to create pull requests (Settings → Actions → General) or open it by hand."
+          fi

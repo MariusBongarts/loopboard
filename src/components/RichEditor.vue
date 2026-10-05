@@ -29,7 +29,7 @@ const editor = useEditor({
   contentType: 'markdown',
   extensions: [StarterKit.configure({ link: { openOnClick: false } }), TaskList, TaskItem.configure({ nested: true }), Markdown],
   editorProps: {
-    attributes: { class: 'rich-editor-content drawer-body', 'aria-label': props.label, role: 'textbox', 'aria-multiline': 'true' },
+    attributes: { class: 'rich-editor-content prose', 'aria-label': props.label, role: 'textbox', 'aria-multiline': 'true' },
     handleKeyDown: (_view, event) => {
       if (!suggest.value || !matches.value.length) return false;
       if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {

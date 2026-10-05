@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import { readdir } from "node:fs/promises";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { basename, dirname, join } from "node:path";
@@ -304,7 +305,10 @@ route("PATCH", /^\/api\/w\/([^/]+)\/issues\/(\d{4})$/, async (ctx, req, res, m) 
   const archived = m.query.get("archived") === "true";
   const filePath = findIssueFile(id, archived, workspace.root);
   if (!filePath) throw new HttpError(404, `issue ${id} not found`);
-  json(res, 200, await mutateIssue(filePath, await readJsonBody<IssuePatch>(req)));
+  const patch = await readJsonBody<IssuePatch>(req);
+  const project = typeof patch.project === "string" ? patch.project.trim() : "";
+  if (project && !existsSync(join(workspace.root, "projects", project))) throw new HttpError(400, `no project ${project}`);
+  json(res, 200, await mutateIssue(filePath, patch));
 });
 
 function expandHome(path: string): string {

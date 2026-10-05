@@ -21,7 +21,7 @@ test('create an issue', async ({ page }) => {
   const file = await readIssueFile('0010-wire-the-import-button.md');
   try {
     expect(file).toContain('title: "Wire the import: button"\ncategory: bug\nstatus: todo\nassignee: agent\nproject: 01-demo-project\n');
-    expect(file).toContain('## Steps to reproduce');
+    expect(file.split('---\n\n')[1]).toBe('## Steps to reproduce\n\n## Current\n\n## Expected\n\n## Acceptance criteria\n\n- [ ] \n');
     await expect(page.locator('.feed-row', { hasText: 'Wire the import: button' })).toBeVisible();
   } finally {
     await rm(join(workspaceRoot(), 'issues', '0010-wire-the-import-button.md'));
@@ -53,7 +53,7 @@ test('jump anywhere with ⌘K', async ({ page }) => {
   await palette.getByRole('combobox').fill('0003');
   await expect(palette.getByRole('option').first()).toHaveText(/#0003 Check the new layout by hand/);
   await palette.getByRole('combobox').press('Enter');
-  await expect(page.locator('.drawer-head h2')).toHaveText('Check the new layout by hand');
+  await expect(page.locator('.issue-view-title')).toHaveText('Check the new layout by hand');
 
   await page.keyboard.press('ControlOrMeta+k');
   await palette.getByRole('combobox').fill('specs');

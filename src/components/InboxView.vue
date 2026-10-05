@@ -1,6 +1,12 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import PinIcon from './icons/PinIcon.vue';
+import AppRail from './AppRail.vue';
+import IssuePage from './IssuePage.vue';
+import ResizeHandle from './ResizeHandle.vue';
+import { ScrollText } from '@lucide/vue';
+import Avatar from './Avatar.vue';
+import { useIssueContextMenu } from '../issueContext';
+import StatusIcon from './StatusIcon.vue';
 import ProjectPane from './ProjectPane.vue';
 import IssueRefText from './IssueRefText.vue';
 import { toneClass } from '../colors';
@@ -12,7 +18,6 @@ import {
   groupByDay,
   itemHeadline,
   needsYou,
-  prdNumber,
   projectsByLastSession,
   readPinnedSlugs,
   relativeDay,
@@ -35,15 +40,14 @@ import {
   type WorkspaceSummary,
 } from '../types';
 import SpecsView from './SpecsView.vue';
-import WorkspaceSwitcher from './WorkspaceSwitcher.vue';
 import { useRoute, useRouter } from 'vue-router';
+import { useResizable } from '../resize';
 import { readStored, readWorkspaceStored, writeStored, writeWorkspaceStored } from '../storage';
 import { useWorkspace, type View } from '../workspace';
 import ProjectsView from './ProjectsView.vue';
 import ListView from './ListView.vue';
 import type { LiveState } from '../live';
-import { hasModifier, isShortcut, isTyping } from '../shortcuts';
-import { cycleTheme, themeChoice } from '../theme';
+import { hasModifier, isShortcut, isTyping, overlayOpen } from '../shortcuts';
 
 const props = defineProps<{
   view: View;
@@ -57,55 +61,32 @@ const props = defineProps<{
 const router = useRouter();
 const route = useRoute();
 const { id: workspaceId } = useWorkspace();
+const contextMenu = useIssueContextMenu();
 const emit = defineEmits<{
   (e: 'refresh'): void;
   (e: 'open-backlog', issues: Issue[]): void;
-  (e: 'open-issue' | 'toggle-assignee', issue: Issue): void;
+  (e: 'open-issue', issue: Issue, list?: Issue[]): void;
+  (e: 'toggle-assignee', issue: Issue): void;
   (e: 'drop', payload: { issue: Issue; column: ColumnKey }): void;
   (e: 'reorder', payload: { column: ColumnKey; ids: string[]; draggedId: string }): void;
   (e: 'selection', issue: Issue | null): void;
   (e: 'pane-project', slug: string | null): void;
-  (e: 'new-issue' | 'new-project'): void;
+  (e: 'new-issue' | 'new-project' | 'settings'): void;
 }>();
 
 const SELECTED_KEY = 'inbox.selected';
 
 const PIN_KEY = 'inbox.pinnedProjects';
-const RAIL_KEY = 'loopboard.railWidth';
-const RAIL_DEFAULT = 248;
-const RAIL_MIN = 180;
-const RAIL_MAX = 460;
-
-const clampRail = (w: number) => Math.round(Math.min(RAIL_MAX, Math.max(RAIL_MIN, w)));
-const railWidth = ref(readRailWidth());
-function readRailWidth(): number {
-  const n = Number(readStored(RAIL_KEY) ?? readStored('tracker.inbox.railWidth'));
-  return n ? clampRail(n) : RAIL_DEFAULT;
-}
-const inboxEl = ref<HTMLElement | null>(null);
-function onResizeStart(e: PointerEvent) {
-  const left = inboxEl.value?.getBoundingClientRect().left ?? 0;
-  document.body.classList.add('is-resizing');
-  const move = (ev: PointerEvent) => {
-    railWidth.value = clampRail(ev.clientX - left);
-  };
-  const up = () => {
-    window.removeEventListener('pointermove', move);
-    window.removeEventListener('pointerup', up);
-    document.body.classList.remove('is-resizing');
-    writeStored(RAIL_KEY, String(railWidth.value));
-  };
-  window.addEventListener('pointermove', move);
-  window.addEventListener('pointerup', up);
-}
-function resetRailWidth() {
-  railWidth.value = RAIL_DEFAULT;
-  writeStored(RAIL_KEY, null);
-}
+// Rail and feed resize the same way (#0048).
+const railResizer = useResizable({ key: 'loopboard.railWidth', min: 180, max: 460, initial: 248, edge: 'right' });
+const feedResizer = useResizable({ key: 'loopboard.feedWidth', min: 280, max: 600, initial: 380, edge: 'right' });
+const railCollapsed = ref(readStored('loopboard.railCollapsed') === '1');
+watch(railCollapsed, (c) => writeStored('loopboard.railCollapsed', c ? '1' : null));
+const railCssWidth = computed(() => (railCollapsed.value ? '52px' : `${railResizer.size.value}px`));
+const rail = ref<InstanceType<typeof AppRail> | null>(null);
 
 const query = ref('');
 const tokens = computed(() => tokenizeQuery(query.value));
-const searchInput = ref<HTMLInputElement | null>(null);
 const specsView = ref<InstanceType<typeof SpecsView> | null>(null);
 
 const view = computed(() => props.view);
@@ -132,7 +113,6 @@ const FILTERS: { key: InboxFilter; label: string; title: string }[] = [
 const feedHidden = ref(readStored('loopboard.feedHidden') === '1');
 watch(feedHidden, (h) => writeStored('loopboard.feedHidden', h ? '1' : null));
 
-const RAIL_FILTERS = FILTERS.filter((f) => f.key === 'all' || f.key === 'you');
 const { views } = useWorkspace();
 
 function openIssues(query: Record<string, string> = {}) {
@@ -165,6 +145,7 @@ const visible = computed(() =>
   searchFeed(filterFeed(feed.value, filter.value, scope.value), tokens.value, projectsBySlug.value),
 );
 const days = computed(() => groupByDay(visible.value));
+const visibleIssues = computed(() => visible.value.flatMap((e) => (e.kind === 'issue' ? [e.issue] : [])));
 const shownDays = computed(() => days.value.slice(0, dayLimit.value));
 
 const counts = computed(() => ({
@@ -271,14 +252,6 @@ function setFilter(f: InboxFilter) {
   selectedKey.value = visible.value[0]?.key ?? selectedKey.value;
 }
 
-function setChip(f: InboxFilter) {
-  filter.value = f;
-  resetList();
-  if (!visible.value.some((e) => e.key === selectedKey.value)) {
-    selectedKey.value = visible.value[0]?.key ?? selectedKey.value;
-  }
-}
-
 function scopeTo(slug: string) {
   showView('feed');
   scope.value = slug;
@@ -323,15 +296,17 @@ watch(query, () => {
 
 function onKeydown(e: KeyboardEvent) {
   if (isTyping(e) || hasModifier(e)) return;
-  const overlay = document.querySelector('.drawer, .modal-backdrop');
+  const overlay = overlayOpen();
   if (isShortcut(e, 'search') && !overlay) {
     e.preventDefault();
     // In the Specs view "/" searches scenarios, not the feed.
     if (view.value === 'specs') specsView.value?.focusSearch();
-    else {
-      searchInput.value?.focus();
-      searchInput.value?.select();
-    }
+    else void rail.value?.focusSearch();
+    return;
+  }
+  if (isShortcut(e, 'sidebar') && !overlay) {
+    e.preventDefault();
+    railCollapsed.value = !railCollapsed.value;
     return;
   }
   if (view.value !== 'feed' || overlay) return;
@@ -391,155 +366,47 @@ onBeforeUnmount(() => {
 
 <template>
   <div
-    ref="inboxEl"
     class="inbox"
     :class="{ 'inbox-specs-mode': view !== 'feed', 'feed-hidden': feedHidden && view === 'feed' }"
-    :style="{ '--rail-w': `${railWidth}px` }"
+    :style="{ '--rail-w': railCssWidth, '--feed-w': `${feedResizer.size.value}px` }"
   >
-    <nav class="inbox-rail" aria-label="Inbox navigation">
-      <div class="rail-head">
-        <WorkspaceSwitcher :current="props.workspace" />
-        <button type="button" class="rail-new" title="New issue (C)" aria-label="New issue" @click="emit('new-issue')">
-          <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M7 2v10M2 7h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" /></svg>
-        </button>
-        <button
-          v-if="props.live === 'offline'"
-          type="button"
-          class="live-badge offline"
-          title="Lost the connection to loopboard — retrying. Click to reload now."
-          @click="emit('refresh')"
-        >
-          Offline
-        </button>
-        <span
-          v-else
-          class="live-dot"
-          :class="props.live"
-          role="status"
-          :aria-label="props.live === 'live' ? 'Live — updates as files change' : 'Connecting'"
-          :title="props.live === 'live' ? 'Live — updates as files change' : 'Connecting…'"
-        />
-      </div>
-      <div class="rail-search-wrap">
-        <input
-          ref="searchInput"
-          v-model="query"
-          type="search"
-          class="rail-search"
-          placeholder="Search issues, sessions, PRDs"
-          aria-label="Search issues, sessions and PRDs"
-          @keydown.esc="query = ''"
-        />
-        <kbd v-if="!query">/</kbd>
-      </div>
-      <!-- The rail lists destinations; the feed's chips filter it (#0031). -->
-      <button
-        v-for="f in RAIL_FILTERS"
-        :key="f.key"
-        type="button"
-        class="rail-nav"
-        :class="{ on: view === 'feed' && filter === f.key && !scope }"
-        @click="setFilter(f.key)"
-      >
-        <span class="rail-name">{{ f.title }}</span>
-        <span class="rail-count" :class="{ hot: f.key === 'you' && counts.you > 0 }">{{ counts[f.key] }}</span>
-      </button>
-      <button type="button" class="rail-nav" :class="{ on: view === 'issues' && !route.query.view }" @click="openIssues()">
-        <span class="rail-name">Issues</span>
-        <span class="rail-count">{{ counts.issues }}</span>
-      </button>
-      <button
-        type="button"
-        class="rail-nav"
-        :class="{ on: view === 'projects' }"
-        @click="showView('projects')"
-      >
-        <span class="rail-name">Projects</span>
-        <span class="rail-count">{{ props.projects.length }}</span>
-      </button>
-      <button
-        type="button"
-        class="rail-nav"
-        :class="{ on: view === 'specs' }"
-        @click="showView('specs')"
-      >
-        <span class="rail-name">Specs</span>
-        <span class="rail-count">{{ props.specs.length }}</span>
-      </button>
-      <template v-if="views.length">
-        <div class="rail-sec">Views</div>
-        <button
-          v-for="v in views"
-          :key="v.id"
-          type="button"
-          class="rail-nav"
-          :class="{ on: view === 'issues' && route.query.view === v.id }"
-          @click="openIssues({ ...v.query, view: v.id })"
-        >
-          <span class="rail-name">{{ v.name }}</span>
-        </button>
-      </template>
-      <template v-for="section in railSections" :key="section.label">
-        <div class="rail-sec">
-          {{ section.label }}
-          <button
-            v-if="section === railSections[0]"
-            type="button"
-            class="rail-sec-add"
-            title="New project"
-            aria-label="New project"
-            @click="emit('new-project')"
-          >+</button>
-        </div>
-        <div
-          v-for="p in section.projects"
-          :key="p.slug"
-          class="rail-row"
-          :class="{ on: view === 'feed' && scope === p.slug }"
-        >
-          <button type="button" class="rail-nav" @click="scopeTo(p.slug)">
-            <span class="rail-dot" :class="toneClass(p.slug)" />
-            <span class="prd-num">{{ prdNumber(p.slug) }}</span>
-            <span class="rail-name">{{ p.title }}</span>
-            <span class="rail-count">{{ relativeDay(p.lastSession, today) }}</span>
-          </button>
-          <button
-            type="button"
-            class="rail-pin"
-            :class="{ on: pinnedSlugs.includes(p.slug) }"
-            :aria-pressed="pinnedSlugs.includes(p.slug)"
-            :aria-label="`${pinnedSlugs.includes(p.slug) ? 'Unpin' : 'Pin'} ${p.title}`"
-            :title="pinnedSlugs.includes(p.slug) ? 'Unpin' : 'Pin'"
-            @click="togglePin(p.slug)"
-          >
-            <PinIcon :filled="pinnedSlugs.includes(p.slug)" />
-          </button>
-        </div>
-      </template>
-      <div v-if="!railSections.length" class="rail-sec">
-        Projects
-        <button type="button" class="rail-sec-add" title="New project" aria-label="New project" @click="emit('new-project')">+</button>
-      </div>
-      <div class="rail-foot">
-        <RouterLink class="rail-nav" :to="{ path: '/help', query: { from: workspaceId } }">
-          <span class="rail-name">Help</span>
-          <kbd>?</kbd>
-        </RouterLink>
-        <button
-          type="button"
-          class="rail-theme"
-          :title="`Theme: ${themeChoice} — click to change`"
-          :aria-label="`Theme: ${themeChoice}`"
-          @click="cycleTheme()"
-        >{{ themeChoice === 'dark' ? '☾' : themeChoice === 'light' ? '☀' : '◐' }}</button>
-      </div>
-    </nav>
+    <AppRail
+      ref="rail"
+      v-model:query="query"
+      v-model:collapsed="railCollapsed"
+      :workspace="props.workspace"
+      :live="props.live"
+      :view="view"
+      :filter="filter"
+      :scope="scope"
+      :counts="counts"
+      :projects-count="props.projects.length"
+      :specs-count="props.specs.length"
+      :sections="railSections"
+      :pinned="pinnedSlugs"
+      :views="views"
+      :active-view-id="typeof route.query.view === 'string' ? route.query.view : null"
+      :today="today"
+      @refresh="emit('refresh')"
+      @new-issue="emit('new-issue')"
+      @new-project="emit('new-project')"
+      @settings="emit('settings')"
+      @open-issues="openIssues()"
+      @set-filter="setFilter"
+      @scope="scopeTo"
+      @toggle-pin="togglePin"
+      @show-view="showView"
+      @open-view="(v) => openIssues({ ...v.query, view: v.id })"
+    />
 
     <section v-if="view === 'issues'" class="inbox-specs">
       <ListView />
     </section>
     <section v-else-if="view === 'projects'" class="inbox-specs">
       <ProjectsView :projects="props.projects" :issues="props.issues" @open="openFromOverview" />
+    </section>
+    <section v-else-if="view === 'issue'" class="inbox-specs">
+      <IssuePage :issue-id="String(route.params.id)" :archived="route.query.archived === '1'" :loaded="props.workspace !== null" />
     </section>
     <section v-else-if="view === 'specs'" class="inbox-specs">
       <SpecsView ref="specsView" :specs="props.specs" />
@@ -551,16 +418,6 @@ onBeforeUnmount(() => {
           <h2>{{ listTitle }}</h2>
           <button v-if="scope" type="button" class="list-clear" @click="setFilter(filter)">All projects</button>
           <button type="button" class="feed-toggle" title="Hide the feed — give the board the full width" aria-label="Hide feed" @click="feedHidden = true">⇤</button>
-        </div>
-        <div class="list-filters">
-          <button
-            v-for="f in FILTERS"
-            :key="f.key"
-            type="button"
-            class="fchip"
-            :class="{ on: filter === f.key }"
-            @click="setChip(f.key)"
-          >{{ f.label }}</button>
         </div>
       </header>
 
@@ -594,12 +451,18 @@ onBeforeUnmount(() => {
             role="button"
             tabindex="0"
             @click="select(item)"
-            @dblclick="item.kind === 'issue' && emit('open-issue', item.issue)"
+            @dblclick="item.kind === 'issue' && emit('open-issue', item.issue, visibleIssues)"
+            @contextmenu="(e: MouseEvent) => { if (item.kind === 'issue') { e.preventDefault(); contextMenu.open(e, item.issue); } }"
             @keydown.enter.prevent="select(item)"
           >
             <span class="feed-unread" :class="{ fresh: isFresh(item.date) }" />
+            <span class="feed-icon" aria-hidden="true">
+              <StatusIcon v-if="item.kind === 'issue'" :status="item.issue.status" />
+              <ScrollText v-else :size="14" />
+            </span>
             <div class="feed-main">
-              <div class="feed-l1">
+              <div class="feed-title">{{ itemHeadline(item) }}</div>
+              <div class="feed-l2">
                 <button
                   type="button"
                   class="feed-proj"
@@ -607,17 +470,12 @@ onBeforeUnmount(() => {
                   @click.stop="openProject(item.projectKey)"
                 >
                   <span class="rail-dot" :class="item.projectKey === STANDALONE ? '' : toneClass(item.projectKey)" />
-                  <span v-if="prdNumber(item.projectKey)" class="prd-num">{{ prdNumber(item.projectKey) }}</span>
                   {{ projectTitle(item.projectKey) }}
                 </button>
                 <span class="feed-kind">{{ item.kind === 'session' ? 'Session' : `#${item.issue.id}` }}</span>
+                <Avatar v-if="item.kind === 'issue'" :assignee="item.issue.assignee" :size="16" />
               </div>
-              <div class="feed-title">{{ itemHeadline(item) }}</div>
-              <div v-if="item.kind === 'issue'" class="feed-sub">
-                <span class="feed-status" :class="`s-${item.issue.status}`">{{ item.issue.status }}</span>
-                <span class="feed-who" :class="item.issue.assignee">{{ item.issue.assignee }}</span>
-              </div>
-              <div v-else-if="sessionRest(item)" class="feed-rest">{{ sessionRest(item) }}</div>
+              <div v-if="item.kind === 'session' && sessionRest(item)" class="feed-rest">{{ sessionRest(item) }}</div>
             </div>
             <span class="feed-when">{{ relativeDay(item.date, today) }}</span>
           </div>
@@ -639,13 +497,16 @@ onBeforeUnmount(() => {
         :highlight-id="highlightId"
         :pinned-label="pinnedLabel"
         :request-tab="props.request && props.request.slug === paneKey ? props.request : null"
-        @open-issue="(i) => emit('open-issue', i)"
+        @open-issue="(i, list) => emit('open-issue', i, list)"
         @open-backlog="(list) => emit('open-backlog', list)"
         @open-id="openById"
         @toggle-assignee="(i) => emit('toggle-assignee', i)"
         @drop="(p) => emit('drop', p)"
         @reorder="(p) => emit('reorder', p)"
       >
+        <template v-if="pinned?.kind === 'issue'" #pinned-badge>
+          <StatusIcon :status="pinned.issue.status" :size="12" /><span class="badge-pop-id">#{{ pinned.issue.id }}</span>
+        </template>
         <template v-if="pinned" #pinned>
           <div class="pinned-callout">
             <template v-if="pinned.kind === 'issue'">
@@ -654,8 +515,8 @@ onBeforeUnmount(() => {
                   {{ pinned.issue.title }}
                 </button>
               </div>
-              <span class="feed-status" :class="`s-${pinned.issue.status}`">{{ pinned.issue.status }}</span>
-              <span class="feed-who" :class="pinned.issue.assignee">{{ pinned.issue.assignee }}</span>
+              <StatusIcon :status="pinned.issue.status" />
+              <Avatar :assignee="pinned.issue.assignee" />
             </template>
             <div v-else class="pinned-main">
               <p class="pinned-note"><IssueRefText :text="pinned.note" @open-id="openById" /></p>
@@ -667,14 +528,7 @@ onBeforeUnmount(() => {
         {{ feed.length === 0 ? 'The board appears here once there are issues.' : "Select an item to see its project's board." }}
       </p>
     </section>
-    <div
-      class="rail-resizer"
-      role="separator"
-      aria-orientation="vertical"
-      aria-label="Resize sidebar"
-      title="Drag to resize · double-click to reset"
-      @pointerdown.prevent="onResizeStart"
-      @dblclick="resetRailWidth"
-    />
+    <ResizeHandle v-if="!railCollapsed" class="rail-resizer" :resizer="railResizer" label="Resize sidebar" />
+    <ResizeHandle v-if="view === 'feed' && !feedHidden" class="feed-resizer" :resizer="feedResizer" label="Resize feed" />
   </div>
 </template>

@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Rail, round 2</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,460;0,9..144,560;1,9..144,460&family=Geist:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --paper: oklch(0.985 0.006 80);
+        --paper-2: oklch(0.972 0.008 80);
+        --rule: oklch(0.88 0.012 70);
+        --rule-soft: oklch(0.93 0.008 75);
+        --ink: oklch(0.18 0.012 60);
+        --ink-2: oklch(0.32 0.01 60);
+        --ink-3: oklch(0.48 0.01 60);
+        --ink-4: oklch(0.64 0.008 70);
+        --ember: oklch(0.55 0.16 50);
+        --ember-soft: oklch(0.95 0.03 70);
+        --serif: "Fraunces", Georgia, serif;
+        --sans: "Geist", system-ui, sans-serif;
+        --mono: "JetBrains Mono", ui-monospace, monospace;
+        --bar: 78px;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; background: var(--paper); color: var(--ink); }
+      body { font-family: var(--sans); font-size: 14.5px; line-height: 1.45; }
+      button { font: inherit; color: inherit; cursor: pointer; background: none; border: 0; border-radius: 0; padding: 0; text-align: left; }
+      button:focus-visible { outline: 2px solid var(--ember); outline-offset: 2px; }
+      a { color: inherit; }
+
+      #switcher {
+        height: var(--bar);
+        display: grid;
+        grid-template-columns: 168px 1fr;
+        gap: 20px;
+        align-items: center;
+        padding: 0 22px;
+        border-top: 3px solid var(--ink);
+        border-bottom: 1px solid var(--ink);
+        background: var(--paper);
+        position: sticky;
+        top: 0;
+        z-index: 20;
+      }
+      .kicker { font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
+      .sw-title { font-family: var(--serif); font-size: 18px; font-weight: 560; letter-spacing: -0.02em; margin-top: 2px; }
+      .sw-title em { font-style: italic; font-weight: 460; }
+      .sw-row { display: flex; gap: 6px; }
+      .sw-btn { border: 1px solid var(--rule); padding: 5px 9px 4px; min-width: 92px; }
+      .sw-btn strong { display: block; font-family: var(--serif); font-weight: 560; font-size: 13.5px; }
+      .sw-btn span { display: block; margin-top: 1px; font-family: var(--mono); font-size: 9px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-3); }
+      .sw-btn.on { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+      .sw-btn.on span { color: oklch(0.78 0.01 80); }
+      .thesis { margin: 5px 0 0; font-size: 12.5px; color: var(--ink-2); }
+      .thesis button { color: var(--ember); border-bottom: 1px solid oklch(0.55 0.16 50 / 0.35); font-size: inherit; }
+
+      #app { height: calc(100vh - var(--bar)); display: grid; grid-template-columns: 248px minmax(0, 1fr); }
+      .rail { border-right: 1px solid var(--rule); overflow: auto; background: var(--paper); }
+      .rail-today { display: block; width: 100%; padding: 16px 16px 12px; border-bottom: 1px solid var(--rule); }
+      .rail-today strong { font-family: var(--serif); font-weight: 560; font-size: 17px; letter-spacing: -0.02em; }
+      .rail-today.on { box-shadow: inset 2px 0 0 var(--ember); }
+      .rail .sec { padding: 14px 16px 4px; }
+      .item { display: grid; grid-template-columns: 1fr auto; gap: 8px; width: 100%; padding: 7px 16px; align-items: baseline; }
+      .item:hover { background: var(--paper-2); }
+      .item.on { box-shadow: inset 2px 0 0 var(--ember); background: var(--paper-2); }
+      .item .t { font-size: 13px; line-height: 1.3; }
+      .item.on .t { font-family: var(--serif); font-size: 14px; }
+      .item .d { font-family: var(--mono); font-size: 10px; color: var(--ink-4); }
+
+      #stage { overflow: auto; min-width: 0; }
+      .bar {
+        display: flex;
+        align-items: baseline;
+        gap: 12px;
+        padding: 14px 36px 0;
+      }
+      .bar h1 { margin: 0; font-family: var(--serif); font-weight: 560; font-size: 22px; letter-spacing: -0.03em; }
+      .bar .meta { font-family: var(--mono); font-size: 11px; color: var(--ink-3); letter-spacing: 0.04em; }
+      .bar .grow { flex: 1; }
+      .textlink { font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-2); }
+      .textlink + .textlink { margin-left: 14px; }
+      .textlink:hover { color: var(--ember); }
+
+      .lead-wrap { padding: 18px 36px 8px; max-width: 760px; }
+      .lead {
+        margin: 0;
+        font-family: var(--serif);
+        font-weight: 460;
+        font-size: 28px;
+        line-height: 1.28;
+        letter-spacing: -0.025em;
+      }
+      .lead .id, .prose .id, .quote .id {
+        font-family: var(--serif);
+        font-weight: 560;
+        font-size: 0.82em;
+        color: var(--ember);
+        border-bottom: 1px solid oklch(0.55 0.16 50 / 0.35);
+        letter-spacing: 0;
+      }
+      .more {
+        margin-top: 14px;
+        font-family: var(--mono);
+        font-size: 11px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--ink-3);
+      }
+      .rest { margin: 10px 0 0; color: var(--ink-2); font-size: 15px; max-width: 62ch; }
+
+      .work { padding: 8px 36px 64px; max-width: 820px; }
+      .work h2 { margin: 26px 0 8px; }
+      .row { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; gap: 12px; width: 100%; padding: 11px 0; border-top: 1px solid var(--rule-soft); align-items: baseline; }
+      .row .id { font-family: var(--mono); font-size: 12px; color: var(--ink-3); }
+      .row .ttl { font-size: 15px; }
+      .row .side { font-family: var(--mono); font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-3); white-space: nowrap; }
+      .prd-link { color: var(--ember); font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; }
+      .prd-link:hover { border-bottom: 1px solid var(--ember); }
+
+      .stream { padding: 8px 36px 48px; max-width: 760px; }
+      .day { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 8px 22px; padding-top: 8px; }
+      .day-h { position: sticky; top: 0; background: var(--paper); padding: 14px 0 8px; align-self: start; }
+      .day-h .n { font-family: var(--serif); font-size: 28px; font-weight: 560; letter-spacing: -0.04em; line-height: 1; display: block; }
+      .day-h .m { font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
+      .entry { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 12px; padding: 12px 0; border-top: 1px solid var(--rule-soft); }
+      .entry .kind { font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-4); padding-top: 4px; }
+      .entry strong { font-family: var(--serif); font-weight: 560; font-size: 16px; letter-spacing: -0.02em; }
+      .entry p { margin: 4px 0 0; color: var(--ink-2); }
+      .entry .links { margin-top: 6px; display: flex; gap: 14px; }
+      .end { padding: 18px 0 8px; color: var(--ink-4); font-family: var(--mono); font-size: 11px; letter-spacing: 0.04em; }
+
+      .sentence .lead { font-size: 36px; line-height: 1.18; max-width: 18ch; padding: 22px 36px 0; }
+      .byline { padding: 10px 36px 0; display: flex; gap: 14px; align-items: baseline; }
+      .byline .name { font-family: var(--serif); font-style: italic; font-size: 16px; }
+
+      .split { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(200px, 0.7fr); gap: 36px; padding: 20px 36px 0; align-items: start; }
+      .split .lead { font-size: 26px; }
+      .cited { border-top: 1px solid var(--ink); padding-top: 10px; }
+      .cited button.chip { display: block; width: 100%; padding: 8px 0; border-bottom: 1px solid var(--rule-soft); }
+      .cited button.chip b { font-family: var(--mono); font-size: 11px; color: var(--ember); font-weight: 500; }
+      .cited button.chip span { display: block; margin-top: 2px; }
+      .from-prd { margin: 22px 36px 0; max-width: 68ch; color: var(--ink-2); font-size: 14px; }
+      .from-prd em { font-family: var(--mono); font-style: normal; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-4); display: block; margin-bottom: 4px; }
+
+      .spread { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 40px; padding: 22px 40px 72px; align-items: start; }
+      .pull { position: sticky; top: 16px; }
+      .pull .lead { font-size: 23px; }
+      .phase { margin: 0 0 22px; }
+      .phase .ph { font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
+      .phase h3 { margin: 3px 0 8px; font-family: var(--serif); font-weight: 560; font-size: 18px; letter-spacing: -0.02em; }
+      .check { display: grid; grid-template-columns: 14px minmax(0, 1fr) auto; gap: 8px; padding: 7px 0; border-top: 1px solid var(--rule-soft); align-items: baseline; }
+      .box { width: 9px; height: 9px; border: 1px solid var(--ink-3); display: inline-block; }
+      .box.done { background: var(--ink); border-color: var(--ink); }
+
+      .pin { display: flex; gap: 18px; align-items: baseline; padding: 12px 28px; border-bottom: 1px solid var(--rule); background: var(--ember-soft); }
+      .pin p { margin: 0; font-family: var(--serif); font-size: 16px; letter-spacing: -0.02em; flex: 1; }
+      .pin .who { font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); white-space: nowrap; }
+      .days-stream { max-width: 860px; }
+      .days-stream .day-h { top: 0; }
+
+      #drawer {
+        position: fixed;
+        top: var(--bar);
+        right: 0;
+        bottom: 0;
+        width: min(460px, 100vw);
+        background: var(--paper);
+        border-left: 1px solid var(--ink);
+        z-index: 15;
+        overflow: auto;
+        transform: translateX(104%);
+        transition: transform 0.16s ease-out;
+        padding: 22px 26px 48px;
+      }
+      #drawer.open { transform: translateX(0); }
+      #drawer h2 { font-family: var(--serif); font-weight: 560; font-size: 28px; letter-spacing: -0.03em; margin: 8px 0 12px; }
+      #drawer .x { float: right; font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; }
+      #drawer .prose { font-size: 15px; color: var(--ink-2); }
+      #drawer .quote { margin: 14px 0; padding: 12px 0 12px 14px; border-left: 2px solid var(--ember); font-family: var(--serif); font-size: 17px; line-height: 1.35; }
+      #drawer .note { margin-top: 18px; font-size: 13px; color: var(--ink-3); }
+      .mark { background: var(--ember-soft); }
+    </style>
+  </head>
+  <body>
+    <header id="switcher"></header>
+    <div id="app">
+      <aside class="rail" id="rail"></aside>
+      <main id="stage"></main>
+    </div>
+    <aside id="drawer"></aside>
+    <script>
+      const PROTOS = [
+        { id: "lead", name: "Lead", line: "First paragraph", thesis: "One line for the project. Current focus is the first paragraph under the WIP heading, set as the page, with the rest one click away." },
+        { id: "sentence", name: "Sentence", line: "Focus is the title", thesis: "The first sentence replaces the headline. The project name drops to a byline, which is the space the screenshot was spending on a second title." },
+        { id: "split", name: "Split", line: "Sentence and tickets", thesis: "The paragraph stays prose. Every #id cited in it becomes a column of tickets, and one line of the PRD problem sits underneath so “what now” and “what this is” stay apart." },
+        { id: "margin", name: "Margin", line: "Pull quote", thesis: "Focus hangs in the margin. The body is the phase checklist already written in the WIP, each row deep-linking its PRD." },
+        { id: "days", name: "Days", line: "The stream stays", thesis: "Today is a date-grouped stream you scroll through. Opening a project pins its focus to one line and does not throw the days away." },
+      ];
+
+      const PROJECTS = [
+        {
+          slug: "07-keyword-analysis",
+          title: "Keyword Analysis",
+          status: "active",
+          last: "2026-09-22",
+          sentence: "Competitive-landscape research is mapped.",
+          lead: "Competitive-landscape research is mapped, including a Raindrop deep dive. Next session is Apple Notes article freshness, [[0357]].",
+          rest: "The SEO workspace is live. The Learning and Study pass filed the flashcard-generator hub, the Blinkist-versus-Kindle fix, and the active-recall pillar. Analysis #6 still awaits verification.",
+          problem: "Keyword work is reactive and lives in scattered files, so decisions about what to write next drift away from the regressions that matter.",
+          solution: "A repeatable cycle anchored to one living roadmap, with past cycles kept as archived issues.",
+          mention: "Next session is Apple Notes article freshness, #0357.",
+          phases: [
+            { name: "Phase 2 — Content delivery", items: [
+              { id: "0163", title: "Recover reader mode #1", state: "todo", done: false },
+              { id: "0165", title: "Recover lost #1s on annotation examples", state: "todo", done: false },
+              { id: "0357", title: "Apple Notes article freshness", state: "in progress", done: false },
+            ]},
+          ],
+        },
+        {
+          slug: "22-flashcards-learning-hub",
+          title: "Flashcards & Learning Hub",
+          status: "active",
+          last: "2026-09-22",
+          sentence: "Library scale-up is the current phase.",
+          lead: "Library scale-up. [[0838]] holds the SEO potential analysis — 37 deck families across five markets — and the next step is slicing F0 through F16.",
+          rest: "Phase 1 and the dashboard work in Phase 2 are implemented and in review, including standalone decks and the learning filter.",
+          problem: "A learner can only replay raw highlights. There is no question to practice, and no way to study something that was never highlighted.",
+          solution: "Question-and-answer cards, a focus stage, and a library that can grow on a schedule.",
+          mention: "#0838 holds the SEO potential analysis and the map of 16 follow-up candidates.",
+          phases: [
+            { name: "Phase 7 — Library scale-up", items: [
+              { id: "0838", title: "Learning library SEO potential", state: "in review", done: false },
+            ]},
+          ],
+        },
+        {
+          slug: "29-android-app-release",
+          title: "Android App Release",
+          status: "active",
+          last: "2026-09-21",
+          sentence: "Phase 0 and Phase 1 run in parallel.",
+          lead: "Phase 0 and Phase 1 run in parallel. You start the tickets that gate the release — the Play account [[0481]], the keystore [[0482]], and Firebase [[0454]] — while an agent builds the pipeline.",
+          rest: "The first internal upload follows immediately. It is what makes the release fingerprints exist, and those unblock Google sign-in on the Play build.",
+          problem: "The Android app exists, but nobody can install it. It is not on Google Play, and sign-in and upgrade both break outside a normal browser.",
+          solution: "A Play listing, a signed internal track, and the maintainer steps that only a person can finish.",
+          mention: "The maintainer starts the Play account (#0481), the upload keystore (#0482) and Firebase (#0454).",
+          phases: [
+            { name: "Phase 0 — Accounts and signing", items: [
+              { id: "0481", title: "Google Play developer account", state: "done", done: true },
+              { id: "0482", title: "Release upload keystore", state: "todo", done: false },
+              { id: "0454", title: "Firebase Android app and certificates", state: "in progress", done: false },
+            ]},
+            { name: "Phase 1 — First internal upload", items: [
+              { id: "0484", title: "Play Console app record and internal release", state: "in progress", done: false },
+              { id: "0495", title: "Store listing and content declarations", state: "in progress", done: false },
+            ]},
+          ],
+        },
+        {
+          slug: "38-monetization-strategy",
+          title: "Monetization Strategy",
+          status: "active",
+          last: "2026-09-18",
+          sentence: "The price campaign is live.",
+          lead: "The +50% campaign is live. Executing the increase in Paddle, [[0681]], is still in review.",
+          rest: "High-tier directions are still being evaluated beside the campaign.",
+          problem: "Subscription revenue has plateaued, and at this customer value the business cannot buy growth.",
+          solution: "A decided price and packaging move, then the campaign that announces it.",
+          mention: "Executing the increase in Paddle, #0681, is still in review.",
+          phases: [
+            { name: "Phase 2 — The increase", items: [
+              { id: "0681", title: "Execute the +50% price increase in Paddle", state: "in review", done: false },
+              { id: "0682", title: "Announce the increase", state: "in progress", done: false },
+            ]},
+          ],
+        },
+        {
+          slug: "32-website-multi-language",
+          title: "Website Multi-Language",
+          status: "active",
+          last: "2026-09-15",
+          sentence: "The support page is in review.",
+          lead: "The support page is localized across the roster and in review, [[0720]]. One security todo is still open, [[0627]].",
+          rest: "This project’s Current focus section is hundreds of lines. The screen shows the first paragraph. The rest stays in the file.",
+          problem: "Most readers do not read English first, and the site speaks English on every page except the Learning Hub.",
+          solution: "Locale infrastructure for the rest of the site, starting from the pages people already land on.",
+          mention: "Support page localized, #0720. Unauthenticated userinfo, #0627.",
+          phases: [
+            { name: "Phase 1 — Website", items: [
+              { id: "0720", title: "Localize the support page", state: "in review", done: false },
+              { id: "0627", title: "userinfo is unauthenticated", state: "todo", done: false },
+            ]},
+          ],
+        },
+        {
+          slug: "39-youtube-tutorial-videos",
+          title: "YouTube Tutorial Videos",
+          status: "active",
+          last: "2026-09-14",
+          sentence: "The pipeline videos are live.",
+          lead: "All thirteen pipeline videos are live and linked from the docs and the Feature Guide.",
+          rest: "Translated subtitles shipped with the last batch.",
+          problem: "Recording a tutorial by hand takes hours and never happens alongside product work, so the docs have no video.",
+          solution: "A pipeline that turns feature pages into videos, then links them back.",
+          mention: "All thirteen pipeline videos are live.",
+          phases: [
+            { name: "Phase 3 — Publish", items: [
+              { id: "0821", title: "Feature Guide reuses the YouTube videos", state: "done", done: true },
+            ]},
+          ],
+        },
+        {
+          slug: "28-idiom-taxonomy-and-direction",
+          title: "Proverbs & Idioms",
+          status: "active",
+          last: "2026-09-08",
+          sentence: "The German hub now has two subjects.",
+          lead: "The German hub carries proverbs and idioms as two subjects. Everything implemented is waiting on review.",
+          rest: "",
+          problem: "Proverbs and idioms were forced onto one axis, so anything that did not fit was hidden or filed in the wrong place.",
+          solution: "Separate subjects, and a card direction that matches how each one is learned.",
+          mention: "Everything implemented is waiting on review.",
+          phases: [],
+        },
+        {
+          slug: "36-store-listing-aso",
+          title: "Store Listing ASO",
+          status: "active",
+          last: "2026-08-28",
+          sentence: "The listing pipeline is live.",
+          lead: "The pipeline is live end to end. The open question is whether the Chrome name should lead with Web Highlighter, [[0725]].",
+          rest: "",
+          problem: "Store listings are rewritten by hand each cycle, so the words that rank and the words that ship drift apart.",
+          solution: "One pipeline from keyword rows to listing copy, across the stores.",
+          mention: "Whether the Chrome name should lead with Web Highlighter, #0725.",
+          phases: [
+            { name: "Phase 1 — The name", items: [
+              { id: "0725", title: "Chrome store name leads with Web Highlighter", state: "in progress", done: false },
+            ]},
+          ],
+        },
+        {
+          slug: "35-self-served-ads",
+          title: "Self-Served Ads",
+          status: "active",
+          last: "2026-08-24",
+          sentence: "The decisions are locked.",
+          lead: "The decisions are locked. Turning the feed on in production is the remaining human step.",
+          rest: "",
+          problem: "A third-party ad network was the only way to fill the feed, and that partnership is over.",
+          solution: "A first-party feed the project can turn on without a network in the middle.",
+          mention: "Turning the feed on in production is the remaining human step.",
+          phases: [],
+        },
+        {
+          slug: "21-mobile-app",
+          title: "Mobile App",
+          status: "shipped",
+          last: "2026-08-18",
+          sentence: "Shipped in 13.0.36.",
+          lead: "Shipped in 13.0.36. The folder stays as the historical record.",
+          rest: "",
+          problem: "The product had no native mobile shell.",
+          solution: "A Capacitor app and a mobile-optimised web app, shipped together.",
+          mention: "Shipped in 13.0.36.",
+          phases: [],
+        },
+        {
+          slug: "30-ios-app-release",
+          title: "iOS App Release",
+          status: "paused",
+          last: "2026-08-18",
+          sentence: "Paused until Android is in production.",
+          lead: "Paused until Android is in production. Apple Developer enrolment, [[0505]], is the one task waiting.",
+          rest: "",
+          problem: "There is no App Store record, and the organisation enrolment has not been started.",
+          solution: "Enrol, then a first TestFlight build, after Android has shipped.",
+          mention: "Apple Developer enrolment, #0505, is waiting.",
+          phases: [
+            { name: "Phase 0 — Enrolment", items: [
+              { id: "0505", title: "Apple Developer Program enrolment", state: "todo", done: false },
+            ]},
+          ],
+        },
+      ];
+
+      const DAYS = [
+        { date: "2026-09-22", items: [
+          { kind: "session", slug: "07-keyword-analysis", text: "Closed #0167 as wontfix. Chrome Support already owns “export bookmarks”; the tutorial’s rank is a first-party ceiling, not a content gap." },
+          { kind: "session", slug: "22-flashcards-learning-hub", text: "Library scale-up. The SEO analysis covers 37 deck families, and the next cut is slicing the follow-ups." },
+          { kind: "issue", id: "0357", title: "Apple Notes article freshness", slug: "07-keyword-analysis", state: "in progress" },
+        ]},
+        { date: "2026-09-21", items: [
+          { kind: "session", slug: "29-android-app-release", text: "Release 12 is on Internal testing and on the phone. The reviewer account is seeded. ToS still says 14 days while the pricing UI says 30." },
+          { kind: "session", slug: "07-keyword-analysis", text: "Tier 1 shipped in one pass: five issues in review. The VPN cluster gets a CTR fix and no new article." },
+          { kind: "issue", id: "0864", title: "ToS refund window contradicts the pricing UI", slug: "29-android-app-release", state: "in progress" },
+        ]},
+        { date: "2026-09-18", items: [
+          { kind: "session", slug: "38-monetization-strategy", text: "The campaign has been live since 1 September. The Paddle increase is the piece still in review." },
+          { kind: "issue", id: "0681", title: "Execute the +50% price increase in Paddle", slug: "38-monetization-strategy", state: "in review" },
+        ]},
+        { date: "2026-09-16", items: [
+          { kind: "issue", id: "0807", title: "Auth page, full-bleed on desktop", slug: "29-android-app-release", state: "in review" },
+          { kind: "issue", id: "0808", title: "yarn dev skips the website when i18n is on", slug: "", state: "in review" },
+          { kind: "issue", id: "0821", title: "Feature Guide reuses the hand-made videos", slug: "39-youtube-tutorial-videos", state: "done" },
+        ]},
+        { date: "2026-09-15", items: [
+          { kind: "session", slug: "32-website-multi-language", text: "The support page landed in the full locale roster and moved to review." },
+          { kind: "issue", id: "0627", title: "userinfo is unauthenticated and leaks profile data", slug: "32-website-multi-language", state: "todo" },
+        ]},
+        { date: "2026-09-14", items: [
+          { kind: "session", slug: "39-youtube-tutorial-videos", text: "The last seven pipeline videos went up. All thirteen are linked from the docs." },
+        ]},
+        { date: "2026-09-08", items: [
+          { kind: "session", slug: "28-idiom-taxonomy-and-direction", text: "The German hub now teaches proverbs and idioms as separate subjects. The implementation is waiting on review." },
+        ]},
+        { date: "2026-08-28", items: [
+          { kind: "session", slug: "36-store-listing-aso", text: "The listing pipeline is live end to end. The open question is whether the Chrome name should lead with Web Highlighter." },
+          { kind: "issue", id: "0725", title: "Chrome store name leads with Web Highlighter", slug: "36-store-listing-aso", state: "in progress" },
+        ]},
+        { date: "2026-08-24", items: [
+          { kind: "session", slug: "35-self-served-ads", text: "The PRD’s decisions are locked. Turning the feed on in production is the remaining human step." },
+        ]},
+        { date: "2026-08-18", items: [
+          { kind: "session", slug: "30-ios-app-release", text: "Paused until Android is in production. Enrolment is the single open task." },
+          { kind: "session", slug: "21-mobile-app", text: "Shipped in 13.0.36. The folder stays as the record." },
+          { kind: "issue", id: "0505", title: "Apple Developer Program enrolment", slug: "30-ios-app-release", state: "todo" },
+        ]},
+      ];
+
+      const ISSUES = {
+        "0357": { title: "Apple Notes article freshness", slug: "07-keyword-analysis", state: "in progress", who: "agent" },
+        "0163": { title: "Recover reader mode #1", slug: "07-keyword-analysis", state: "todo", who: "agent" },
+        "0165": { title: "Recover lost #1s on annotation examples", slug: "07-keyword-analysis", state: "todo", who: "agent" },
+        "0838": { title: "Learning library SEO potential", slug: "22-flashcards-learning-hub", state: "in review", who: "agent" },
+        "0481": { title: "Google Play developer account", slug: "29-android-app-release", state: "done", who: "human" },
+        "0482": { title: "Release upload keystore", slug: "29-android-app-release", state: "todo", who: "human" },
+        "0454": { title: "Firebase Android app and certificates", slug: "29-android-app-release", state: "in progress", who: "human" },
+        "0484": { title: "Play Console app record and internal release", slug: "29-android-app-release", state: "in progress", who: "human" },
+        "0495": { title: "Store listing and content declarations", slug: "29-android-app-release", state: "in progress", who: "human" },
+        "0864": { title: "ToS refund window contradicts the pricing UI", slug: "29-android-app-release", state: "in progress", who: "human" },
+        "0681": { title: "Execute the +50% price increase in Paddle", slug: "38-monetization-strategy", state: "in review", who: "human" },
+        "0682": { title: "Announce the increase", slug: "38-monetization-strategy", state: "in progress", who: "agent" },
+        "0720": { title: "Localize the support page", slug: "32-website-multi-language", state: "in review", who: "agent" },
+        "0627": { title: "userinfo is unauthenticated and leaks profile data", slug: "32-website-multi-language", state: "todo", who: "human" },
+        "0807": { title: "Auth page, full-bleed on desktop", slug: "29-android-app-release", state: "in review", who: "agent" },
+        "0808": { title: "yarn dev skips the website when i18n is on", slug: "", state: "in review", who: "agent" },
+        "0821": { title: "Feature Guide reuses the hand-made videos", slug: "39-youtube-tutorial-videos", state: "done", who: "agent" },
+        "0505": { title: "Apple Developer Program enrolment", slug: "30-ios-app-release", state: "todo", who: "human" },
+        "0725": { title: "Chrome store name leads with Web Highlighter", slug: "36-store-listing-aso", state: "in progress", who: "agent" },
+      };
+
+      const state = { proto: "lead", view: "today", slug: null, days: 4, openRest: false, drawer: null };
+      const $switcher = document.getElementById("switcher");
+      const $rail = document.getElementById("rail");
+      const $stage = document.getElementById("stage");
+      const $drawer = document.getElementById("drawer");
+      let rendering = false;
+
+      function esc(s) {
+        return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+      }
+      function project(slug) {
+        return PROJECTS.find((p) => p.slug === slug) || null;
+      }
+      function shortDate(iso) {
+        const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const [y, m, d] = iso.split("-").map(Number);
+        return { d, m: months[m - 1], wd: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][new Date(iso + "T12:00:00").getDay()] };
+      }
+      function rich(src) {
+        return esc(src).replace(/\[\[(\d{4})\]\]/g, (_, id) => `<button class="id" data-act="prd" data-id="${id}">#${id}</button>`);
+      }
+      function idsIn(src) {
+        return [...src.matchAll(/\[\[(\d{4})\]\]/g)].map((m) => m[1]);
+      }
+
+      function rail() {
+        const groups = [
+          ["Active", PROJECTS.filter((p) => p.status === "active")],
+          ["Paused", PROJECTS.filter((p) => p.status === "paused")],
+          ["Shipped", PROJECTS.filter((p) => p.status === "shipped")],
+        ];
+        const todayOn = state.view === "today" && state.proto !== "days" || (state.proto === "days" && !state.slug);
+        return `<button class="rail-today ${todayOn ? "on" : ""}" data-act="today"><div class="kicker">Across projects</div><strong>Today</strong></button>` +
+          groups.map(([label, items]) => `<div class="sec kicker">${label}</div>` + items.map((p) => {
+            const on = state.slug === p.slug && (state.view === "project" || state.proto === "days");
+            const dt = shortDate(p.last);
+            return `<button class="item ${on ? "on" : ""}" data-act="project" data-slug="${p.slug}"><span class="t">${esc(p.title)}</span><span class="d">${dt.d} ${dt.m}</span></button>`;
+          }).join("")).join("");
+      }
+
+      function bar(p) {
+        return `<div class="bar"><h1>${esc(p.title)}</h1><span class="meta">${p.status} · ${shortDate(p.last).d} ${shortDate(p.last).m}</span><span class="grow"></span><button class="textlink" data-act="prd-project" data-slug="${p.slug}">PRD</button><button class="textlink" data-act="wip" data-slug="${p.slug}">WIP</button></div>`;
+      }
+
+      function issueRows(p) {
+        const ids = [...new Set(p.phases.flatMap((ph) => ph.items.map((i) => i.id)))];
+        if (!ids.length) return "";
+        return `<div class="work"><h2 class="kicker">Phases</h2>${ids.map((id) => {
+          const i = ISSUES[id];
+          return `<div class="row"><button class="id" data-act="issue" data-id="${id}">#${id}</button><button class="ttl" data-act="issue" data-id="${id}">${esc(i.title)}</button><span class="side">${esc(i.state)} · <button class="prd-link" data-act="prd" data-id="${id}">PRD</button></span></div>`;
+        }).join("")}</div>`;
+      }
+
+      function stream(maxWidth) {
+        const shown = DAYS.slice(0, state.days);
+        const body = shown.map((day) => {
+          const dt = shortDate(day.date);
+          const entries = day.items.map((it) => {
+            if (it.kind === "session") {
+              const p = project(it.slug);
+              const name = p ? p.title : it.slug;
+              return `<article class="entry"><div class="kind">Session</div><div><button data-act="project" data-slug="${esc(it.slug)}"><strong>${esc(name)}</strong></button><p>${esc(it.text)}</p><div class="links"><button class="prd-link" data-act="prd-project" data-slug="${esc(it.slug)}">Open PRD</button></div></div></article>`;
+            }
+            const p = project(it.slug);
+            const prd = p
+              ? `<button class="prd-link" data-act="prd" data-id="${it.id}">${esc(p.title)} PRD</button>`
+              : `<span class="kicker">No project, so no PRD</span>`;
+            return `<article class="entry"><div class="kind">#${it.id}</div><div><button data-act="issue" data-id="${it.id}"><strong>${esc(it.title)}</strong></button><p>${esc(it.state)}</p><div class="links">${prd}</div></div></article>`;
+          }).join("");
+          return `<section class="day"><header class="day-h"><span class="n">${dt.d}</span><span class="m">${dt.m}<br>${dt.wd}</span></header><div>${entries}</div></section>`;
+        }).join("");
+        const end = state.days >= DAYS.length
+          ? `<div class="end">End of the activity log in this sample.</div>`
+          : `<div class="end">Scroll for earlier sessions.</div>`;
+        return `<div class="stream ${maxWidth || ""}">${body}${end}</div>`;
+      }
+
+      function renderLead() {
+        if (state.view === "today") {
+          return `<div class="bar"><h1>Today</h1><span class="meta">Grouped by activity-log date</span></div>` + stream();
+        }
+        const p = project(state.slug);
+        return bar(p) + `<div class="lead-wrap"><p class="lead">${rich(p.lead)}</p><button class="more" data-act="rest">${state.openRest ? "Hide the rest of this section" : "Rest of Current focus"}</button>${state.openRest && p.rest ? `<p class="rest">${esc(p.rest)}</p>` : ""}</div>` + issueRows(p);
+      }
+
+      function renderSentence() {
+        if (state.view === "today") {
+          return `<div class="sentence"><p class="lead">What changed, by the day it was written.</p><div class="byline"><span class="name">Today</span><span class="meta">activity log, newest first</span></div></div>` + stream();
+        }
+        const p = project(state.slug);
+        const more = p.lead.startsWith(p.sentence) ? p.lead.slice(p.sentence.length).replace(/^\.?\s*/, "") : p.lead;
+        return `<div class="sentence"><p class="lead">${esc(p.sentence)}</p><div class="byline"><span class="name">${esc(p.title)}</span><span class="meta">${p.status} · ${shortDate(p.last).d} ${shortDate(p.last).m}</span><button class="textlink" data-act="prd-project" data-slug="${p.slug}">PRD</button><button class="textlink" data-act="wip" data-slug="${p.slug}">WIP</button></div></div>${more ? `<div class="lead-wrap"><p class="rest" style="font-size:17px;color:var(--ink)">${rich(more)}</p></div>` : ""}` + issueRows(p);
+      }
+
+      function renderSplit() {
+        if (state.view === "today") {
+          return `<div class="bar"><h1>Today</h1><span class="meta">Sessions and new issues share a date</span></div>` + stream();
+        }
+        const p = project(state.slug);
+        const chips = idsIn(p.lead).map((id) => {
+          const i = ISSUES[id];
+          return `<button class="chip" data-act="prd" data-id="${id}"><b>#${id}</b><span>${esc(i.title)}</span></button>`;
+        }).join("");
+        return bar(p) + `<div class="split"><p class="lead">${rich(p.lead)}</p><div class="cited"><div class="kicker">Cited in that paragraph</div>${chips || `<p class="rest">No issue ids in the first paragraph.</p>`}</div></div><p class="from-prd"><em>Problem statement, from the PRD</em>${esc(p.problem)}</p>` + issueRows(p);
+      }
+
+      function renderMargin() {
+        if (state.view === "today") {
+          return `<div class="bar"><h1>Today</h1><span class="meta">The dates are the map</span></div>` + stream();
+        }
+        const p = project(state.slug);
+        const phases = p.phases.map((ph) => `<section class="phase"><div class="ph">${esc(ph.name.split("—")[0])}</div><h3>${esc(ph.name.split("—")[1] || ph.name)}</h3>${ph.items.map((it) => `<div class="check"><span class="box ${it.done ? "done" : ""}"></span><button data-act="issue" data-id="${it.id}">#${it.id} ${esc(it.title)}</button><button class="prd-link" data-act="prd" data-id="${it.id}">PRD</button></div>`).join("")}</section>`).join("");
+        return bar(p) + `<div class="spread"><div class="pull"><p class="lead">${rich(p.lead)}</p><button class="more" data-act="rest">${state.openRest ? "Hide the rest" : "Rest of the section"}</button>${state.openRest && p.rest ? `<p class="rest">${esc(p.rest)}</p>` : ""}</div><div>${phases || `<p class="rest">No phase list in this sample.</p>`}</div></div>`;
+      }
+
+      function renderDays() {
+        const p = state.slug ? project(state.slug) : null;
+        const pin = p ? `<div class="pin"><p>${esc(p.sentence)}</p><span class="who">${esc(p.title)} · ${p.status}</span><button class="prd-link" data-act="prd-project" data-slug="${p.slug}">PRD</button><button class="textlink" data-act="today">Clear</button></div>` : "";
+        return pin + `<div class="days-stream">${stream("days-stream")}</div>`;
+      }
+
+      function renderStage() {
+        if (state.proto === "lead") return renderLead();
+        if (state.proto === "sentence") return renderSentence();
+        if (state.proto === "split") return renderSplit();
+        if (state.proto === "margin") return renderMargin();
+        return renderDays();
+      }
+
+      function sourceCopy() {
+        return `<button class="x" data-act="close">Close</button><div class="kicker">Read from the files as they are</div><h2>No new field.</h2>
+          <p class="prose"><strong>Current focus.</strong> Every WIP has a <em>## Current focus</em> section. The template asks for one paragraph. On the live repo the median project is one paragraph, but half run past 800 characters, and the multi-language section is about 600 lines. These screens show the first paragraph. The rest stays a click away.</p>
+          <p class="prose"><strong>Dates.</strong> <em>## Activity log</em> and a <em>### YYYY-MM-DD</em> heading are the grouping. A few projects put the date heading somewhere else, so a parser should accept it anywhere and fall back to the <em>&gt; Last updated:</em> line.</p>
+          <p class="prose"><strong>PRD link.</strong> An issue names its project in frontmatter. That folder’s <em>prd.md</em> is the document, and the WIP blockquote already points at it. Issue ids usually do not appear inside the PRD. They appear on WIP phase lines, and sometimes in Current focus. Opening PRD from an issue shows the problem statement, then quotes the WIP line that actually names the id.</p>`;
+      }
+
+      function prdCopy(slug, id) {
+        const p = project(slug);
+        if (!p) {
+          return `<button class="x" data-act="close">Close</button><div class="kicker">#${esc(id)}</div><h2>No PRD.</h2><p class="prose">This issue has no <em>project:</em> field, so there is no folder and no prd.md to open. Standalone issues stay on the issue itself.</p>`;
+        }
+        const hit = id && (p.lead.includes("[[" + id + "]]") || p.phases.some((ph) => ph.items.some((it) => it.id === id)));
+        const where = id ? (hit
+          ? `<div class="kicker" style="margin-top:18px">Where #${esc(id)} is written</div><div class="quote">${esc(p.mention.includes("#" + id) ? p.mention : p.lead.replaceAll("[[" + id + "]]", "#" + id)).replaceAll("#" + id, `<span class="mark">#${id}</span>`)}</div><p class="note">That line is in wip.md. The PRD body does not repeat the issue id. The deep link still opens prd.md, because the WIP’s own blockquote points at ./prd.md, and the issue’s project field is the join.</p>`
+          : `<p class="note">#${esc(id)} is not in this sample’s focus or phase list. The PRD still opens, because the issue belongs to the project.</p>`) : "";
+        return `<button class="x" data-act="close">Close</button><div class="kicker">${esc(p.slug)} / prd.md${id ? " · from #" + esc(id) : ""}</div><h2>${esc(p.title)}</h2><div class="kicker">Problem statement</div><p class="prose">${esc(p.problem)}</p><div class="kicker" style="margin-top:16px">Solution</div><p class="prose">${esc(p.solution)}</p>${where}`;
+      }
+
+      function renderDrawer() {
+        const d = state.drawer;
+        if (!d) { $drawer.classList.remove("open"); $drawer.innerHTML = ""; return; }
+        $drawer.classList.add("open");
+        if (d.kind === "source") $drawer.innerHTML = sourceCopy();
+        else if (d.kind === "wip") {
+          const p = project(d.slug);
+          $drawer.innerHTML = `<button class="x" data-act="close">Close</button><div class="kicker">${esc(p.slug)} / wip.md</div><h2>${esc(p.title)}</h2><div class="kicker">Current focus, first paragraph</div><div class="quote">${rich(p.lead)}</div><p class="note">Last updated ${esc(p.last)}, from the blockquote. Status in the file is in-progress, which the board already shows as active.</p>`;
+        } else if (d.kind === "issue") {
+          const i = ISSUES[d.id];
+          const p = project(i.slug);
+          $drawer.innerHTML = `<button class="x" data-act="close">Close</button><div class="kicker">#${d.id} · ${esc(i.state)} · ${esc(i.who)}</div><h2>${esc(i.title)}</h2><p class="prose">${p ? esc(p.title) : "Standalone"}</p><p style="margin-top:16px">${p ? `<button class="prd-link" data-act="prd" data-id="${d.id}">Open ${esc(p.title)} PRD</button>` : "No PRD to open."}</p>`;
+        } else $drawer.innerHTML = prdCopy(d.slug, d.id);
+      }
+
+      function render() {
+        rendering = true;
+        const top = $stage.scrollTop;
+        const current = PROTOS.find((p) => p.id === state.proto);
+        $switcher.innerHTML = `<div><div class="kicker">Round 2 · keys 1–5</div><div class="sw-title">Rail, <em>again</em></div></div><div><div class="sw-row">${PROTOS.map((p, i) => `<button class="sw-btn ${p.id === state.proto ? "on" : ""}" data-act="proto" data-proto="${p.id}"><strong>${i + 1} ${esc(p.name)}</strong><span>${esc(p.line)}</span></button>`).join("")}</div><p class="thesis">${esc(current.thesis)} <button data-act="source">How this is read</button></p></div>`;
+        $rail.innerHTML = rail();
+        $stage.innerHTML = renderStage();
+        renderDrawer();
+        $stage.scrollTop = top;
+        rendering = false;
+        if ($stage.scrollHeight <= $stage.clientHeight + 40 && state.days < DAYS.length && (state.view === "today" || state.proto === "days")) {
+          state.days += 2;
+          render();
+        }
+      }
+
+      document.body.addEventListener("click", (e) => {
+        const t = e.target.closest("[data-act]");
+        if (!t) return;
+        const act = t.dataset.act;
+        if (act === "proto") {
+          state.proto = t.dataset.proto;
+          state.view = "today";
+          state.slug = null;
+          state.days = 4;
+          state.openRest = false;
+          state.drawer = null;
+          $stage.scrollTop = 0;
+          render();
+          return;
+        }
+        if (act === "today") {
+          state.view = "today";
+          state.slug = null;
+          state.drawer = null;
+          render();
+          return;
+        }
+        if (act === "project") {
+          state.slug = t.dataset.slug;
+          state.view = "project";
+          state.openRest = false;
+          state.drawer = null;
+          if (state.proto !== "days") $stage.scrollTop = 0;
+          render();
+          return;
+        }
+        if (act === "rest") { state.openRest = !state.openRest; render(); return; }
+        if (act === "source") { state.drawer = { kind: "source" }; render(); return; }
+        if (act === "close") { state.drawer = null; render(); return; }
+        if (act === "prd") {
+          const i = ISSUES[t.dataset.id];
+          state.drawer = { kind: "prd", slug: i ? i.slug : "", id: t.dataset.id };
+          render();
+          return;
+        }
+        if (act === "prd-project") {
+          state.drawer = { kind: "prd", slug: t.dataset.slug, id: "" };
+          render();
+          return;
+        }
+        if (act === "wip") { state.drawer = { kind: "wip", slug: t.dataset.slug }; render(); return; }
+        if (act === "issue") { state.drawer = { kind: "issue", id: t.dataset.id }; render(); return; }
+      });
+
+      $stage.addEventListener("scroll", () => {
+        if (rendering) return;
+        if (state.view !== "today" && state.proto !== "days") return;
+        if (state.days >= DAYS.length) return;
+        if ($stage.scrollTop + $stage.clientHeight > $stage.scrollHeight - 280) {
+          state.days += 2;
+          render();
+        }
+      });
+
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") { state.drawer = null; render(); return; }
+        if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
+        const n = Number(e.key);
+        if (n >= 1 && n <= 5) {
+          state.proto = PROTOS[n - 1].id;
+          state.view = "today";
+          state.slug = null;
+          state.days = 4;
+          state.drawer = null;
+          $stage.scrollTop = 0;
+          render();
+        }
+      });
+
+      render();
+    </script>
+  </body>
+</html>

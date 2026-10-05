@@ -12,8 +12,10 @@ now has an e2e test, the CLI included
 visual review pass landed
 ([#0044](../../issues/0044-visual-review-polish.md)). Waiting on you:
 reserve the name ([#0001](../../issues/0001-reserve-the-loopboard-name.md)),
-push + CI (#0006, #0035), the fresh-agent prompt check (#0013), the wordmark
-(#0033), a real upgrade-harness run (#0041), then launch (#0036). Read
+push + CI (#0006, #0035), the fresh-agent prompt check (#0013), a real
+upgrade-harness run (#0041), then launch (#0036) — after project 02's UX
+overhaul. The README demo is recorded and re-records itself (#0036 notes);
+what's left of #0036 is going public. Read
 "Questions for the maintainer" below first.
 
 ## Phases
@@ -92,12 +94,12 @@ Goal: relations, progress, git history and dense views for large repos.
 
 Goal: a codified look, dark mode, a reliable release, and the public launch.
 
-- [ ] [#0033 Codify the look in a Brand Kit with a loopboard wordmark](../../issues/0033-brand-kit-and-wordmark.md) — in-review (human: pick the wordmark)
+- [x] [#0033 Codify the look in a Brand Kit with a loopboard wordmark](../../issues/0033-brand-kit-and-wordmark.md) — done (wordmark B, project 02)
 - [x] [#0034 Add a dark theme](../../issues/0034-dark-theme.md) — done
 - [ ] [#0035 Automate npm releases and test the packed CLI on every OS](../../issues/0035-release-pipeline.md) — in-review (human: repo URL, NPM_TOKEN, first CI run)
 - [x] [#0043 Cover every spec scenario end to end, the CLI included](../../issues/0043-cover-every-spec-scenario-end-to-end.md) — done
 - [x] [#0044 Visual review — board overflow hint, list chips, relation dots, tighter baselines](../../issues/0044-visual-review-polish.md) — done
-- [ ] [#0036 Record the README demo and go public](../../issues/0036-launch.md) — todo (human)
+- [ ] [#0036 Record the README demo and go public](../../issues/0036-launch.md) — todo (human: go public; demo done)
 
 ### Backlog
 
@@ -105,6 +107,25 @@ Goal: a codified look, dark mode, a reliable release, and the public launch.
 - [ ] [#0038 Host a read-only public demo of loopboard](../../issues/0038-public-read-only-demo.md) — backlog
 
 ## Activity log
+
+### 2026-10-05 — #0036 README demo, #0059
+
+- #0036: the README hero is a scripted recording, not a hand-made GIF.
+  `pnpm demo` starts the dev server on a demo repo (`scripts/demo/workspace`,
+  dates relative to today), and a storyboard edits issue files like an agent
+  — #0016 to done, #0017 to in-review for a human, who opens it — while
+  Playwright captures the live board step by step with a drawn terminal and
+  pointer. Light and dark GIFs (~420 KB each, 17.6 s) in `docs/media/`, a
+  `<picture>` in the README. Encoder in pure JS (gifenc + pngjs, exact
+  palette for flat UI colours); output is byte-identical for the same UI, so
+  `demo.yml` opens a PR only when the demo changed. Vitest:
+  `tests/demo-gif.test.ts`.
+- #0059: the recording showed #0017 "After #0014" instead of #0016 —
+  js-yaml read `parent: 0016` as octal. `parent` now comes from the raw
+  frontmatter line; this repo's #0036 had pointed at #0029.
+- Launch gate checked: #0001, #0006, #0013, #0035, #0041 still need you;
+  #0037/#0038 are backlog ideas inside the project (move or `wontfix` them
+  before the "all done" check).
 
 ### 2026-10-05 — #0043, #0044 (autonomous review rounds)
 
@@ -263,7 +284,8 @@ Goal: a codified look, dark mode, a reliable release, and the public launch.
 ## Questions for the maintainer
 
 Collected while working autonomously. Each has the decision I took so work
-could continue; overrule anything.
+could continue; overrule anything. Answered by the maintainer on 2026-10-05
+(→ lines); UX follow-ups moved to project 02.
 
 1. **M002 applied here.** #0002–#0005 moved `in-review → done` (verified when
    built). #0006 is `in-review` + human: CI only runs after a push.
@@ -271,38 +293,49 @@ could continue; overrule anything.
    `cli.spec.ts` runs the built binary, so those rows are real ✅/🟡 now.
 3. **"Mine" → "You".** The board's assignee filter now reads Everyone / You /
    Agent and the create dialog says "You", matching "Needs you".
+   → **Keep "You".**
 4. **Agent tools.** `init` always links `.claude/skills`, and `.cursor/skills`
    only when the repo has `.cursor/`. Codex only reads AGENTS.md. Should init
    ask, or take a `--tools` flag?
+   → **Keep auto-detect.**
 5. **127.0.0.1 vs localhost.** The CLI prints and binds `127.0.0.1` (Node's
    fetch resolves `localhost` to `::1`), so its browser storage is separate
    from `pnpm dev` on `localhost`. Fine?
+   → **Keep 127.0.0.1.**
 6. **`dist/` prototypes.** Untracked HTML prototypes (dashboard, inbox, rail,
    tracker designs) sit in `dist/`; builds now go to `build/`, so nothing
    touches them. Keep, move into `.agents/design/`, or delete?
+   → **Moved to `.agents/design/prototypes/`.**
 7. **Board width.** Built: empty columns shrink to strips, the feed can hide,
    and the edge hiding columns fades (#0044). Still open: at ≤1280 px only
    two or three columns fit next to the feed (one at 1024). Should the feed
    auto-collapse below a breakpoint, or columns go down to ~180 px? I left
    it manual (⇤) so the feed never disappears unexpectedly.
+   → **Keep manual.**
 8. **Old blank-line bug.** Before #0040's fix, every board write deleted the
    blank line after the frontmatter, so issue files the tracker touched in
    your repos lack it. Harmless; upgrade-harness could normalize them. Want
    that as a migration step?
+   → **Leave it.**
 9. **Switcher counts.** The number next to a workspace is its live issue
    files (incl. done) — cheap to compute. Would "open issues" be more useful
    (costs a full read per workspace)?
+   → **Keep the file count.**
 10. **"Open in editor".** Not built: it needs a choice of `vscode://` vs
     `cursor://` (or a setting). Which editor(s)?
+    → **VS Code + Cursor setting** (#0049).
 11. **Rail = destinations.** The rail now shows Inbox, Needs you, Issues
     (the new list view), Projects (overview) and Specs, plus saved Views.
     "Sessions" and "Issues" as *feed filters* moved to the feed's chips only.
     Revert if you miss them in the rail.
+    → **Feed filters back in the rail, chips removed** (#0047).
 12. **Saved views are personal.** They live in `~/.config/loopboard/views/`,
     not the repo. Should teams of one ever want them in git (e.g.
     `.agents/views.json`)?
+    → **Personal only.**
 13. **Wordmark (#0033).** Pick A, B or C in the Brand Kit. A is applied
     for now; the favicon uses B's loop mark.
+    → **B (mark + sans) under the new neutral look** (project 02).
 14. **Visual baselines are macOS.** `visual.spec.ts` skips on Linux/Windows
     CI; the macOS CI job compares against renders from this machine, with a
     0.2% pixel tolerance (1% hid real changes). If CI's macOS fonts render
@@ -313,15 +346,19 @@ could continue; overrule anything.
     could never reach 100%, and the WIP's "### Backlog" heading drew an empty
     phase bar. Both are gone (spec § 3). Overrule if you want backlog in the
     total.
+    → **Keep excluded.**
 17. **Quick-created issues keep the template's guidance prose** ("Concise
     description of the technical change…") as their body. Honest but noisy,
     and an agent might read it as content. Proposal: create with headings
     and empty checklists only. Not changed — your call.
+    → **Headings only** (#0057).
 18. **"After #NNNN".** When the parent is done, the drawer's relation reads
     "After" instead of "Blocked by". Wording OK?
+    → **Keep "After".**
 19. **The e2e run builds first.** Playwright's global setup runs
     `pnpm build:app` (~10 s) so the CLI tests use the real binary, even when
     you run a single spec. Acceptable, or gate it behind the CLI spec only?
+    → **Always build.**
 
 ## Deferred / out of scope (added during execution)
 

@@ -8,4 +8,9 @@ Pocock (MIT). Which ones, what changed, and both license notices:
 [`.agents/skills/CREDITS.md`](.agents/skills/CREDITS.md). That file ships with
 the skills, so every repo set up with `loopboard init` keeps the notices.
 
+The interface bundles [Inter](https://rsms.me/inter/) and
+[JetBrains Mono](https://www.jetbrains.com/lp/mono/) (both SIL Open Font
+License 1.1, via Fontsource) and icons from [Lucide](https://lucide.dev)
+(ISC). Their licenses ship inside the packages in `node_modules`.
+
 Thank you!

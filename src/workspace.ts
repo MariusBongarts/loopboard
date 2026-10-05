@@ -4,12 +4,14 @@ import type { RelationIndex } from './relations';
 import type { Issue, Project, Workspace } from './types';
 
 // The views inside a workspace; each has its own route.
-export type View = 'feed' | 'specs' | 'projects' | 'issues';
+export type View = 'feed' | 'specs' | 'projects' | 'issues' | 'issue';
 
 export interface WorkspaceContext {
   id: ComputedRef<string>;
   // Root folder relative to the repo: `.agents` or a legacy `ai`.
   rootName: ComputedRef<string>;
+  // Absolute path of the root on this machine (for "Open in editor").
+  root: ComputedRef<string>;
   issues: Ref<Issue[]>;
   projects: Ref<Project[]>;
   relations: ComputedRef<RelationIndex>;

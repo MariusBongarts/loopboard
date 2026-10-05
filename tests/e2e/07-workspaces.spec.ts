@@ -38,7 +38,8 @@ test('switch workspace from the top-left, and a legacy ai/ root works', async ({
   await items.nth(1).click();
   await expect(page).toHaveURL(/\/w\/legacy-repo$/);
   await expect(page.locator('.ws-current')).toContainText('legacy-repo');
-  await expect(page.locator('.card-path').first()).toHaveText('ai/issues/0001-legacy-task.md');
+  await page.locator('.card').first().click();
+  await expect(page.getByRole('dialog', { name: 'Issue detail' }).getByRole('button', { name: 'Copy path' })).toHaveAttribute('title', 'ai/issues/0001-legacy-task.md');
 });
 
 test('add a workspace by path, and explain a folder without a root', async ({ page }) => {

@@ -2,7 +2,7 @@
 
 | Status | Means |
 |---|---|
-| `backlog` | An idea, not scheduled. Lives in the Backlog drawer, not on the board. |
+| `backlog` | An idea, not scheduled. Lives in a project's Backlog list, not on the board; set Status → Backlog to park an issue. |
 | `todo` | Ready to pick up. |
 | `in-progress` | Being worked on. |
 | `blocked` | Waiting on the issue in `parent:` or something external. |

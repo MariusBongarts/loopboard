@@ -20,25 +20,36 @@ for (const theme of ['light', 'dark'] as const) {
     await expect(page).toHaveScreenshot(`inbox-${theme}.png`, { animations: 'disabled' });
   });
 
-  test(`issue drawer and editor — ${theme}`, async ({ page }) => {
+  test(`issue panel, picker, editor and page — ${theme}`, async ({ page }) => {
     await open(page, '/w/demo-repo', theme);
     await page.locator('.feed-row', { hasText: 'Cache the feed' }).click();
     await page.locator('[data-issue-id="0002"] .card').click();
-    await expect(page.getByRole('dialog', { name: 'Issue detail' })).toBeVisible();
-    await expect(page).toHaveScreenshot(`drawer-${theme}.png`, { animations: 'disabled' });
-    await page.getByRole('button', { name: 'Edit' }).click();
+    const panel = page.getByRole('dialog', { name: 'Issue detail' });
+    await expect(panel).toBeVisible();
+    await expect(page).toHaveScreenshot(`panel-${theme}.png`, { animations: 'disabled' });
+    await panel.getByRole('button', { name: 'Status: In progress' }).click();
+    await expect(page.getByRole('menu', { name: 'Status' })).toBeVisible();
+    await expect(page).toHaveScreenshot(`menu-${theme}.png`, { animations: 'disabled' });
+    await page.keyboard.press('Escape');
+    await panel.getByRole('button', { name: 'Edit' }).click();
     await page.getByRole('radio', { name: 'Rich' }).click();
     await expect(page.getByRole('textbox', { name: 'Body' })).toBeVisible();
     await expect(page).toHaveScreenshot(`editor-${theme}.png`, { animations: 'disabled' });
+    await page.goto('/w/demo-repo/issues/0002');
+    await expect(page.getByRole('heading', { level: 1, name: 'Cache the feed' })).toBeVisible();
+    await expect(page).toHaveScreenshot(`page-${theme}.png`, { animations: 'disabled' });
   });
 
-  test(`list, projects and help — ${theme}`, async ({ page }) => {
+  test(`list, projects, specs and help — ${theme}`, async ({ page }) => {
     await open(page, '/w/demo-repo/issues', theme);
     await expect(page.locator('.issue-row').first()).toBeVisible();
     await expect(page).toHaveScreenshot(`list-${theme}.png`, { animations: 'disabled' });
     await page.goto('/w/demo-repo/projects');
     await expect(page.locator('.project-row')).toBeVisible();
     await expect(page).toHaveScreenshot(`projects-${theme}.png`, { animations: 'disabled' });
+    await page.goto('/w/demo-repo/specs');
+    await expect(page.locator('.spec-scenario').first()).toBeVisible();
+    await expect(page).toHaveScreenshot(`specs-${theme}.png`, { animations: 'disabled' });
     await page.goto('/help');
     await expect(page).toHaveScreenshot(`help-${theme}.png`, { animations: 'disabled', fullPage: false });
   });

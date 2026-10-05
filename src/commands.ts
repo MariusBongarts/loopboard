@@ -1,9 +1,12 @@
 // Command palette entries (#0021) and their ranking — pure, unit-tested.
+import type { Status } from './types';
+
 export interface Command {
   id: string;
   title: string;
   group: string;
   hint?: string; // right-aligned: a shortcut or a count
+  status?: Status; // shown as a status icon before the title
   keywords?: string;
   run: () => void;
 }

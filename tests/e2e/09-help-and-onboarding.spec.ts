@@ -17,7 +17,7 @@ test('open Help from anywhere, and go back', async ({ page }) => {
     'Statuses and fields',
     'Keyboard shortcuts',
   ]);
-  await expect(page.locator('.help-keys kbd')).toHaveText(['⌘K', 'C', '/', 'j', 'k', '?', 'Esc']);
+  await expect(page.locator('.help-keys kbd')).toHaveText(['⌘K', 'C', '/', 'j', 'k', '[', '?', 'Esc']);
 
   await page.getByRole('link', { name: '← Back to the board' }).click();
   await expect(page).toHaveURL(/\/w\/legacy-repo$/);

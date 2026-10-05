@@ -11,13 +11,45 @@ Status legend in [`_specs.md`](_specs.md#e2e-coverage).
 
 | Scenario | Status | Notes |
 |---|---|---|
+| Change an issue's properties in place | ✅ | `04-changing-issues.spec.ts`: every picker, file checked on disk; PATCH validation unit-tested in `tests/mutate.test.ts`, menus in `tests/issueMenus.test.ts` |
+| Right-click an issue | ✅ | `04-changing-issues.spec.ts`: card → Status ▸ In review on disk, row → Copy link, Shift+F10 |
 | Drag a card to another column | ✅ | [`04-changing-issues.spec.ts`](../../tests/e2e/04-changing-issues.spec.ts): card moves; the file equals the original with only `status:` changed |
 | Drag a card into position within a column | ✅ | `04-changing-issues.spec.ts`: the dropped card takes priority 1, the next one 2 |
-| Toggle the assignee on a card | ✅ | `04-changing-issues.spec.ts`: only `assignee:` changes, no drawer opens |
+| Toggle the assignee on a card | ✅ | `04-changing-issues.spec.ts`: only `assignee:` changes, no panel opens |
 | A failed write is reported and undone | ✅ | `04-changing-issues.spec.ts`: a 500 shows the banner, the card returns, Dismiss clears it |
 | Close an issue as wontfix | ✅ | `04-changing-issues.spec.ts` via ⌘K: disabled until a reason, `## Why rejected` appended |
-| Mark done work reviewed | ✅ | `04-changing-issues.spec.ts`: mark, badge on card and drawer, unmark restores the file byte for byte |
+| Mark done work reviewed | ✅ | `04-changing-issues.spec.ts`: mark, badge on card and panel, unmark restores the file byte for byte |
 | Work through the review queue | ✅ | `04-changing-issues.spec.ts` |
+
+### Scenario: Change an issue's properties in place
+
+```
+GIVEN an open issue (panel or page)
+WHEN I click its Status, Assignee, Project, Labels or Parent
+THEN a menu lists the choices with the current one checked; ↑/↓ and Enter
+    pick, typing filters (Project, Labels, Parent), Esc closes
+AND a pick writes only that frontmatter line, keeping comments and key order
+AND Labels stays open for several picks and offers "Create label …" for a
+    name no issue uses yet
+AND Project lists open projects (plus the current one) and "No project";
+    Parent lists live issues except this one and its children, and
+    "No parent" — both remove the line when cleared
+AND Wontfix asks for a reason first (see "Close an issue as wontfix")
+AND archived issues show their properties read-only
+AND a failed write is undone and reported, as on the board
+```
+
+### Scenario: Right-click an issue
+
+```
+GIVEN a card on the board, a row in a list or an issue in the feed
+WHEN I right-click it (or press Shift+F10 / the menu key while it has focus)
+THEN a menu opens there with Status ▸, Assignee ▸, Labels ▸ and Project ▸
+    (the same choices as the pickers), Open, Open as page, Open in … (when an
+    editor is set), Copy agent prompt, Copy path, Copy link, and Mark
+    reviewed for done issues
+AND archived issues offer only opening and copying
+```
 
 ### Scenario: Drag a card to another column
 
@@ -45,7 +77,7 @@ AND with a board filter active, the hidden cards keep their relative order
 ```
 GIVEN a card with an agent or human chip
 WHEN I click the chip
-THEN the assignee flips between agent and human without opening the drawer
+THEN the assignee flips between agent and human without opening the panel
 AND the file's `assignee:` line is rewritten, or inserted after `status:`
     when missing
 ```
@@ -75,10 +107,10 @@ THEN nothing changes
 ### Scenario: Mark done work reviewed
 
 ```
-GIVEN a done issue in the drawer (or selected, via ⌘K)
+GIVEN a done issue in the panel (or selected, via ⌘K)
 WHEN I click "Mark reviewed"
 THEN `reviewed: <today>` is written after `created:` and a "✓ reviewed" badge
-    shows on its card and in the drawer
+    shows on its card and in the panel
 WHEN I click "Unmark reviewed"
 THEN the line is removed
 AND agents never set reviewed; `deployed:` dates show as "↑ deployed" badges

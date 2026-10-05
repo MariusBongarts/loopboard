@@ -2,8 +2,8 @@
 id: 0033
 title: Codify the look in a Brand Kit with a loopboard wordmark
 category: task
-status: in-review
-assignee: human
+status: done
+assignee: agent
 project: 01-open-source-launch
 phase: 8
 labels: [design]
@@ -50,3 +50,7 @@ scaffolds.
 Pick the wordmark (A, B or C in the Brand Kit's Wordmark section, or none
 of them). A is applied as the default; the favicon uses B's mark. Flip to
 `done` once decided.
+
+Decided 2026-10-05: the look moves to a Linear-like neutral design (project
+02), and the wordmark becomes B — the loop mark + "loopboard" in Inter. The
+Brand Kit is rewritten in #0045.

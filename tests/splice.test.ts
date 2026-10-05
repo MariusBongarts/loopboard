@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { execSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { diffLines } from '../src/diff';
 import { spliceMarkdown, splitFrontmatter } from '../src/splice';
@@ -72,7 +72,7 @@ describe('spliceMarkdown', () => {
   it('round-trips every markdown file in this repo unchanged', () => {
     const files = execSync('git ls-files "*.md"; find .agents scaffold docs tests/e2e/fixtures -name "*.md"', { cwd: ROOT, encoding: 'utf8' })
       .split('\n')
-      .filter(Boolean);
+      .filter((f) => f && existsSync(join(ROOT, f)));
     for (const f of new Set(files)) {
       const { body } = splitFrontmatter(readFileSync(join(ROOT, f), 'utf8'));
       expect(spliceMarkdown(body, body), f).toBe(body);

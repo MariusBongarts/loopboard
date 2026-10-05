@@ -186,6 +186,7 @@ defineExpose({ focusSearch });
 <template>
   <div class="specs-view">
     <header class="specs-header">
+      <h2 class="specs-title">Specs</h2>
       <div class="specs-search-wrap">
         <input
           ref="searchInput"

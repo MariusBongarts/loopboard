@@ -3,9 +3,12 @@ import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useIssueActions } from '../actions';
 import { filterIssues, filtersFromQuery, filtersToQuery, groupIssues, type GroupBy, type ListFilters } from '../list';
-import { isShortcut, isTyping } from '../shortcuts';
+import { isShortcut, isTyping, overlayOpen } from '../shortcuts';
 import { ALL_STATUSES, COLUMN_LABEL, type Status } from '../types';
 import { useWorkspace } from '../workspace';
+import { CircleDashed, Search, Tag, X } from '@lucide/vue';
+import { toneClass } from '../colors';
+import { anchorOf, openMenu, type MenuEntry } from '../menu';
 import Segmented from './Segmented.vue';
 import IssueList from './IssueList.vue';
 
@@ -54,12 +57,12 @@ async function move(delta: number) {
 }
 
 function onKeydown(e: KeyboardEvent) {
-  if (isTyping(e) || document.querySelector('.drawer, .modal-backdrop')) return;
+  if (isTyping(e) || overlayOpen()) return;
   if (isShortcut(e, 'next')) void move(1);
   else if (isShortcut(e, 'prev')) void move(-1);
   else if (e.key === 'Enter' && activeId.value) {
     const issue = flat.value.find((i) => i.id === activeId.value);
-    if (issue) actions.openIssue(issue);
+    if (issue) actions.openIssue(issue, flat.value);
   }
 }
 onMounted(() => window.addEventListener('keydown', onKeydown));
@@ -96,6 +99,34 @@ async function deleteView() {
   void router.replace({ query: filtersToQuery(filters.value) });
 }
 
+// Status and label filters open the shared menu (#0054) instead of a chip row.
+function openStatusFilter(e: MouseEvent) {
+  openMenu({
+    label: 'Filter by status',
+    at: anchorOf(e),
+    items: () => ALL_STATUSES.map((st) => ({ id: st, label: COLUMN_LABEL[st], status: st, checked: filters.value.statuses.includes(st), keepOpen: true, run: () => toggleStatus(st) })),
+  });
+}
+
+function openLabelFilter(e: MouseEvent) {
+  openMenu({
+    label: 'Filter by label',
+    at: anchorOf(e),
+    filter: 'Label…',
+    items: (): MenuEntry[] => [
+      { id: 'any', label: 'Any label', checked: !filters.value.label, run: () => update({ label: '' }) },
+      'separator',
+      ...(staleLabel.value ? [{ id: `stale:${filters.value.label}`, label: `${filters.value.label} (no issues)`, checked: true, run: () => update({ label: '' }) }] : []),
+      ...labels.value.map((l) => ({ id: l, label: l, tone: toneClass(l), checked: filters.value.label === l, run: () => update({ label: l }) })),
+    ],
+  });
+}
+
+const filtered = computed(() => filters.value.statuses.length > 0 || !!filters.value.label || !!filters.value.q || filters.value.who !== 'all');
+function clearFilters() {
+  update({ statuses: [], label: '', q: '', who: 'all' });
+}
+
 const GROUP_OPTIONS: { value: GroupBy; label: string }[] = [
   { value: 'status', label: 'Status' },
   { value: 'project', label: 'Project' },
@@ -108,7 +139,7 @@ const GROUP_OPTIONS: { value: GroupBy; label: string }[] = [
   <section class="list-view" aria-label="Issues">
     <header class="list-view-head">
       <h2>{{ activeView?.name ?? 'Issues' }}</h2>
-      <span class="projects-count">{{ shown.length }}</span>
+      <span class="list-view-count">{{ shown.length }}</span>
       <span class="list-view-spacer" />
       <template v-if="naming">
         <input v-model="name" class="list-view-name" aria-label="View name" placeholder="View name" @keydown.enter="commitName" @keydown.esc.stop="naming = null" />
@@ -124,9 +155,7 @@ const GROUP_OPTIONS: { value: GroupBy; label: string }[] = [
       </template>
     </header>
     <div class="list-view-tools">
-      <label class="list-view-tool"><span>Group</span>
-        <Segmented :model-value="filters.group" label="Group by" :options="GROUP_OPTIONS" @update:model-value="(g) => update({ group: g })" />
-      </label>
+      <Segmented :model-value="filters.group" label="Group by" :options="GROUP_OPTIONS" @update:model-value="(g) => update({ group: g })" />
       <Segmented
         :model-value="filters.who"
         label="Assignee"
@@ -137,25 +166,40 @@ const GROUP_OPTIONS: { value: GroupBy; label: string }[] = [
         ]"
         @update:model-value="(w) => update({ who: w })"
       />
-      <div class="list-view-statuses" role="group" aria-label="Status">
-        <button
-          v-for="s in ALL_STATUSES"
-          :key="s"
-          type="button"
-          class="fchip"
-          :class="{ on: filters.statuses.includes(s) }"
-          :aria-pressed="filters.statuses.includes(s)"
-          @click="toggleStatus(s)"
-        >{{ COLUMN_LABEL[s] }}</button>
-      </div>
-      <select :value="filters.label" aria-label="Label" class="list-view-label" :class="{ stale: staleLabel }" @change="(e) => update({ label: (e.target as HTMLSelectElement).value })">
-        <option value="">Any label</option>
-        <option v-if="staleLabel" :value="filters.label">{{ filters.label }} (no issues)</option>
-        <option v-for="l in labels" :key="l" :value="l">{{ l }}</option>
-      </select>
-      <input :value="filters.q" type="search" class="pane-search" placeholder="Filter" aria-label="Filter issues" @input="(e) => update({ q: (e.target as HTMLInputElement).value })" />
+      <button type="button" class="list-view-filter" :class="{ on: filters.statuses.length }" aria-label="Filter by status" @click="openStatusFilter">
+        <CircleDashed :size="14" aria-hidden="true" />Status<span v-if="filters.statuses.length" class="list-view-filter-n">{{ filters.statuses.length }}</span>
+      </button>
+      <button type="button" class="list-view-filter" :class="{ on: filters.label, stale: staleLabel }" aria-label="Filter by label" @click="openLabelFilter">
+        <Tag :size="14" aria-hidden="true" />{{ filters.label || 'Label' }}
+      </button>
+      <label class="list-view-search">
+        <Search :size="14" aria-hidden="true" />
+        <input :value="filters.q" type="search" placeholder="Filter" aria-label="Filter issues" @input="(e) => update({ q: (e.target as HTMLInputElement).value })" />
+      </label>
+      <button v-if="filtered" type="button" class="ghost list-view-clear" @click="clearFilters"><X :size="14" aria-hidden="true" />Clear</button>
     </div>
-    <IssueList :groups="groups" :active-id="activeId" :show-project="filters.group !== 'project'" @open="(i) => { activeId = i.id; actions.openIssue(i); }" />
-    <p class="list-view-foot">{{ workspaceId }} · <kbd>j</kbd>/<kbd>k</kbd> to move, <kbd>Enter</kbd> to open</p>
+    <IssueList :groups="groups" :active-id="activeId" :show-project="filters.group !== 'project'" :group-by="filters.group" @open="(i) => { activeId = i.id; actions.openIssue(i, flat); }" />
+    <p class="list-view-foot">{{ workspaceId }} · <kbd>j</kbd>/<kbd>k</kbd> to move, <kbd>Enter</kbd> to open, right-click a row for more</p>
   </section>
 </template>
+
+<style scoped>
+.list-view { display: flex; flex-direction: column; min-height: 0; height: 100%; }
+.list-view-head { display: flex; align-items: center; gap: 8px; height: 52px; padding: 0 20px; border-bottom: 1px solid var(--border-subtle); flex: 0 0 auto; }
+.list-view-head h2 { margin: 0; font-size: 15px; font-weight: 600; }
+.list-view-count { font-size: 13px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+.list-view-head button { padding: 4px 10px; font-size: 12.5px; }
+.list-view-spacer { flex: 1; }
+.list-view-name { width: 220px; height: 30px; }
+.list-view-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 20px; border-bottom: 1px solid var(--border-subtle); flex: 0 0 auto; }
+.list-view-filter { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px; font-size: 12.5px; color: var(--text-2); }
+.list-view-filter.on { background: var(--accent-soft); border-color: color-mix(in oklch, var(--accent) 40%, var(--border)); color: var(--accent-text); }
+.list-view-filter.stale { border-color: var(--amber); color: var(--amber-text); }
+.list-view-filter-n { min-width: 16px; padding: 0 5px; border-radius: 999px; background: var(--accent); color: var(--on-accent); font-size: 11px; line-height: 16px; text-align: center; }
+.list-view-search { position: relative; display: inline-flex; align-items: center; color: var(--text-4); }
+.list-view-search svg { position: absolute; left: 9px; pointer-events: none; }
+.list-view-search input { width: 200px; height: 30px; padding: 0 10px 0 28px; font-size: 12.5px; }
+.list-view-clear { display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; font-size: 12.5px; }
+.list-view > :deep(.issue-list) { flex: 1; min-height: 0; overflow-y: auto; }
+.list-view-foot { flex: 0 0 auto; margin: 0; padding: 8px 20px; border-top: 1px solid var(--border-subtle); font-size: 12px; color: var(--text-4); }
+</style>

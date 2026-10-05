@@ -9,7 +9,7 @@ test('drag a card to another column', async ({ page }) => {
     await page.locator('.feed-row', { hasText: 'Wire the export button' }).click();
     const card = page.locator('.col-todo [data-issue-id="0001"]');
     await expect(card).toBeVisible();
-    await card.dragTo(page.locator('.col-in-progress .column-list'));
+    await card.dragTo(page.locator('.col-in-progress .column-list'), { targetPosition: { x: 40, y: 20 } });
 
     await expect(page.locator('.col-in-progress [data-issue-id="0001"]')).toBeVisible();
     // Only the status line changes; every other byte stays (#0040 fix).
@@ -75,6 +75,8 @@ test('mark done work reviewed, and work through the review queue', async ({ page
 test('drag a card into position writes priorities for the column', async ({ page }) => {
   const one = await readIssueFile('0001-wire-the-export-button.md');
   const two = await readIssueFile('0002-cache-the-feed.md');
+  // The server numbers the whole todo bucket, standalone #0007 included.
+  const seven = await readIssueFile('0007-fix-the-readme-typo.md');
   try {
     await page.goto('/w/demo-repo');
     await page.locator('.feed-row', { hasText: 'Wire the export button' }).click();
@@ -88,6 +90,7 @@ test('drag a card into position writes priorities for the column', async ({ page
   } finally {
     await writeIssueFile('0001-wire-the-export-button.md', one);
     await writeIssueFile('0002-cache-the-feed.md', two);
+    await writeIssueFile('0007-fix-the-readme-typo.md', seven);
   }
 });
 
@@ -110,9 +113,99 @@ test('a failed write is reported and undone', async ({ page }) => {
   );
   await page.goto('/w/demo-repo');
   await page.locator('.feed-row', { hasText: 'Wire the export button' }).click();
-  await page.locator('.col-todo [data-issue-id="0001"]').dragTo(page.locator('.col-in-progress .column-list'));
+  await page.locator('.col-todo [data-issue-id="0001"]').dragTo(page.locator('.col-in-progress .column-list'), { targetPosition: { x: 40, y: 20 } });
   await expect(page.locator('.banner-error')).toContainText('disk is read-only');
   await expect(page.locator('.col-todo [data-issue-id="0001"]')).toBeVisible();
   await page.getByRole('button', { name: 'Dismiss' }).click();
   await expect(page.locator('.banner-error')).toHaveCount(0);
+});
+
+test("change an issue's properties in place", async ({ page }) => {
+  const file = '0007-fix-the-readme-typo.md';
+  const original = await readIssueFile(file);
+  try {
+    await page.goto('/w/demo-repo');
+    await page.locator('.feed-row', { hasText: 'Fix the README typo' }).click();
+    await page.locator('[data-issue-id="0007"] .card').click();
+    const panel = page.getByRole('dialog', { name: 'Issue detail' });
+
+    // Keyboard: the menu opens on Backlog; two steps down is In progress.
+    await panel.getByRole('button', { name: 'Status: Todo' }).click();
+    await expect(page.getByRole('menu', { name: 'Status' }).getByRole('menuitemcheckbox', { name: 'Todo' })).toHaveAttribute('aria-checked', 'true');
+    await page.keyboard.press('ArrowDown');
+    await page.keyboard.press('ArrowDown');
+    await page.keyboard.press('Enter');
+    await expect(panel.getByRole('button', { name: 'Status: In progress' })).toBeVisible();
+
+    await panel.getByRole('button', { name: 'Assignee: Agent' }).click();
+    await page.getByRole('menu', { name: 'Assignee' }).getByRole('menuitemcheckbox', { name: 'You' }).click();
+
+    await panel.getByRole('button', { name: 'Project: none' }).click();
+    await page.keyboard.type('demo');
+    await page.keyboard.press('Enter');
+
+    await panel.getByRole('button', { name: 'Labels: none' }).click();
+    const labels = page.getByRole('menu', { name: 'Labels' });
+    await labels.getByRole('menuitemcheckbox', { name: 'ui' }).click();
+    await expect(labels.getByRole('menuitemcheckbox', { name: 'ui' })).toHaveAttribute('aria-checked', 'true');
+    await page.keyboard.type('docs');
+    await page.keyboard.press('Enter');
+    await page.keyboard.press('Escape');
+    await expect(labels).toHaveCount(0);
+    await expect(panel).toBeVisible();
+
+    await panel.getByRole('button', { name: 'Parent: none' }).click();
+    await page.keyboard.type('0002');
+    await page.keyboard.press('Enter');
+
+    await expect
+      .poll(() => readIssueFile(file))
+      .toBe(
+        original
+          .replace('status: todo\nassignee: agent\nlabels: []', 'status: in-progress\nassignee: human\nproject: 01-demo-project\nparent: 0002\nlabels: [ui, docs]'),
+      );
+    await expect(panel.getByRole('button', { name: 'Parent: #0002' })).toBeVisible();
+
+    // Clearing removes the lines again.
+    await panel.getByRole('button', { name: 'Parent: #0002' }).click();
+    await page.getByRole('menu', { name: 'Parent' }).getByRole('menuitemcheckbox', { name: 'No parent' }).click();
+    await panel.getByRole('button', { name: 'Project: 01-demo-project' }).click();
+    await page.getByRole('menu', { name: 'Project' }).getByRole('menuitemcheckbox', { name: 'No project' }).click();
+    await expect.poll(() => readIssueFile(file)).not.toMatch(/^(project|parent):/m);
+  } finally {
+    await writeIssueFile(file, original);
+  }
+});
+
+test('right-click a card or row for the issue menu', async ({ page, context }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  const file = '0001-wire-the-export-button.md';
+  const original = await readIssueFile(file);
+  try {
+    await page.goto('/w/demo-repo');
+    await page.locator('.feed-row', { hasText: 'Wire the export button' }).click();
+    await page.locator('[data-issue-id="0001"] .card').click({ button: 'right' });
+    const menu = page.getByRole('menu', { name: 'Issue #0001' });
+    await expect(menu.getByRole('menuitem')).toHaveText([/Status/, /Assignee/, /Labels/, /Project/, /^Open$/, /Open as page/, /Copy agent prompt/, /Copy path/, /Copy link/]);
+    await menu.getByRole('menuitem', { name: 'Status' }).hover();
+    await page.getByRole('menuitemcheckbox', { name: 'In review' }).click();
+    await expect.poll(() => readIssueFile(file)).toBe(original.replace('status: todo', 'status: in-review'));
+    await expect(menu).toHaveCount(0);
+
+    await page.goto('/w/demo-repo/issues');
+    const row = page.locator('.issue-row[data-issue-id="0001"]');
+    await row.click({ button: 'right' });
+    await page.getByRole('menu', { name: 'Issue #0001' }).getByRole('menuitem', { name: 'Copy link' }).click();
+    await expect(page.locator('.toast')).toContainText('Link copied');
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toMatch(/\/w\/demo-repo\/issues\/0001$/);
+
+    // The keyboard's context-menu shortcut opens it at the focused row.
+    await row.focus();
+    await page.keyboard.press('Shift+F10');
+    await expect(page.getByRole('menu', { name: 'Issue #0001' })).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('menu', { name: 'Issue #0001' })).toHaveCount(0);
+  } finally {
+    await writeIssueFile(file, original);
+  }
 });

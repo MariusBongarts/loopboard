@@ -95,3 +95,21 @@ describe('malformed issue files', () => {
     expect(await readAllIssues(root)).toHaveLength(0);
   });
 });
+
+// js-yaml reads an unquoted 0016 as octal 14 (#0059).
+describe('parent ids', () => {
+  it('keeps ids whose digits are all 0–7', async () => {
+    const issue = (id: string, parent: string) =>
+      `---\nid: ${id}\ntitle: Child ${id}\nstatus: todo\nparent: ${parent}\n---\nBody.\n`;
+    await writeFile(join(root, 'issues', '0017-child.md'), issue('0017', '0016'), 'utf8');
+    await writeFile(join(root, 'issues', '0036-quoted.md'), issue('0036', '"0035" # quoted'), 'utf8');
+    await writeFile(join(root, 'issues', '0040-short.md'), issue('0040', '12'), 'utf8');
+
+    const parents = (await readAllIssues(root)).map((i) => [i.id, i.parent]);
+    expect(parents).toEqual([
+      ['0017', '0016'],
+      ['0036', '0035'],
+      ['0040', '0012'],
+    ]);
+  });
+});

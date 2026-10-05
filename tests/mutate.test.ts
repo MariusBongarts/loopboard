@@ -222,3 +222,53 @@ describe('mutateIssue — byte preservation', () => {
     expect(await readFile(file, 'utf8')).toBe(original.replace('status: todo', 'status: in-progress'));
   });
 });
+
+describe('mutateIssue — labels, project and parent (#0052)', () => {
+  const issue = `---
+id: 0003
+title: Foo
+status: todo
+assignee: agent # owner
+labels: [ui]
+created: 2026-10-01
+---
+
+Body.
+`;
+
+  it('sets project and parent in place and rewrites labels, keeping comments', async () => {
+    const file = await writeFixture('0003-foo.md', issue);
+    await mutateIssue(file, { project: '01-launch', parent: '7', labels: ['ui', ' bug ', 'ui'] });
+    expect(await readFile(file, 'utf8')).toBe(
+      issue.replace('assignee: agent # owner\nlabels: [ui]', 'assignee: agent # owner\nproject: 01-launch\nparent: 0007\nlabels: [ui, bug]'),
+    );
+  });
+
+  it('removes project and parent with empty values and clears labels', async () => {
+    const file = await writeFixture('0003-foo.md', issue.replace('labels: [ui]', 'project: 01-launch\nparent: 0007\nlabels: [ui]'));
+    await mutateIssue(file, { project: '', parent: null, labels: [] });
+    expect(await readFile(file, 'utf8')).toBe(issue.replace('labels: [ui]', 'labels: []'));
+  });
+
+  it('rejects bad values with 400', async () => {
+    const file = await writeFixture('0003-foo.md', issue);
+    for (const patch of [{ parent: '0003' }, { parent: 'abc' }, { project: 'Launch!' }, { labels: ['a,b'] }]) {
+      await expect(mutateIssue(file, patch)).rejects.toMatchObject({ statusCode: 400 });
+    }
+    expect(await readFile(file, 'utf8')).toBe(issue);
+  });
+});
+
+describe('mutateIssue — concurrent writes', () => {
+  it('applies patches to one file one after another, so none is lost', async () => {
+    const file = await writeFixture('0003-foo.md', '---\nid: 0003\ntitle: Foo\nstatus: todo\nassignee: agent\nlabels: []\n---\n\nBody.\n');
+    await Promise.all([
+      mutateIssue(file, { labels: ['ui'] }),
+      mutateIssue(file, { parent: '0002' }),
+      mutateIssue(file, { project: '01-launch' }),
+      mutateIssue(file, { status: 'done' }),
+    ]);
+    const out = await readFile(file, 'utf8');
+    expect(out).toContain('status: done\nassignee: agent\nproject: 01-launch\nparent: 0002\nlabels: [ui]');
+  });
+});

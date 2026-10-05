@@ -1,6 +1,7 @@
 <script setup lang="ts">
+import { Crosshair, TerminalSquare } from '@lucide/vue';
 import { computed, nextTick, ref, watch } from 'vue';
-import CollapsibleStrip from './CollapsibleStrip.vue';
+import BadgePopover from './BadgePopover.vue';
 import Column from './Column.vue';
 import IssueRefText from './IssueRefText.vue';
 import Segmented from './Segmented.vue';
@@ -38,7 +39,8 @@ const props = defineProps<{
 const actions = useIssueActions();
 
 const emit = defineEmits<{
-  (e: 'open-issue' | 'toggle-assignee', issue: Issue): void;
+  (e: 'open-issue', issue: Issue, list?: Issue[]): void;
+  (e: 'toggle-assignee', issue: Issue): void;
   (e: 'open-id', id: string): void;
   (e: 'open-backlog', issues: Issue[]): void;
   (e: 'drop', payload: { issue: Issue; column: ColumnKey }): void;
@@ -129,6 +131,9 @@ const listGroups = computed(() =>
     'status',
   ),
 );
+// Reading order of the board for the panel's ‹ › (#0050): column by column.
+const boardOrder = computed(() => ALWAYS_VISIBLE_COLUMNS.flatMap((col) => issuesIn(col)));
+
 function issuesIn(col: ColumnKey): Issue[] {
   const list = boardColumnIssues(props.issues, props.project?.slug ?? null, col, who.value, tokens.value);
   const shown = hideWaiting.value ? list.filter((i) => !relations.value.isWaiting(i)) : list;
@@ -165,31 +170,26 @@ const title = computed(() => props.project?.title ?? 'Standalone issues');
           </template>
           <template v-else>Issues without a project</template>
         </span>
+        <BadgePopover
+          v-if="props.project?.focus"
+          label="Current focus"
+          :tone="toneClass(props.project.slug)"
+        >
+          <template #badge><Crosshair :size="12" aria-hidden="true" />Focus</template>
+          <p class="pane-focus-text"><IssueRefText :text="props.project.focus" @open-id="(id) => emit('open-id', id)" /></p>
+        </BadgePopover>
+        <BadgePopover v-if="$slots.pinned" :label="props.pinnedLabel ?? ''">
+          <template #badge><slot name="pinned-badge">{{ props.pinnedLabel }}</slot></template>
+          <slot name="pinned" />
+        </BadgePopover>
         <button
           v-if="props.project"
           type="button"
           class="pane-prompt"
           title="Copy a prompt that hands this project to your agent"
           @click="actions.copyProjectPrompt(props.project)"
-        >Copy agent prompt</button>
+        ><TerminalSquare :size="14" aria-hidden="true" />Copy agent prompt</button>
       </div>
-      <CollapsibleStrip
-        v-if="props.project?.focus"
-        storage-key="loopboard.pane.focusCollapsed"
-        label="Current focus"
-        class="pane-focus"
-        :class="toneClass(props.project.slug)"
-      >
-        <p><IssueRefText :text="props.project.focus" @open-id="(id) => emit('open-id', id)" /></p>
-      </CollapsibleStrip>
-      <CollapsibleStrip
-        v-if="$slots.pinned"
-        storage-key="loopboard.pane.pinnedCollapsed"
-        :label="props.pinnedLabel"
-        class="pane-pinned"
-      >
-        <slot name="pinned" />
-      </CollapsibleStrip>
       <nav class="pane-tabs" role="tablist">
         <button role="tab" :class="{ on: tab === 'board' }" :aria-selected="tab === 'board'" @click="tab = 'board'">
           Board <span>{{ boardCount }}</span>
@@ -249,7 +249,7 @@ const title = computed(() => props.project?.title ?? 'Standalone issues');
           @click="emit('open-backlog', backlogIssues)"
         >Backlog {{ backlogIssues.length }}</button>
       </div>
-      <IssueList v-if="layout === 'list'" :groups="listGroups" :active-id="props.highlightId" @open="(i) => emit('open-issue', i)" />
+      <IssueList v-if="layout === 'list'" :groups="listGroups" :active-id="props.highlightId" @open="(i) => emit('open-issue', i, listGroups.flatMap((g) => g.issues))" />
       <div v-else ref="boardEl" class="pane-board" :class="{ 'more-left': boardEdges.left.value, 'more-right': boardEdges.right.value }">
         <Column
           v-for="col in ALWAYS_VISIBLE_COLUMNS"
@@ -257,7 +257,7 @@ const title = computed(() => props.project?.title ?? 'Standalone issues');
           :column-key="col"
           :issues="issuesIn(col)"
           :highlight-id="props.highlightId"
-          @open="(iss) => emit('open-issue', iss)"
+          @open="(iss) => emit('open-issue', iss, boardOrder)"
           @toggle-assignee="(iss) => emit('toggle-assignee', iss)"
           @drop="(p) => emit('drop', p)"
           @reorder="(p) => emit('reorder', p)"
@@ -279,7 +279,7 @@ const title = computed(() => props.project?.title ?? 'Standalone issues');
         <div class="pane-doc-tools">
           <button type="button" @click="editingDoc = true">Edit {{ tab === 'prd' ? 'PRD' : 'WIP' }}</button>
         </div>
-        <div class="drawer-body project-body pane-doc" @click="onDocClick" v-html="docHtml" />
+        <div class="prose pane-doc" @click="onDocClick" v-html="docHtml" />
       </template>
     </div>
   </div>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue';
 import { rankCommands, type Command } from '../commands';
+import StatusIcon from './StatusIcon.vue';
 
 // ⌘K (#0021): jump to anything, run any action, from one box.
 const props = defineProps<{ open: boolean; commands: Command[] }>();
@@ -96,6 +97,7 @@ function onKeydown(e: KeyboardEvent) {
               @mousemove="active = index"
               @click="run(c)"
             >
+              <StatusIcon v-if="c.status" :status="c.status" />
               <span class="palette-title">{{ c.title }}</span>
               <kbd v-if="c.hint" class="palette-hint">{{ c.hint }}</kbd>
             </div>

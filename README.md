@@ -4,7 +4,12 @@
 coding agents keep as markdown in your repo.** Agents write the files; you
 steer from the board; nothing leaves your machine.
 
-<!-- Hero GIF (#0036): an agent works through an issue while its card moves live. -->
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/media/demo-dark.gif">
+  <img src="docs/media/demo-light.gif" width="1280" alt="An agent implements two issues in a terminal while their cards move across the loopboard board live. The second needs a human check, lands in In review under Needs you, and the human opens it to read the review steps.">
+</picture>
+
+<!-- Recorded by `pnpm demo` (scripts/demo/); CI re-records it when the UI changes. -->
 
 - **Files, not a service.** Issues, PRDs and specs live in `.agents/` next to
   your code. Git is the history; there's no account and no database.

@@ -6,7 +6,7 @@ import { useWorkspace } from '../workspace';
 import BaseDialog from './BaseDialog.vue';
 import Segmented from './Segmented.vue';
 
-// Quick capture (#0019): the next free number, the category's template body.
+// Quick capture (#0019): the next free number, the category template's headings (#0057).
 const props = defineProps<{ open: boolean; projects: Project[]; defaultProject: string | null; backlog?: boolean }>();
 const emit = defineEmits<{ (e: 'close'): void; (e: 'created', id: string): void }>();
 const { id: workspaceId } = useWorkspace();
@@ -101,7 +101,7 @@ async function submit() {
           <option v-for="p in openProjects" :key="p.slug" :value="p.slug">{{ p.title }}</option>
         </select>
       </label>
-      <p class="create-hint">The body starts from the {{ category }} template — fill it in later, or let your agent do it.</p>
+      <p class="create-hint">The body gets the {{ category }} template's headings — fill them in later, or let your agent do it.</p>
       <p v-if="error" class="ws-error" role="alert">{{ error }}</p>
     </form>
     <template #actions>

@@ -26,10 +26,16 @@ follows the workspace's event stream and triggers a debounced refetch.
 | [IssueActivity.vue](../../src/components/IssueActivity.vue) | The drawer's lazily loaded git history |
 | [NeedsYouView.vue](../../src/views/NeedsYouView.vue) | `/needs-you` across workspaces; links back with `?item=` |
 | [WorkspaceSwitcher.vue](../../src/components/WorkspaceSwitcher.vue) | Top-left menu (teleported, the rail clips); Add and Manage dialogs on [BaseDialog.vue](../../src/components/BaseDialog.vue) |
-| [InboxView.vue](../../src/components/InboxView.vue) | Rail (search, views, projects, pins, resize) and feed (day groups, chips, `j`/`k`, `/`) |
-| [ProjectPane.vue](../../src/components/ProjectPane.vue) | Board, PRD/WIP/Activity tabs, focus and selection strips |
+| [InboxView.vue](../../src/components/InboxView.vue) | Layout of rail, feed and pane; feed (day groups, `j`/`k`, `/`); hosts the list, projects, specs and issue page views |
+| [ProjectPane.vue](../../src/components/ProjectPane.vue) | Board, PRD/WIP/Activity tabs, focus and selection badges |
+| [AppRail.vue](../../src/components/AppRail.vue) | The rail: feed views, workspace destinations, saved views, projects, collapse to icons |
+| [IssueView.vue](../../src/components/IssueView.vue), [IssuePanel.vue](../../src/components/IssuePanel.vue), [IssuePage.vue](../../src/components/IssuePage.vue) | One issue view in two shells: the resizable side panel (‹ › through the list it came from) and the page at `/w/:ws/issues/:id` |
+| [IssueProperties.vue](../../src/components/IssueProperties.vue), [MenuHost.vue](../../src/components/MenuHost.vue) | Inline pickers; the one menu renderer behind pickers and right-click menus ([menu.ts](../../src/menu.ts) holds the open menu, [issueMenus.ts](../../src/issueMenus.ts) builds the items) |
+| [SettingsDialog.vue](../../src/components/SettingsDialog.vue) | Theme and editor ([editor.ts](../../src/editor.ts) builds `vscode://` / `cursor://` links) |
+| `StatusIcon`, `Avatar`, `LabelPill`, `ProjectBadge`, `ResizeHandle` | Shared primitives; [resize.ts](../../src/resize.ts) is the resize model for rail, feed and panel |
+| [IssueRow.vue](../../src/components/IssueRow.vue) | One dense row for the list view, a project's list layout and Needs you; [issueContext.ts](../../src/issueContext.ts) is the right-click menu on cards, rows and feed issues |
 | [Column.vue](../../src/components/Column.vue), [Card.vue](../../src/components/Card.vue) | Draggable columns and cards |
-| [Drawer.vue](../../src/components/Drawer.vue), [BacklogDrawer.vue](../../src/components/BacklogDrawer.vue) | Issue detail; backlog list with promote |
+| [BacklogDrawer.vue](../../src/components/BacklogDrawer.vue) | Backlog list with promote |
 | [SpecsView.vue](../../src/components/SpecsView.vue) and `Spec*.vue` | Specs table of contents, coverage, search and status chips |
 
 [relations.ts](../../src/relations.ts) indexes `parent:` once per load (shared
@@ -50,8 +56,10 @@ same tokens in [styles.css](../../src/styles.css), and
 Fonts are self-hosted (`@fontsource-variable/*`); the
 [Brand Kit](../design/Brand%20Kit.html) renders tokens and components from the
 real stylesheet. Keyboard shortcuts come from one registry, [shortcuts.ts](../../src/shortcuts.ts):
-handlers match against it and Help lists it. Pure logic lives outside
-components so it can be unit-tested:
+handlers match against it and Help lists it. Styling: [styles.css](../../src/styles.css) holds tokens, base elements,
+shared primitives (status icon, avatar, pills, menu) and `.prose` for rendered
+markdown; each component keeps its own layout in `<style scoped>`. Pure logic
+lives outside components so it can be unit-tested:
 [inbox.ts](../../src/inbox.ts) (feed, filters, search, board columns, pins),
 [types.ts](../../src/types.ts) (client types, column order, `relativePath`),
 [projectDoc.ts](../../src/projectDoc.ts) (PRD/WIP rendering with issue
@@ -82,5 +90,6 @@ pre-workspace `tracker.<key>` once, so old state carries over.
 | `loopboard.w.<ws>.inbox.selected` | Last selected feed item |
 | `loopboard.w.<ws>.inbox.pinnedProjects` | Pinned project slugs, newest first |
 | `loopboard.w.<ws>.specs.selectedId`, `….specs.enabledStatuses` | Specs view selection and status chips |
-| `loopboard.railWidth` | Rail width in px |
-| `loopboard.pane.focusCollapsed`, `loopboard.pane.pinnedCollapsed` | Strip collapse state |
+| `loopboard.railWidth`, `loopboard.feedWidth`, `loopboard.panelWidth` | Pane widths in px |
+| `loopboard.railCollapsed`, `loopboard.feedHidden` | Rail collapsed to icons; feed hidden |
+| `loopboard.theme`, `loopboard.editor` | Settings: theme and editor for "Open in …" |

@@ -39,40 +39,81 @@ function pct(closed: number, total: number): number {
       <h2>Projects</h2>
       <span class="projects-count">{{ props.projects.length }}</span>
     </header>
-    <p v-if="!props.projects.length" class="list-empty">No projects yet. Ask your agent to "write a PRD for …", or use + in the rail.</p>
-    <section v-for="g in groups" :key="g.key" class="projects-group">
-      <h3>{{ g.label }}</h3>
-      <button
-        v-for="{ project: p, progress } in g.rows"
-        :key="p.slug"
-        type="button"
-        class="project-row"
-        @click="emit('open', p.slug)"
-      >
-        <span class="project-row-main">
-          <span class="project-row-title">
-            <span class="rail-dot" :class="toneClass(p.slug)" />
-            <span class="prd-num">{{ prdNumber(p.slug) }}</span>
-            {{ p.title }}
+    <div class="projects-scroll">
+      <p v-if="!props.projects.length" class="list-empty">No projects yet. Ask your agent to "write a PRD for …", or use + in the rail.</p>
+      <section v-for="g in groups" :key="g.key" class="projects-group">
+        <h3 class="projects-group-head">{{ g.label }} <span>{{ g.rows.length }}</span></h3>
+        <button
+          v-for="{ project: p, progress } in g.rows"
+          :key="p.slug"
+          type="button"
+          class="project-row"
+          @click="emit('open', p.slug)"
+        >
+          <span class="project-row-main">
+            <span class="project-row-title">
+              <span class="project-mark" :class="toneClass(p.slug)" aria-hidden="true" />
+              {{ p.title }}
+              <span class="prd-num">{{ prdNumber(p.slug) }}</span>
+            </span>
+            <span v-if="progress.phases.length" class="project-phases">
+              <span v-for="ph in progress.phases" :key="ph.name" class="project-phase" :title="`${ph.name}: ${ph.closed}/${ph.total} closed`">
+                <span class="project-phase-name">{{ ph.name }}</span>
+                <span class="bar bar-thin"><span class="bar-fill" :style="{ width: `${pct(ph.closed, ph.total)}%` }" /></span>
+              </span>
+            </span>
           </span>
-          <span class="project-row-meta">
-            <template v-if="p.lastSession">last session {{ relativeDay(p.lastSession, today) }}</template>
+          <span class="project-row-progress">
+            <span class="bar" :title="`${progress.closed} of ${progress.total} closed`">
+              <span class="bar-fill" :style="{ width: `${pct(progress.closed, progress.total)}%` }" />
+            </span>
+            <span class="project-row-pct">{{ progress.closed }}/{{ progress.total }}</span>
+          </span>
+          <span class="project-row-cell">
             <span v-if="progress.needsYou" class="project-row-you">{{ progress.needsYou }} need you</span>
           </span>
-        </span>
-        <span class="project-row-progress">
-          <span class="bar" :title="`${progress.closed} of ${progress.total} closed`">
-            <span class="bar-fill" :style="{ width: `${pct(progress.closed, progress.total)}%` }" />
-          </span>
-          <span class="project-row-pct">{{ progress.closed }}/{{ progress.total }}</span>
-        </span>
-        <span v-if="progress.phases.length" class="project-phases">
-          <span v-for="ph in progress.phases" :key="ph.name" class="project-phase" :title="`${ph.name}: ${ph.closed}/${ph.total}`">
-            <span class="project-phase-name">{{ ph.name }}</span>
-            <span class="bar bar-thin"><span class="bar-fill" :style="{ width: `${pct(ph.closed, ph.total)}%` }" /></span>
-          </span>
-        </span>
-      </button>
-    </section>
+          <span class="project-row-cell project-row-when">{{ p.lastSession ? relativeDay(p.lastSession, today) : '—' }}</span>
+        </button>
+      </section>
+    </div>
   </section>
 </template>
+
+<style scoped>
+.projects-view { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+.projects-head { display: flex; align-items: center; gap: 8px; height: 52px; padding: 0 20px; border-bottom: 1px solid var(--border-subtle); flex: 0 0 auto; }
+.projects-head h2 { margin: 0; font-size: 15px; font-weight: 600; }
+.projects-count { font-size: 13px; color: var(--text-3); }
+.projects-scroll { flex: 1; overflow-y: auto; padding-bottom: 40px; }
+.projects-group-head { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; gap: 8px; height: 36px; margin: 0; padding: 0 20px; border-bottom: 1px solid var(--border-subtle); background: var(--bg-subtle); font-size: 13px; font-weight: 500; }
+.projects-group-head span { color: var(--text-3); font-weight: 400; }
+.project-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 200px 110px 90px;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
+  padding: 12px 20px;
+  border: 0;
+  border-bottom: 1px solid var(--border-subtle);
+  border-radius: 0;
+  background: transparent;
+  font-weight: 400;
+  text-align: left;
+}
+.project-row:hover { background: var(--bg-hover); }
+.project-row-main { display: grid; gap: 8px; min-width: 0; }
+.project-row-title { display: flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 500; color: var(--text); }
+.project-mark { width: 12px; height: 12px; border-radius: 3px; background: var(--tone); flex: 0 0 auto; }
+.project-phases { display: flex; flex-wrap: wrap; gap: 6px 16px; }
+.project-phase { display: grid; gap: 4px; width: 140px; min-width: 0; }
+.project-phase-name { font-size: 11.5px; color: var(--text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.project-row-progress { display: flex; align-items: center; gap: 10px; }
+.project-row-pct { min-width: 40px; font-size: 12px; color: var(--text-2); text-align: right; font-variant-numeric: tabular-nums; }
+.project-row-cell { font-size: 12px; color: var(--text-3); }
+.project-row-you { display: inline-flex; align-items: center; height: 20px; padding: 0 7px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-text); font-weight: 500; }
+.project-row-when { text-align: right; }
+.bar { flex: 1; height: 6px; border-radius: 999px; background: var(--bg-active); overflow: hidden; }
+.bar-thin { height: 3px; }
+.bar-fill { display: block; height: 100%; border-radius: inherit; background: var(--accent); }
+</style>

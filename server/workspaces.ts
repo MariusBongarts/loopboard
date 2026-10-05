@@ -1,7 +1,7 @@
 import { existsSync, readdirSync, statSync } from "node:fs";
 import { mkdir, readFile } from "node:fs/promises";
 import { basename, dirname, join, resolve } from "node:path";
-import { writeFileAtomic } from "./files";
+import { serialized, writeFileAtomic } from "./files";
 
 // One running loopboard remembers many repos (ADR-0002, #0008).
 export interface Workspace {
@@ -84,18 +84,14 @@ export async function saveRegistry(configDir: string, registry: Registry): Promi
 
 // Read-modify-write, one at a time per config dir: two requests at once
 // (say, opening a workspace while adding another) must not drop an update.
-const pending = new Map<string, Promise<unknown>>();
 function updateRegistry<T>(configDir: string, change: (registry: Registry) => T): Promise<T> {
-  const run = async () => {
+  return serialized(`registry:${configDir}`, async () => {
     const registry = await loadRegistry(configDir);
     const before = JSON.stringify(registry);
     const result = change(registry);
     if (JSON.stringify(registry) !== before) await saveRegistry(configDir, registry);
     return result;
-  };
-  const next = (pending.get(configDir) ?? Promise.resolve()).then(run, run);
-  pending.set(configDir, next.catch(() => undefined));
-  return next;
+  });
 }
 
 export class RootNotFoundError extends Error {

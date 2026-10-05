@@ -28,7 +28,8 @@ test.describe('§ 1 running loopboard', () => {
       expect(second.status).toBe(0);
       expect(second.stdout).toContain(`loopboard is already running — opened http://127.0.0.1:${server.port}/w/beta`);
       await page.goto(`http://127.0.0.1:${server.port}/w/beta`);
-      await expect(page.locator('.card-path').first()).toHaveText('ai/issues/0001-first.md');
+      await page.locator('.card').first().click();
+      await expect(page.getByRole('dialog', { name: 'Issue detail' }).getByRole('button', { name: 'Copy path' })).toHaveAttribute('title', 'ai/issues/0001-first.md');
     } finally {
       server.proc.kill();
     }

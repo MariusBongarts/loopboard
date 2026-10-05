@@ -38,14 +38,17 @@ const ratio = (a, b) => {
   return (x + 0.05) / (y + 0.05);
 };
 
-// [foreground, background, minimum] — status/project chips and body text need AA.
+// [foreground, background, minimum] — text needs AA (4.5); meta text and
+// status icons need 3 (#0045).
+const TONES = ['orange', 'blue', 'green', 'red', 'pink', 'amber', 'teal'];
 const PAIRS = [
-  ['ink', 'paper', 4.5], ['ink-2', 'paper', 4.5], ['ink-3', 'paper', 4.5], ['ink-3', 'paper-2', 4.5],
-  ['ink-4', 'paper', 3],
-  ['ember-deep', 'ember-soft', 4.5], ['ink-blue', 'ink-blue-soft', 4.5], ['moss-deep', 'moss-soft', 4.5],
-  ['rose-deep', 'rose-soft', 4.5], ['plum-deep', 'plum-soft', 4.5], ['amber-deep', 'amber-soft', 4.5], ['teal-deep', 'teal-soft', 4.5],
-  ['ember-deep', 'paper', 4.5], ['moss-deep', 'paper', 4.5], ['rose', 'paper', 3],
-  ['paper', 'ember-deep', 4.5],
+  ...['bg', 'bg-subtle', 'bg-hover', 'surface'].flatMap((bg) => [
+    ['text', bg, 4.5], ['text-2', bg, 4.5], ['text-3', bg, 4.5],
+  ]),
+  ['text-4', 'bg', 3], ['text-4', 'bg-subtle', 3],
+  ['accent-text', 'bg', 4.5], ['accent-text', 'accent-soft', 4.5], ['on-accent', 'accent', 4.5],
+  ...TONES.flatMap((t) => [[`${t}-text`, `${t}-soft`, 4.5], [`${t}-text`, 'bg', 4.5]]),
+  ...['progress', 'review', 'done', 'blocked', 'todo', 'backlog'].map((st) => [`st-${st}`, 'bg', 3]),
 ];
 
 let failed = 0;
@@ -54,7 +57,8 @@ for (const [name, t] of [['light', light], ['dark', dark]]) {
     const r = ratio(t[fg], t[bg]);
     const ok = r >= min;
     if (!ok) failed++;
-    console.log(`${ok ? '✓' : '✗'} ${name.padEnd(5)} ${fg.padEnd(12)} on ${bg.padEnd(14)} ${r.toFixed(2)} (≥ ${min})`);
+    if (!ok || process.argv.includes('--all')) console.log(`${ok ? '✓' : '✗'} ${name.padEnd(5)} ${fg.padEnd(13)} on ${bg.padEnd(13)} ${r.toFixed(2)} (≥ ${min})`);
   }
 }
+console.log(failed ? `${failed} pair(s) below the minimum` : `✓ contrast: ${PAIRS.length * 2} pairs pass in both themes`);
 process.exit(failed ? 1 : 0);

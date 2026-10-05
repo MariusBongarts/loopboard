@@ -11,7 +11,7 @@ Status legend in [`_specs.md`](_specs.md#e2e-coverage).
 | Scenario | Status | Notes |
 |---|---|---|
 | Browse every issue as a list | ✅ | [`13-list-and-views.spec.ts`](../../tests/e2e/13-list-and-views.spec.ts); grouping/filters unit-tested in `tests/list.test.ts` |
-| Filter the list | ✅ | `13-list-and-views.spec.ts` |
+| Filter the list | ✅ | `13-list-and-views.spec.ts`: group, assignee, URL; status and label menus and Clear |
 | Move through the list with the keyboard | ✅ | `13-list-and-views.spec.ts` |
 | Save, open, update and delete a view | ✅ | `13-list-and-views.spec.ts`; storage unit-tested in `tests/handler.test.ts` |
 | A view whose label is gone | 🟡 | unit-level only (`filtersFromQuery`); the stale label shows in the select |
@@ -20,12 +20,14 @@ Status legend in [`_specs.md`](_specs.md#e2e-coverage).
 ### Scenario: Browse every issue as a list
 
 ```
-WHEN I click Issues in the rail (or "Go to Issues" in ⌘K)
+WHEN I click All issues in the rail (or "Go to Issues" in ⌘K)
 THEN /w/<workspace>/issues lists every live issue, grouped by status in
     workflow order, newest first in each group, with a count per group
-AND each row shows #id, title, labels, project, status, assignee and date
+AND each row shows its number, status icon, title, labels, project, assignee
+    and date in one line; group headers show the status icon, project or
+    label
 AND group headers collapse and expand
-AND clicking a row opens the issue drawer
+AND clicking a row opens the issue in the side panel
 ```
 
 ### Scenario: Filter the list
@@ -33,15 +35,17 @@ AND clicking a row opens the issue drawer
 ```
 GIVEN the list
 WHEN I group by Status, Project, Label or None, pick Everyone / You / Agent,
-    toggle status chips, pick a label or type in Filter
+    tick statuses under "Status", pick a label under "Label" (both menus) or
+    type in Filter
 THEN the list updates and the URL holds the filters, so a reload or a shared
     link shows the same list
+AND "Clear" resets every filter
 ```
 
 ### Scenario: Move through the list with the keyboard
 
 ```
-GIVEN the list has focus (no text field, no drawer)
+GIVEN the list has focus (no text field, no panel)
 WHEN I press j / k
 THEN the next / previous row is highlighted and scrolled into view
 WHEN I press Enter

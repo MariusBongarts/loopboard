@@ -31,6 +31,18 @@ function stripFrontmatter(text: string): string {
   return text.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, "").replace(/^\s+/, "");
 }
 
+// Quick-created issues (#0057) start from the template's headings and one
+// empty checklist item per checklist section; the template's guidance prose
+// stays in the template, so it never reads like real content.
+export function skeletonBody(template: string): string {
+  const sections: { heading: string; checklist: boolean }[] = [];
+  for (const line of template.split(/\r?\n/)) {
+    if (/^#{1,6}\s+\S/.test(line)) sections.push({ heading: line.trimEnd(), checklist: false });
+    else if (/^\s*[-*] \[[ xX]\]/.test(line) && sections.length) sections[sections.length - 1].checklist = true;
+  }
+  return sections.map((sec) => (sec.checklist ? `${sec.heading}\n\n- [ ] \n` : `${sec.heading}\n`)).join("\n");
+}
+
 function slugFor(title: string): string {
   return slugify(title).slice(0, 60).replace(/-+$/, "") || "untitled";
 }
@@ -47,9 +59,9 @@ export async function createIssue(root: string, input: NewIssue, today = todayIs
     throw new CreateError(`unknown project: ${input.project}`);
   }
   const template = join(root, "issues", "_templates", `${category}.md`);
-  const body = existsSync(template)
-    ? stripFrontmatter(readFileSync(template, "utf8"))
-    : FALLBACK_BODY[category] ?? FALLBACK_BODY.task;
+  const body = skeletonBody(
+    existsSync(template) ? stripFrontmatter(readFileSync(template, "utf8")) : FALLBACK_BODY[category] ?? FALLBACK_BODY.task,
+  );
   const id = nextId(root, "issue");
   const filename = `${id}-${slugFor(title)}.md`;
   const labels = (input.labels ?? []).map((l) => yamlScalar(l.trim())).filter(Boolean);

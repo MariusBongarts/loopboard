@@ -1,3 +1,4 @@
+import { toast } from './toast';
 import type { Issue, Project } from './types';
 
 // "Copy agent prompt" (#0022): the right skill invocation for an issue or
@@ -42,4 +43,9 @@ export async function copyText(text: string): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+// Copy and say so (or say the browser refused).
+export async function copyWithToast(text: string, done: string): Promise<void> {
+  toast((await copyText(text)) ? done : "Couldn't copy — your browser blocked the clipboard");
 }

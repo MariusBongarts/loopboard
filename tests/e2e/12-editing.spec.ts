@@ -27,7 +27,7 @@ test('edit an issue and save', async ({ page }) => {
     await source.press('ControlOrMeta+s');
 
     await expect(source).toHaveCount(0);
-    await expect(drawer.locator('.drawer-body')).toContainText('Typo is in the install section.');
+    await expect(drawer.locator('.issue-view-body')).toContainText('Typo is in the install section.');
     expect(await readIssueFile(FILE)).toBe(original.replace('Fixture body for #0007.', 'Typo is in the install section.'));
   } finally {
     await writeIssueFile(FILE, original);

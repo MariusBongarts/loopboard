@@ -8,13 +8,18 @@ import BacklogDrawer from '../components/BacklogDrawer.vue';
 import CommandPalette from '../components/CommandPalette.vue';
 import CreateIssueDialog from '../components/CreateIssueDialog.vue';
 import CreateProjectDialog from '../components/CreateProjectDialog.vue';
-import Drawer from '../components/Drawer.vue';
+import IssuePanel from '../components/IssuePanel.vue';
+import MenuHost from '../components/MenuHost.vue';
 import InboxView from '../components/InboxView.vue';
+import SettingsDialog from '../components/SettingsDialog.vue';
 import WontfixModal from '../components/WontfixModal.vue';
 import WorkspaceMissing from '../components/WorkspaceMissing.vue';
+import type { IssueEdit } from '../issueMenus';
 import { useLiveUpdates } from '../live';
+import { activeMenu, closeMenu } from '../menu';
 import { buildRelations } from '../relations';
-import { copyText, issuePrompt, projectPrompt } from '../prompts';
+import { EDITOR_LABEL, editorChoice, issueEditorUrl } from '../editor';
+import { copyWithToast, issuePrompt, projectPrompt } from '../prompts';
 import { isShortcut, isTyping, SHORTCUTS } from '../shortcuts';
 import { toast } from '../toast';
 import { cycleTheme, themeChoice } from '../theme';
@@ -44,6 +49,7 @@ const views = ref<SavedView[]>([]);
 provideWorkspace({
   id: workspaceId,
   rootName: computed(() => (workspace.value ? rootNameOf(workspace.value) : '.agents')),
+  root: computed(() => workspace.value?.root ?? ''),
   issues,
   projects,
   relations: computed(() => buildRelations(issues.value)),
@@ -65,7 +71,12 @@ async function loadViews() {
   }
 }
 const specs = ref<Spec[]>([]);
-const drawerIssue = ref<Issue | null>(null);
+const panelIssue = ref<Issue | null>(null);
+// The list the panel was opened from, so ‹ › and j/k step through it (#0050).
+const panelKeys = ref<{ id: string; archived: boolean }[]>([]);
+const panelIndex = computed(() =>
+  panelIssue.value ? panelKeys.value.findIndex((k) => k.id === panelIssue.value!.id && k.archived === panelIssue.value!.archived) : -1,
+);
 const backlogIssues = ref<Issue[] | null>(null);
 const errorMsg = ref<string | null>(null);
 // A successful reload clears only its own load errors, never a write's (#0004 spec).
@@ -76,6 +87,7 @@ const createOpen = ref(false);
 const createInBacklog = ref(false);
 const projectDialogOpen = ref(false);
 const paletteOpen = ref(false);
+const settingsOpen = ref(false);
 const paletteWorkspaces = ref<WorkspaceSummary[]>([]);
 // What the inbox shows, reported up so actions know their context.
 const selectedIssue = ref<Issue | null>(null);
@@ -97,7 +109,7 @@ async function load() {
     if (pendingOpenId) {
       const created = data.issues.find((i) => i.id === pendingOpenId && !i.archived);
       if (created) {
-        drawerIssue.value = created;
+        panelIssue.value = created;
         pendingOpenId = null;
       }
     }
@@ -106,9 +118,9 @@ async function load() {
       pendingProject = null;
     }
     // Keep an open drawer on the fresh copy so live edits show in it.
-    if (drawerIssue.value) {
-      const open = drawerIssue.value;
-      drawerIssue.value = data.issues.find((i) => i.id === open.id && i.archived === open.archived) ?? open;
+    if (panelIssue.value) {
+      const open = panelIssue.value;
+      panelIssue.value = data.issues.find((i) => i.id === open.id && i.archived === open.archived) ?? open;
     }
     if (errorFromLoad) {
       errorMsg.value = null;
@@ -145,7 +157,7 @@ onUnmounted(() => {
 });
 
 watch(workspaceId, () => {
-  drawerIssue.value = null;
+  panelIssue.value = null;
   backlogIssues.value = null;
   workspace.value = null;
   issues.value = [];
@@ -157,7 +169,7 @@ watch(workspaceId, () => {
 });
 
 function anyDialogOpen(): boolean {
-  return wontfixModalOpen.value || createOpen.value || projectDialogOpen.value || paletteOpen.value;
+  return wontfixModalOpen.value || createOpen.value || projectDialogOpen.value || paletteOpen.value || settingsOpen.value || activeMenu.value !== null;
 }
 
 function onGlobalKeydown(e: KeyboardEvent) {
@@ -174,7 +186,7 @@ function onGlobalKeydown(e: KeyboardEvent) {
   }
   if (e.key !== 'Escape' || anyDialogOpen()) return;
   if (backlogIssues.value) backlogIssues.value = null;
-  else if (drawerIssue.value) drawerIssue.value = null;
+  else if (panelIssue.value) panelIssue.value = null;
 }
 
 function openCreate(backlog: boolean) {
@@ -205,8 +217,8 @@ async function openPalette() {
   }
 }
 
-async function copy(text: string) {
-  toast((await copyText(text)) ? 'Agent prompt copied' : "Couldn't copy — your browser blocked the clipboard");
+function copy(text: string) {
+  return copyWithToast(text, 'Agent prompt copied');
 }
 
 async function setReviewed(issue: Issue, reviewed: boolean) {
@@ -222,11 +234,60 @@ async function setReviewed(issue: Issue, reviewed: boolean) {
   }
 }
 
-provideIssueActions({
-  openIssue: (issue) => {
-    backlogIssues.value = null;
-    drawerIssue.value = issue;
+function openIssue(issue: Issue, list?: Issue[]) {
+  backlogIssues.value = null;
+  if (list) panelKeys.value = list.map((i) => ({ id: i.id, archived: i.archived }));
+  else if (!panelKeys.value.some((k) => k.id === issue.id && k.archived === issue.archived)) panelKeys.value = [];
+  panelIssue.value = findLive(issue) ?? issue;
+}
+
+function stepPanel(delta: number) {
+  const key = panelKeys.value[panelIndex.value + delta];
+  const next = key && issues.value.find((i) => i.id === key.id && i.archived === key.archived);
+  if (next) panelIssue.value = next;
+}
+
+function openPage(issue: Issue) {
+  panelIssue.value = null;
+  closeMenu();
+  void router.push({ path: `/w/${workspaceId.value}/issues/${issue.id}`, query: issue.archived ? { archived: '1' } : {} });
+}
+
+// Inline pickers and context menus (#0052, #0055): status and assignee use the
+// board's writes; labels, project and parent are optimistic with rollback.
+async function updateIssue(issue: Issue, edit: IssueEdit) {
+  const target = findLive(issue) ?? issue;
+  if (edit.status) moveTo(target, edit.status);
+  if (edit.assignee) void applyAssignee(target, edit.assignee);
+  const patch: { labels?: string[]; project?: string | null; parent?: string | null } = {};
+  if (edit.labels) patch.labels = edit.labels;
+  if (edit.project !== undefined) patch.project = edit.project || null;
+  if (edit.parent !== undefined) patch.parent = edit.parent || null;
+  if (!Object.keys(patch).length) return;
+  const before = { labels: target.labels, project: target.project, parent: target.parent };
+  if (patch.labels) target.labels = patch.labels;
+  if ('project' in patch) target.project = patch.project ?? undefined;
+  if ('parent' in patch) target.parent = patch.parent ?? undefined;
+  try {
+    await patchIssue(workspaceId.value, target.id, target.archived, patch);
+  } catch (e) {
+    Object.assign(target, before);
+    errorMsg.value = (e as Error).message;
+    await load();
+  }
+}
+
+watch(
+  () => props.view,
+  (v) => {
+    if (v === 'issue') panelIssue.value = null;
   },
+);
+
+provideIssueActions({
+  openIssue,
+  openPage,
+  updateIssue: (issue, edit) => void updateIssue(issue, edit),
   copyIssuePrompt: (issue) => void copy(issuePrompt(issue)),
   copyProjectPrompt: (project) => void copy(projectPrompt(project, issues.value)),
   setReviewed: (issue, reviewed) => void setReviewed(issue, reviewed),
@@ -239,7 +300,7 @@ function moveTo(issue: Issue, status: Status) {
   } else void applyStatus(issue, status);
 }
 
-const contextIssue = computed(() => drawerIssue.value ?? selectedIssue.value);
+const contextIssue = computed(() => panelIssue.value ?? selectedIssue.value);
 
 const commands = computed<Command[]>(() => {
   const ws = workspaceId.value;
@@ -253,6 +314,7 @@ const commands = computed<Command[]>(() => {
         id: `move-${status}`,
         title: `${ctx}: move to ${COLUMN_LABEL[status]}`,
         group: 'Selected issue',
+        status,
         keywords: `status ${status}`,
         run: () => moveTo(issue, status),
       });
@@ -265,6 +327,10 @@ const commands = computed<Command[]>(() => {
       run: () => applyAssignee(issue, issue.assignee === 'agent' ? 'human' : 'agent'),
     });
     list.push({ id: 'prompt', title: `${ctx}: copy agent prompt`, group: 'Selected issue', run: () => void copy(issuePrompt(issue)) });
+    const editorLink = workspace.value ? issueEditorUrl(editorChoice.value, workspace.value.root, issue) : null;
+    if (editorLink) {
+      list.push({ id: 'open-editor', title: `${ctx}: open in ${EDITOR_LABEL[editorChoice.value]}`, group: 'Selected issue', keywords: 'editor vscode cursor file', run: () => (window.location.href = editorLink) });
+    }
     if (issue.status === 'done') {
       list.push({
         id: 'reviewed',
@@ -273,9 +339,10 @@ const commands = computed<Command[]>(() => {
         run: () => void setReviewed(issue, !issue.reviewed),
       });
     }
-    if (drawerIssue.value?.id !== issue.id) {
-      list.push({ id: 'open-selected', title: `${ctx}: open`, group: 'Selected issue', run: () => (drawerIssue.value = issue) });
+    if (panelIssue.value?.id !== issue.id) {
+      list.push({ id: 'open-selected', title: `${ctx}: open`, group: 'Selected issue', run: () => openIssue(issue) });
     }
+    list.push({ id: 'open-page', title: `${ctx}: open as page`, group: 'Selected issue', keywords: 'full page expand', run: () => openPage(issue) });
   }
   list.push(
     { id: 'new-issue', title: 'New issue', group: 'Actions', hint: SHORTCUTS.create.display, run: () => openCreate(false) },
@@ -286,6 +353,7 @@ const commands = computed<Command[]>(() => {
     { id: 'go-issues', title: 'Go to Issues (list)', group: 'Actions', keywords: 'list table', run: () => router.push(`/w/${ws}/issues`) },
     { id: 'go-projects', title: 'Go to Projects', group: 'Actions', keywords: 'overview progress', run: () => router.push(`/w/${ws}/projects`) },
     { id: 'theme', title: `Theme: ${themeChoice.value} → ${themeChoice.value === 'system' ? 'dark' : themeChoice.value === 'dark' ? 'light' : 'system'}`, group: 'Actions', keywords: 'dark light mode appearance', run: () => toast(`Theme: ${cycleTheme()}`) },
+    { id: 'settings', title: 'Settings', group: 'Actions', keywords: 'preferences theme editor vscode cursor', run: () => (settingsOpen.value = true) },
     { id: 'go-help', title: 'Open Help', group: 'Actions', hint: SHORTCUTS.help.display, run: () => router.push({ path: '/help', query: { from: ws } }) },
   );
   for (const w of paletteWorkspaces.value) {
@@ -298,9 +366,9 @@ const commands = computed<Command[]>(() => {
       id: `issue-${i.id}`,
       title: `#${i.id} ${i.title}`,
       group: 'Issues',
-      hint: i.status,
+      status: i.status,
       keywords: `${i.labels.join(' ')} ${i.project ?? ''}`,
-      run: () => (drawerIssue.value = i),
+      run: () => openIssue(i),
     });
   }
   for (const p of projects.value) {
@@ -334,13 +402,12 @@ function findLive(issue: Issue): Issue | undefined {
 }
 
 function openBacklog(list: Issue[]) {
-  drawerIssue.value = null;
+  panelIssue.value = null;
   backlogIssues.value = list;
 }
 
 function onBacklogOpenIssue(iss: Issue) {
-  backlogIssues.value = null;
-  drawerIssue.value = iss;
+  openIssue(iss);
 }
 
 async function applyStatus(issue: Issue, status: Status, reason?: string): Promise<boolean> {
@@ -519,18 +586,25 @@ async function onCancelWontfix() {
       @pane-project="(slug) => (paneProject = slug)"
       @new-issue="openCreate(false)"
       @new-project="projectDialogOpen = true"
-      @open-issue="(iss) => (drawerIssue = iss)"
+      @settings="settingsOpen = true"
+      @open-issue="openIssue"
       @open-backlog="openBacklog"
       @drop="onDrop"
       @reorder="onReorder"
       @toggle-assignee="onToggleAssignee"
     />
 
-    <Drawer
-      :issue="drawerIssue"
-      @close="drawerIssue = null"
-      @send-to-backlog="(iss) => applyStatus(iss, 'backlog')"
+    <IssuePanel
+      v-if="panelIssue && props.view !== 'issue'"
+      :issue="panelIssue"
+      :position="panelIndex + 1"
+      :total="panelIndex >= 0 ? panelKeys.length : 0"
+      @close="panelIssue = null"
+      @expand="panelIssue && openPage(panelIssue)"
+      @prev="stepPanel(-1)"
+      @next="stepPanel(1)"
     />
+    <MenuHost />
     <BacklogDrawer
       :open="backlogIssues !== null"
       :issues="backlogIssues ?? []"
@@ -548,6 +622,7 @@ async function onCancelWontfix() {
     />
     <CreateProjectDialog :open="projectDialogOpen" @close="projectDialogOpen = false" @created="onProjectCreated" />
     <CommandPalette :open="paletteOpen" :commands="commands" @close="paletteOpen = false" />
+    <SettingsDialog :open="settingsOpen" @close="settingsOpen = false" />
     <WontfixModal
       :open="wontfixModalOpen"
       :issue-title="pendingWontfix?.issue.title ?? ''"

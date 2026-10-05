@@ -1,6 +1,7 @@
 import { readdir, readFile, stat } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { readField } from "../shared/frontmatter";
 import { parseFrontmatter } from "./frontmatter";
 import { parseProjectDigest, type ProjectDigest } from "./wip";
 
@@ -90,15 +91,11 @@ export function normalizeCreated(value: unknown): string | undefined {
 
 const FILENAME_RE = /^(\d{4})-[a-z0-9-]+\.md$/;
 
-// 4-digit zero-padded ID parsed from a frontmatter field. The filename's
-// captured group is the trustworthy fallback because js-yaml (YAML 1.1)
-// implicit-types unquoted values like 0070 as octal (56), so trusting
-// `fm.id` directly silently corrupts every issue whose digits are all 0–7.
-function normalizeId(value: unknown, fallback: string): string {
-  if (typeof value === "number") return String(value).padStart(4, "0");
-  if (typeof value === "string" && value.length > 0)
-    return value.padStart(4, "0");
-  return fallback;
+// 4-digit zero-padded ID from a raw frontmatter line. Never from the parsed
+// YAML: js-yaml (YAML 1.1) types an unquoted 0070 as octal (56), corrupting
+// every ID whose digits are all 0–7 (#0059). `id` comes from the filename.
+function normalizeId(value: string | undefined): string | undefined {
+  return value ? value.padStart(4, "0") : undefined;
 }
 
 async function readIssuesFromDir(
@@ -158,10 +155,7 @@ async function readIssuesFromDir(
       assignee,
       project: fm.project ? String(fm.project) : undefined,
       phase: typeof fm.phase === "number" ? fm.phase : undefined,
-      parent:
-        fm.parent !== undefined
-          ? normalizeId(fm.parent, "") || undefined
-          : undefined,
+      parent: normalizeId(readField(parsed.matter, "parent")),
       labels: Array.isArray(fm.labels) ? fm.labels.map(String) : [],
       created: normalizeCreated(fm.created),
       reviewed: normalizeCreated(fm.reviewed),

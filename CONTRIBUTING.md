@@ -32,7 +32,14 @@ pnpm install
 pnpm dev      # board for this repo's .agents/
 pnpm verify   # type-check + tests — must pass before a PR
 pnpm test:e2e # Playwright: the board and the built CLI, against temp copies
+pnpm demo     # re-record the README demo GIFs into docs/media/
 ```
+
+The README demo is scripted ([`scripts/demo/`](scripts/demo/)): Playwright
+films the real board while the script edits a demo repo's issue files like an
+agent would. CI re-records it on every push to main that touches the UI and
+opens a pull request when the GIFs changed, so you only run `pnpm demo` to
+preview a change to the storyboard.
 
 Conventions: [`AGENTS.md`](AGENTS.md) (coding rules, session loop),
 [`.agents/issues/README.md`](.agents/issues/README.md) (issue format and

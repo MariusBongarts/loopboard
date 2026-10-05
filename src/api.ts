@@ -52,6 +52,9 @@ export interface IssuePatch {
   reason?: string;
   reviewed?: string | null;
   deployed?: string | null;
+  labels?: string[];
+  project?: string | null;
+  parent?: string | null;
 }
 
 export interface PatchResult {

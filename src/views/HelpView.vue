@@ -48,7 +48,7 @@ function render(md: string): string {
 
     <section v-for="s in sections" :id="s.id" :key="s.id" class="help-section">
       <h2>{{ s.title }}</h2>
-      <div class="drawer-body help-prose" v-html="s.html" />
+      <div class="prose help-prose" v-html="s.html" />
     </section>
 
     <section id="shortcuts" class="help-section">

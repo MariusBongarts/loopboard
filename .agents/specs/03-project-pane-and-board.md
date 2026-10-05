@@ -15,8 +15,8 @@ Status legend in [`_specs.md`](_specs.md#e2e-coverage).
 | The board shows five columns | 🟡 | `03-project-pane-and-board.spec.ts`: column names, Board tab count. Card contents and order unit-tested (`boardColumnIssues`) |
 | Archived issues sit at the end of Done | 🟡 | `03-project-pane-and-board.spec.ts`: archived card last in Done. Dashed / not draggable not asserted |
 | Filter the board | 🟡 | `03-project-pane-and-board.spec.ts`: assignee and text filter. Not asserted: label chips |
-| Current focus and the selected item sit above the board | ✅ | `03-project-pane-and-board.spec.ts`: focus text, selected strip, collapse remembered |
-| Read the PRD, WIP and activity | ✅ | `03-project-pane-and-board.spec.ts`: PRD text, a `#NNNN` link in WIP opens the drawer, sessions newest first |
+| Current focus and the selected item open from badges | ✅ | `03-project-pane-and-board.spec.ts`: focus and selection badges, popover closes on Esc and outside click |
+| Read the PRD, WIP and activity | ✅ | `03-project-pane-and-board.spec.ts`: PRD text, a `#NNNN` link in WIP opens the panel, sessions newest first |
 | See what blocks an issue | ✅ | [`03-project-pane-and-board.spec.ts`](../../tests/e2e/03-project-pane-and-board.spec.ts), including "After" for a done parent; index unit-tested in `tests/relations.test.ts` |
 | Hide issues that are waiting | ✅ | `03-project-pane-and-board.spec.ts` |
 | Empty columns shrink | ✅ | `03-project-pane-and-board.spec.ts` |
@@ -51,7 +51,10 @@ GIVEN a project's board
 THEN it shows Todo, Blocked, In progress, In review and Done
 AND cards in a column are ordered by priority (1 first), then unprioritised
     cards by id
-AND each card shows #id, title, labels, file path and an assignee chip
+AND each card shows its number, status icon, title, markers (waiting,
+    reviewed, deployed), labels and the assignee's avatar — no file path
+AND columns show the status icon, name and count; cards can be focused and
+    opened with Enter
 AND the Board tab counts the board's issues
 AND backlog and wontfix issues are not columns on the board
 ```
@@ -103,15 +106,17 @@ THEN only cards matching every word stay
 AND switching projects resets both filters
 ```
 
-### Scenario: Current focus and the selected item sit above the board
+### Scenario: Current focus and the selected item open from badges
 
 ```
 GIVEN the project's WIP has a Current focus paragraph
-THEN a "Current focus" strip shows it above the board, with #NNNN links
-AND a second strip shows the selected issue or session note
-    ("Selected issue · #NNNN" or "Session · <day>")
-WHEN I collapse a strip
-THEN it stays collapsed after a reload
+THEN a small "Focus" badge sits in the pane's title row
+AND a second badge names the selected issue (status and #NNNN) or session
+    ("Session · <day>")
+WHEN I click a badge
+THEN a popover shows the focus paragraph (with #NNNN links), or the
+    selected issue's title, status and assignee, or the session note
+AND Esc, a click outside, or following a link inside closes it
 ```
 
 ### Scenario: Read the PRD, WIP and activity
@@ -119,7 +124,7 @@ THEN it stays collapsed after a reload
 ```
 GIVEN a project (not the standalone board)
 WHEN I open the PRD or WIP tab
-THEN the document renders as markdown, and issue links open the issue drawer
+THEN the document renders as markdown, and issue links open the issue panel
 WHEN I open the Activity tab
 THEN every dated session is listed newest first with its note
 AND the tab counts the sessions

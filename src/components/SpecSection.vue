@@ -4,7 +4,6 @@ import { marked } from 'marked';
 import SpecScenario from './SpecScenario.vue';
 import {
   SCENARIO_STATUS_GLYPH,
-  SCENARIO_STATUS_LABEL,
   specCoverage,
   type Scenario,
   type Spec,

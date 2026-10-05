@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
-import { setLine } from '../shared/frontmatter';
-import { writeFileAtomic } from './files';
+import { setIssueField, setLine } from '../shared/frontmatter';
+import { serialized, writeFileAtomic } from './files';
 import { parseFrontmatter } from './frontmatter';
 import { ALL_STATUSES, ASSIGNEES, type Assignee, type Status } from './issues';
 
@@ -12,6 +12,10 @@ export interface IssuePatch {
   // Optional review/deploy markers (#0039, #0040): a date sets, null removes.
   reviewed?: string | null;
   deployed?: string | null;
+  // Inline property pickers (#0052): empty or null removes the line.
+  labels?: string[];
+  project?: string | null;
+  parent?: string | null;
 }
 
 export interface MutationResult {
@@ -21,11 +25,45 @@ export interface MutationResult {
   priority?: number;
   reviewed?: string | null;
   deployed?: string | null;
+  labels?: string[];
+  project?: string | null;
+  parent?: string | null;
   appendedWhyRejected: boolean;
 }
 
 const FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---/;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const PROJECT_RE = /^\d{2}-[a-z0-9][a-z0-9-]*$/;
+const LABEL_RE = /^[^,\[\]\r\n#]{1,40}$/;
+
+function badRequest(message: string): Error {
+  return Object.assign(new Error(message), { statusCode: 400 });
+}
+
+// Labels, project and parent as the pickers send them, validated and tidied.
+function cleanPickerFields(patch: IssuePatch, ownId: string): Pick<IssuePatch, 'labels' | 'project' | 'parent'> {
+  const out: Pick<IssuePatch, 'labels' | 'project' | 'parent'> = {};
+  if (patch.labels !== undefined) {
+    if (!Array.isArray(patch.labels) || patch.labels.some((l) => typeof l !== 'string')) throw badRequest('labels must be a list of strings');
+    const labels = [...new Set(patch.labels.map((l) => l.trim()).filter(Boolean))];
+    const bad = labels.find((l) => !LABEL_RE.test(l));
+    if (bad !== undefined) throw badRequest(`invalid label: ${bad}`);
+    out.labels = labels;
+  }
+  if (patch.project !== undefined) {
+    const project = (patch.project ?? '').trim();
+    if (project && !PROJECT_RE.test(project)) throw badRequest(`invalid project: ${project}`);
+    out.project = project || null;
+  }
+  if (patch.parent !== undefined) {
+    const parent = (patch.parent ?? '').trim();
+    if (parent && !/^\d{1,4}$/.test(parent)) throw badRequest(`parent must be an issue number, got: ${parent}`);
+    const padded = parent ? parent.padStart(4, '0') : null;
+    if (padded && padded === ownId) throw badRequest('an issue cannot be its own parent');
+    out.parent = padded;
+  }
+  return out;
+}
 
 function isStatus(value: string): value is Status {
   return (ALL_STATUSES as readonly string[]).includes(value);
@@ -35,21 +73,14 @@ function isAssignee(value: string): value is Assignee {
   return (ASSIGNEES as readonly string[]).includes(value);
 }
 
-export async function mutateIssue(
-  filePath: string,
-  patch: IssuePatch,
-): Promise<MutationResult> {
-  if (
-    patch.status === undefined &&
-    patch.assignee === undefined &&
-    patch.priority === undefined &&
-    patch.reviewed === undefined &&
-    patch.deployed === undefined
-  ) {
-    throw Object.assign(
-      new Error('patch must include at least one of status, assignee, priority, reviewed, deployed'),
-      { statusCode: 400 },
-    );
+export function mutateIssue(filePath: string, patch: IssuePatch): Promise<MutationResult> {
+  return serialized(filePath, () => applyPatch(filePath, patch));
+}
+
+async function applyPatch(filePath: string, patch: IssuePatch): Promise<MutationResult> {
+  const FIELDS = ['status', 'assignee', 'priority', 'reviewed', 'deployed', 'labels', 'project', 'parent'] as const;
+  if (FIELDS.every((k) => patch[k] === undefined)) {
+    throw badRequest(`patch must include at least one of ${FIELDS.join(', ')}`);
   }
   for (const key of ['reviewed', 'deployed'] as const) {
     const v = patch[key];
@@ -92,6 +123,11 @@ export async function mutateIssue(
   }
   if (patch.reviewed !== undefined) fmBlock = setLine(fmBlock, 'reviewed', patch.reviewed, ['created']);
   if (patch.deployed !== undefined) fmBlock = setLine(fmBlock, 'deployed', patch.deployed, ['reviewed', 'created']);
+  const ownId = String(fm.id ?? '').padStart(4, '0');
+  const picked = cleanPickerFields(patch, ownId);
+  if (picked.project !== undefined) fmBlock = setIssueField(fmBlock, 'project', picked.project);
+  if (picked.parent !== undefined) fmBlock = setIssueField(fmBlock, 'parent', picked.parent);
+  if (picked.labels !== undefined) fmBlock = setIssueField(fmBlock, 'labels', picked.labels);
 
   const body = parsed.content;
   // Replace only the frontmatter block inside the original text, so the body
@@ -125,6 +161,7 @@ export async function mutateIssue(
     priority: patch.priority,
     reviewed: patch.reviewed,
     deployed: patch.deployed,
+    ...picked,
     appendedWhyRejected: appended,
   };
 }

@@ -13,7 +13,7 @@ test('blocking relations and sub-issues', async ({ page }) => {
   const relations = drawer.getByRole('region', { name: 'Relations' });
   await expect(relations).toContainText('Blocked by');
   await relations.getByRole('button', { name: /#0002 Cache the feed/ }).click();
-  await expect(drawer.locator('.drawer-head h2')).toHaveText('Cache the feed');
+  await expect(drawer.locator('.issue-view-title')).toHaveText('Cache the feed');
   await expect(drawer.getByRole('region', { name: 'Relations' })).toContainText('Blocks · 0/1 done');
 
   await page.keyboard.press('Escape');
@@ -30,7 +30,7 @@ test('a finished parent reads "After", not "Blocked by"', async ({ page }) => {
     const card = page.locator('.col-todo [data-issue-id="0001"]');
     await expect(card.locator('.marker-waiting')).toHaveCount(0);
     await card.locator('.card').click();
-    await expect(page.getByRole('region', { name: 'Relations' })).toContainText('After#0004 Add the API route');
+    await expect(page.getByRole('region', { name: 'Relations' })).toContainText(/After.*#0004 Add the API route/);
   } finally {
     await writeIssueFile('0001-wire-the-export-button.md', original);
   }
@@ -95,7 +95,7 @@ test('the pane follows the selection; a feed row can open another board', async 
 test('the board: five columns, archived issues last in Done, filters', async ({ page }) => {
   await page.goto('/w/demo-repo');
   await page.locator('.feed-row', { hasText: 'Wire the export button' }).click();
-  await expect(page.locator('.pane-board .column-head > span:first-child')).toHaveText(['Todo', 'Blocked', 'In progress', 'In review', 'Done']);
+  await expect(page.locator('.pane-board .column-name')).toHaveText(['Todo', 'Blocked', 'In progress', 'In review', 'Done']);
   await expect(page.getByRole('tab', { name: /Board\s*6/ })).toBeVisible();
   const done = page.locator('.col-done [data-issue-id]');
   await expect(done).toHaveCount(2);
@@ -112,18 +112,30 @@ test('the board: five columns, archived issues last in Done, filters', async ({ 
 test('current focus, the selected item, and the PRD, WIP and activity tabs', async ({ page }) => {
   await page.goto('/w/demo-repo');
   await page.locator('.feed-row', { hasText: 'Wire the export button' }).click();
-  await expect(page.locator('.pane-focus')).toContainText('Phase 1 — the export button. #0001 is next.');
-  await expect(page.locator('.pane-pinned')).toContainText('Selected issue · #0001');
-  await page.locator('.pane-focus').getByRole('button', { name: /Current focus/ }).click();
-  await page.reload();
-  await expect(page.locator('.pane-focus')).toHaveClass(/collapsed/);
-  await page.locator('.pane-focus').getByRole('button', { name: /Current focus/ }).click();
+  const titleRow = page.locator('.pane-title-row');
+  const focus = page.getByRole('dialog', { name: 'Current focus' });
+  await titleRow.getByRole('button', { name: 'Current focus' }).click();
+  await expect(focus).toContainText('Phase 1 — the export button. #0001 is next.');
+  await page.keyboard.press('Escape');
+  await expect(focus).toBeHidden();
+
+  const selected = page.getByRole('dialog', { name: 'Selected issue · #0001' });
+  await titleRow.getByRole('button', { name: 'Selected issue · #0001' }).click();
+  await expect(selected).toContainText('Wire the export button');
+  await page.locator('.pane-title').click();
+  await expect(selected).toBeHidden();
+
+  await titleRow.getByRole('button', { name: 'Current focus' }).click();
+  await focus.locator('.issue-ref', { hasText: '#0001' }).click();
+  await expect(focus).toBeHidden();
+  await expect(page.locator('.issue-panel')).toBeVisible();
+  await page.keyboard.press('Escape');
 
   await page.getByRole('tab', { name: 'PRD' }).click();
   await expect(page.locator('.pane-doc')).toContainText('Fixture users cannot export their data.');
   await page.getByRole('tab', { name: 'WIP' }).click();
   await page.locator('.pane-doc a', { hasText: '#0001' }).first().click();
-  await expect(page.locator('.drawer-head h2')).toHaveText('Wire the export button');
+  await expect(page.locator('.issue-view-title')).toHaveText('Wire the export button');
   await page.keyboard.press('Escape');
   await page.getByRole('tab', { name: /Activity/ }).click();
   await expect(page.locator('.pane-log-date')).toHaveText(['2026-09-14', '2026-09-10']);

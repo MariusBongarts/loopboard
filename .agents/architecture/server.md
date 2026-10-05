@@ -63,9 +63,10 @@ logged.
 `server.json` holds the running CLI server's `{ port, pid }` and is removed
 on exit; `views/<workspace>.json` holds that workspace's saved views. The config dir is `LOOPBOARD_CONFIG_DIR`, else `%APPDATA%/loopboard`
 on Windows, else `$XDG_CONFIG_HOME/loopboard` or `~/.config/loopboard`.
-Registry changes run one at a time per config dir (read, change, write only
-if something changed), so opening one workspace while adding another can't
-drop an update; every file write goes through `writeFileAtomic` with a unique
+Read-modify-writes run one at a time per key (`serialized` in
+[files.ts](../../server/files.ts)): the registry per config dir, and each issue
+file for PATCHes and editor saves — two picks in quick succession can't drop
+each other's change. Every write goes through `writeFileAtomic` with a unique
 temp name.
 
 ## Why targeted line edits

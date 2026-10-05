@@ -4,11 +4,11 @@
 // so a project keeps its colour every time the board mounts.
 
 export const TONES = [
-  'ember',
+  'orange',
   'blue',
-  'moss',
-  'rose',
-  'plum',
+  'green',
+  'red',
+  'pink',
   'amber',
   'teal',
 ] as const;

@@ -4,6 +4,7 @@ title: Reserve the loopboard name on npm and GitHub
 category: task
 status: todo
 assignee: human
+priority: 1
 project: 01-open-source-launch
 phase: 1
 labels: [oss]

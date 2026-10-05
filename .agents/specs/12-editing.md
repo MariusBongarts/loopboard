@@ -22,7 +22,7 @@ Status legend in [`_specs.md`](_specs.md#e2e-coverage).
 ### Scenario: Edit an issue in rich text
 
 ```
-GIVEN an issue open in the drawer
+GIVEN an issue open in the panel or on its page
 WHEN I click "Edit"
 THEN the body opens in a rich-text editor (Rich mode, remembered per browser)
     with a toolbar: bold, italic, heading, bullet list, checklist, code
@@ -30,7 +30,7 @@ AND checklist boxes toggle with one click
 WHEN I save (⌘S or "Save")
 THEN only the blocks I changed are rewritten; every untouched line keeps its
     exact bytes, however the editor would have formatted it
-AND the drawer shows the saved issue
+AND the panel shows the saved issue
 ```
 
 ### Scenario: Edit an issue's fields
@@ -70,7 +70,7 @@ AND switching back to Rich keeps edits made in Source
 GIVEN unsaved changes ("Unsaved" shows next to the path)
 WHEN I click Cancel or press Esc
 THEN I'm asked "Discard your changes?" with Discard / Keep editing
-AND clicking the drawer's backdrop doesn't close it while I'm editing
+AND nothing outside the editor closes it while I'm editing
 AND the editor stays disabled until the file has loaded, so early typing is
     never overwritten
 ```

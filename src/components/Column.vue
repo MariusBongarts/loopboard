@@ -2,9 +2,12 @@
 import { ref, watch } from 'vue';
 import draggable from 'vuedraggable';
 import Card from './Card.vue';
+import StatusIcon from './StatusIcon.vue';
 import type { Issue, ColumnKey } from '../types';
 import { COLUMN_LABEL } from '../types';
 
+// A board column (#0053): a quiet lane with the status icon, name and count.
+// Empty columns shrink to a labelled strip but stay drop targets.
 const props = defineProps<{
   columnKey: ColumnKey;
   issues: Issue[];
@@ -61,7 +64,8 @@ function onChange(evt: ChangeEvent) {
 <template>
   <section class="column" :class="[`col-${columnKey}`, { 'column-empty': issues.length === 0 }]" :aria-label="COLUMN_LABEL[columnKey]">
     <header class="column-head">
-      <span>{{ COLUMN_LABEL[columnKey] }}</span>
+      <StatusIcon :status="columnKey" />
+      <span class="column-name">{{ COLUMN_LABEL[columnKey] }}</span>
       <span class="count">{{ issues.length }}</span>
     </header>
     <draggable
@@ -89,9 +93,20 @@ function onChange(evt: ChangeEvent) {
           />
         </div>
       </template>
-      <template #footer>
-        <div v-if="issues.length === 0" class="empty">No issues</div>
-      </template>
     </draggable>
   </section>
 </template>
+
+<style scoped>
+.column { display: flex; flex-direction: column; min-height: 0; border-radius: var(--r-lg); background: var(--bg-subtle); }
+.column-head { display: flex; align-items: center; gap: 8px; height: 38px; padding: 0 10px 0 12px; font-size: 13px; font-weight: 500; color: var(--text); }
+.column-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.count { font-size: 12px; font-weight: 400; color: var(--text-3); font-variant-numeric: tabular-nums; }
+.column-list { display: flex; flex-direction: column; gap: 6px; flex: 1 1 auto; min-height: 60px; padding: 2px 6px 8px; }
+.column-list :deep(.dragging .card) { opacity: 0.5; border-style: dashed; box-shadow: none; }
+
+/* Empty: a slim strip with its name written vertically. */
+.column.column-empty .column-head { flex-direction: column; justify-content: flex-start; gap: 8px; height: auto; padding: 12px 0; }
+.column.column-empty .column-name { writing-mode: vertical-rl; overflow: visible; }
+.column.column-empty .column-list { min-height: 120px; padding: 0 4px; }
+</style>

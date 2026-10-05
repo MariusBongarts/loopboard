@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import IssueRow from '../components/IssueRow.vue';
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { fetchNeedsYou, type NeedsYouGroup } from '../api';
@@ -44,17 +45,13 @@ onUnmounted(() => window.removeEventListener('focus', load));
         {{ g.workspace.name }}
         <span class="needs-count">{{ g.items.length }}</span>
       </h2>
-      <RouterLink
+      <IssueRow
         v-for="i in g.items"
         :key="i.id"
         class="needs-row"
+        :issue="i"
         :to="{ path: `/w/${g.workspace.id}`, query: { item: `i:${i.id}` } }"
-      >
-        <span class="card-id">#{{ i.id }}</span>
-        <span class="needs-title">{{ i.title }}</span>
-        <span class="feed-status" :class="`s-${i.status}`">{{ i.status }}</span>
-        <span class="feed-who" :class="i.assignee">{{ i.assignee }}</span>
-      </RouterLink>
+      />
     </section>
     <p v-if="skipped.length" class="needs-skipped">
       Skipped (folder missing): {{ skipped.map((g) => g.workspace.name).join(', ') }}

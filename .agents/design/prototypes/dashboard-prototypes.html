@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tracker dashboard prototypes</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,300..900,0..100&family=Geist:wght@300..700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --paper: oklch(0.985 0.006 80);
+        --paper-2: oklch(0.965 0.008 80);
+        --paper-3: oklch(0.945 0.01 80);
+        --rule: oklch(0.88 0.012 70);
+        --rule-soft: oklch(0.92 0.01 75);
+        --ink: oklch(0.18 0.012 60);
+        --ink-2: oklch(0.32 0.01 60);
+        --ink-3: oklch(0.52 0.01 60);
+        --ink-4: oklch(0.68 0.008 70);
+        --ember-deep: oklch(0.55 0.16 50);
+        --ember-soft: oklch(0.94 0.04 70);
+        --ink-blue: oklch(0.45 0.09 240);
+        --ink-blue-soft: oklch(0.94 0.02 240);
+        --moss: oklch(0.55 0.08 145);
+        --moss-deep: oklch(0.4 0.08 145);
+        --moss-soft: oklch(0.94 0.03 145);
+        --rose: oklch(0.62 0.13 25);
+        --rose-soft: oklch(0.94 0.03 25);
+        --amber-deep: oklch(0.46 0.14 70);
+        --serif: "Fraunces", "Iowan Old Style", Georgia, serif;
+        --sans: "Geist", -apple-system, system-ui, sans-serif;
+        --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+        --switcher-h: 92px;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; background: var(--paper); color: var(--ink); }
+      body { font-family: var(--sans); font-size: 14px; -webkit-font-smoothing: antialiased; }
+      button, input { font: inherit; color: inherit; }
+      button { cursor: pointer; }
+      button:focus-visible, input:focus-visible { outline: 2px solid var(--ember-deep); outline-offset: 1px; }
+
+      #switcher {
+        height: var(--switcher-h);
+        border-top: 4px solid var(--ink);
+        border-bottom: 1px solid var(--ink);
+        background: var(--paper);
+        display: grid;
+        grid-template-columns: 220px 1fr;
+        gap: 18px;
+        align-items: center;
+        padding: 10px 22px 12px;
+        position: sticky;
+        top: 0;
+        z-index: 30;
+      }
+      .sw-kicker {
+        font-family: var(--mono);
+        font-size: 10px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--ink-3);
+      }
+      .sw-title { font-family: var(--serif); font-size: 20px; font-weight: 520; letter-spacing: -0.02em; margin-top: 2px; }
+      .sw-title em { font-style: italic; font-weight: 450; }
+      .sw-row { display: flex; gap: 6px; flex-wrap: wrap; }
+      .sw-btn {
+        border: 1px solid var(--rule);
+        background: var(--paper);
+        border-radius: 0;
+        padding: 6px 10px 5px;
+        text-align: left;
+        min-width: 108px;
+      }
+      .sw-btn strong { display: block; font-family: var(--serif); font-weight: 560; font-size: 14px; }
+      .sw-btn span { display: block; font-family: var(--mono); font-size: 9px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); margin-top: 2px; }
+      .sw-btn.active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+      .sw-btn.active span { color: oklch(0.85 0.01 80); }
+      .sw-thesis { margin: 6px 0 0; font-size: 13px; color: var(--ink-2); line-height: 1.35; }
+
+      #stage { height: calc(100vh - var(--switcher-h)); overflow: auto; }
+      .fill { height: 100%; min-height: 0; }
+
+      .mast {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 14px 22px 12px;
+        border-bottom: 1px solid var(--ink);
+      }
+      .mast h1 { font-family: var(--serif); font-weight: 520; font-size: 28px; letter-spacing: -0.03em; margin: 0; }
+      .mast h1 em { font-style: italic; font-weight: 450; }
+      .kicker { font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
+      .nav { display: flex; gap: 4px; align-items: center; }
+      .nav button, .texty {
+        border: 0;
+        background: transparent;
+        border-radius: 0;
+        padding: 6px 10px;
+        font-family: var(--mono);
+        font-size: 11px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--ink-3);
+      }
+      .nav button.active { color: var(--ink); box-shadow: inset 0 -2px 0 var(--ember-deep); }
+      .search {
+        border: 1px solid var(--rule);
+        background: var(--paper);
+        border-radius: 0;
+        padding: 7px 10px;
+        width: 220px;
+        font-size: 13px;
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        border-bottom: 1px solid var(--rule);
+      }
+      .stat { padding: 12px 22px 14px; border-right: 1px solid var(--rule); }
+      .stat:last-child { border-right: 0; }
+      .stat b { display: block; font-family: var(--serif); font-size: 26px; font-weight: 520; letter-spacing: -0.03em; }
+      .stat span { font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); }
+
+      .desk {
+        display: grid;
+        grid-template-columns: 320px minmax(0, 1fr) 300px;
+        height: calc(100% - 118px);
+        min-height: 420px;
+      }
+      .col { overflow: auto; padding: 16px 18px 32px; border-right: 1px solid var(--rule); }
+      .col:last-child { border-right: 0; }
+      .col h2, .block h2 {
+        font-family: var(--mono);
+        font-size: 10px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        font-weight: 500;
+        color: var(--ink-3);
+        margin: 0 0 10px;
+      }
+
+      .row {
+        display: block;
+        width: 100%;
+        text-align: left;
+        border: 0;
+        border-bottom: 1px solid var(--rule-soft);
+        background: transparent;
+        border-radius: 0;
+        padding: 10px 2px;
+      }
+      .row:hover { background: var(--paper-2); }
+      .row .id { font-family: var(--mono); font-size: 10px; letter-spacing: 0.04em; color: var(--ink-3); }
+      .row .ttl { font-family: var(--serif); font-size: 15px; font-weight: 500; letter-spacing: -0.01em; line-height: 1.25; margin: 3px 0; }
+      .meta { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+      .pill {
+        font-family: var(--mono);
+        font-size: 9px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        padding: 1px 6px;
+        background: var(--paper-2);
+        color: var(--ink-2);
+      }
+      .pill.human { background: var(--ember-soft); color: var(--ember-deep); }
+      .pill.agent { background: var(--ink-blue-soft); color: var(--ink-blue); }
+      .pill.bug { background: var(--rose-soft); color: var(--rose); }
+      .pill.todo { color: var(--ink-2); }
+      .pill.blocked { background: var(--rose-soft); color: var(--rose); }
+      .pill.progress { background: var(--ink-blue-soft); color: var(--ink-blue); }
+      .pill.review { background: var(--ember-soft); color: var(--ember-deep); }
+      .pill.done { background: var(--moss-soft); color: var(--moss-deep); }
+      .pill.active { background: var(--moss-soft); color: var(--moss-deep); }
+      .pill.paused { background: var(--paper-3); color: var(--ink-3); }
+      .pill.shipped { background: var(--paper-3); color: var(--ink-3); }
+
+      .continue {
+        display: block;
+        width: 100%;
+        text-align: left;
+        border: 0;
+        border-top: 1px solid var(--rule);
+        background: transparent;
+        border-radius: 0;
+        padding: 12px 2px 14px;
+      }
+      .continue:hover { background: var(--paper-2); }
+      .continue .top { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+      .continue h3 { margin: 0; font-family: var(--serif); font-weight: 520; font-size: 18px; letter-spacing: -0.02em; }
+      .continue .when { font-family: var(--mono); font-size: 10px; color: var(--ink-3); letter-spacing: 0.04em; white-space: nowrap; }
+      .continue p { margin: 6px 0 8px; color: var(--ink-2); line-height: 1.4; font-size: 13px; }
+      .counts { font-family: var(--mono); font-size: 10px; letter-spacing: 0.04em; color: var(--ink-3); text-transform: uppercase; }
+
+      .group {
+        border-bottom: 1px solid var(--rule-soft);
+      }
+      .group > button.head {
+        width: 100%;
+        text-align: left;
+        border: 0;
+        background: transparent;
+        border-radius: 0;
+        padding: 10px 2px;
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        align-items: baseline;
+      }
+      .group > button.head:hover { background: var(--paper-2); }
+      .group .name { font-family: var(--serif); font-size: 15px; }
+      .group .n { font-family: var(--mono); font-size: 11px; color: var(--ember-deep); }
+      .group .body { padding: 0 0 8px 8px; }
+
+      .shell { display: grid; grid-template-columns: 268px minmax(0, 1fr); height: 100%; }
+      .rail { border-right: 1px solid var(--ink); overflow: auto; background: var(--paper); }
+      .rail .sec {
+        font-family: var(--mono);
+        font-size: 10px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--ink-3);
+        padding: 14px 14px 6px;
+      }
+      .rail button.item {
+        display: block;
+        width: 100%;
+        text-align: left;
+        border: 0;
+        border-bottom: 1px solid var(--rule-soft);
+        border-radius: 0;
+        background: transparent;
+        padding: 9px 14px;
+      }
+      .rail button.item.active { background: var(--ember-soft); }
+      .rail button.item .t { font-size: 13.5px; }
+      .rail button.item .s { font-family: var(--mono); font-size: 10px; color: var(--ink-3); margin-top: 2px; }
+      .main { overflow: auto; }
+      .focus {
+        margin: 16px 22px;
+        padding: 14px 16px;
+        background: var(--paper-2);
+        border-left: 3px solid var(--ember-deep);
+      }
+      .focus p { margin: 6px 0 0; font-family: var(--serif); font-size: 18px; line-height: 1.35; font-weight: 450; }
+      .tabs { display: flex; gap: 4px; padding: 0 22px; border-bottom: 1px solid var(--rule); }
+      .tabs button { border: 0; background: transparent; border-radius: 0; padding: 8px 10px; font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); }
+      .tabs button.active { color: var(--ink); box-shadow: inset 0 -2px 0 var(--ink); }
+      .pad { padding: 8px 22px 28px; }
+
+      .queues {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1.15fr;
+        height: calc(100% - 154px);
+        min-height: 360px;
+      }
+      .shelf { display: flex; gap: 8px; overflow: auto; padding: 12px 22px; border-bottom: 1px solid var(--rule); }
+      .shelf button {
+        flex: 0 0 220px;
+        text-align: left;
+        border: 1px solid var(--rule);
+        background: var(--paper);
+        border-radius: 0;
+        padding: 10px 12px;
+      }
+      .shelf button:hover { border-color: var(--ink); }
+      .shelf .when { font-family: var(--mono); font-size: 10px; color: var(--ember-deep); letter-spacing: 0.04em; }
+      .shelf strong { display: block; font-family: var(--serif); font-weight: 520; font-size: 15px; margin-top: 4px; }
+
+      table.dir { width: 100%; border-collapse: collapse; }
+      table.dir th {
+        text-align: left;
+        font-family: var(--mono);
+        font-size: 10px;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        font-weight: 500;
+        color: var(--ink-3);
+        padding: 8px 12px;
+        border-bottom: 1px solid var(--ink);
+        position: sticky;
+        top: 0;
+        background: var(--paper);
+      }
+      table.dir th button { border: 0; background: transparent; padding: 0; border-radius: 0; font: inherit; letter-spacing: inherit; text-transform: inherit; color: inherit; }
+      table.dir th button.on { color: var(--ink); }
+      table.dir td { padding: 11px 12px; border-bottom: 1px solid var(--rule-soft); vertical-align: top; }
+      table.dir tr.click:hover td { background: var(--paper-2); cursor: pointer; }
+      table.dir .pt { font-family: var(--serif); font-size: 16px; font-weight: 520; }
+      table.dir .focus-cell { color: var(--ink-2); font-size: 13px; max-width: 420px; }
+      .recent-open { display: flex; gap: 8px; padding: 10px 22px; border-bottom: 1px solid var(--rule); align-items: center; }
+      .recent-open button { border: 1px solid var(--rule); background: var(--paper); border-radius: 0; padding: 5px 8px; font-size: 12px; }
+
+      .now {
+        display: flex;
+        gap: 8px;
+        align-items: stretch;
+        padding: 10px 22px;
+        border-bottom: 1px solid var(--rule);
+        overflow: auto;
+      }
+      .now button {
+        border: 1px solid var(--rule);
+        background: var(--paper);
+        border-radius: 0;
+        padding: 8px 10px;
+        text-align: left;
+        min-width: 160px;
+      }
+      .now button.on { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+      .now button.on .sub { color: oklch(0.82 0.01 80); }
+      .now .sub { display: block; font-family: var(--mono); font-size: 10px; color: var(--ink-3); margin-top: 3px; letter-spacing: 0.03em; }
+      .now button strong { font-family: var(--serif); font-weight: 520; font-size: 14px; }
+
+      .board {
+        display: grid;
+        gap: 12px;
+        padding: 14px 18px 28px;
+        min-height: calc(100% - 120px);
+        align-items: start;
+      }
+      .column { background: var(--paper-2); border: 1px solid var(--rule); min-height: 180px; display: flex; flex-direction: column; }
+      .column.todo { box-shadow: inset 4px 0 0 var(--ink-4); }
+      .column.blocked { box-shadow: inset 4px 0 0 var(--rose); }
+      .column.progress { box-shadow: inset 4px 0 0 var(--ink-blue); }
+      .column.review { box-shadow: inset 4px 0 0 var(--ember-deep); }
+      .column.done { box-shadow: inset 4px 0 0 var(--moss-deep); }
+      .column header { display: flex; justify-content: space-between; padding: 10px 12px; border-bottom: 1px solid var(--rule); font-family: var(--serif); font-weight: 560; }
+      .column header .n { font-family: var(--mono); font-weight: 400; font-size: 11px; color: var(--ink-3); }
+      .column .list { display: flex; flex-direction: column; gap: 8px; padding: 10px; }
+      .card {
+        text-align: left;
+        border: 1px solid var(--rule);
+        background: var(--paper);
+        border-radius: 0;
+        padding: 10px 12px;
+        box-shadow: 0 1px 2px oklch(0.18 0.012 60 / 0.06);
+      }
+      .card:hover { border-color: var(--ink); }
+      .card .ttl { font-family: var(--serif); font-size: 15px; font-weight: 500; line-height: 1.25; margin: 4px 0; }
+      .more { font-family: var(--mono); font-size: 10px; color: var(--ink-3); letter-spacing: 0.04em; padding: 4px 2px; }
+
+      .timeline { padding: 6px 22px 40px; max-width: 760px; }
+      .tl {
+        display: grid;
+        grid-template-columns: 88px 1fr;
+        gap: 12px;
+        padding: 12px 0;
+        border-bottom: 1px solid var(--rule-soft);
+        width: 100%;
+        text-align: left;
+        border-left: 0;
+        border-right: 0;
+        border-top: 0;
+        background: transparent;
+        border-radius: 0;
+      }
+      .tl:hover { background: var(--paper-2); }
+      .tl .d { font-family: var(--mono); font-size: 11px; color: var(--ink-3); padding-top: 3px; }
+      .doc {
+        padding: 8px 22px 40px;
+        max-width: 680px;
+      }
+      .doc h2 { font-family: var(--serif); font-weight: 520; font-size: 28px; letter-spacing: -0.03em; margin: 8px 0; }
+      .doc p { font-size: 15px; line-height: 1.5; color: var(--ink-2); }
+
+      #drawer {
+        position: fixed;
+        top: var(--switcher-h);
+        right: 0;
+        bottom: 0;
+        width: min(440px, 100%);
+        background: var(--paper);
+        border-left: 1px solid var(--ink);
+        z-index: 25;
+        overflow: auto;
+        padding: 18px 20px 40px;
+        transform: translateX(100%);
+        transition: transform 0.16s ease-out;
+      }
+      #drawer.open { transform: translateX(0); }
+      #drawer h2 { font-family: var(--serif); font-weight: 520; font-size: 26px; letter-spacing: -0.03em; margin: 8px 0 12px; }
+      #drawer .close {
+        border: 1px solid var(--rule);
+        background: var(--paper);
+        border-radius: 0;
+        float: right;
+        padding: 4px 8px;
+        font-family: var(--mono);
+        font-size: 11px;
+      }
+      .hint { color: var(--ink-3); font-size: 12px; line-height: 1.4; }
+      .back {
+        border: 0;
+        background: transparent;
+        padding: 0;
+        border-radius: 0;
+        font-family: var(--mono);
+        font-size: 11px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--ember-deep);
+      }
+      .empty-note { padding: 28px 22px; color: var(--ink-3); }
+    </style>
+  </head>
+  <body>
+    <div id="switcher"></div>
+    <div id="stage"></div>
+    <aside id="drawer" aria-label="Detail"></aside>
+    <script>
+      const BOARD = { todo: 58, blocked: 2, progress: 13, review: 292, done: 248, humanOpen: 25, backlog: 31 };
+
+      const PROJECTS = [
+        { slug: "07-keyword-analysis", title: "Keyword Analysis", status: "active", last: "2026-09-22", focus: "Competitive landscape is mapped. Next session is Apple Notes article freshness.", todo: 10, blocked: 0, progress: 1, review: 25, done: 3 },
+        { slug: "22-flashcards-learning-hub", title: "Flashcards & Learning Hub", status: "active", last: "2026-09-22", focus: "Library scale-up. The SEO potential analysis for the learning library is the current focus.", todo: 3, blocked: 0, progress: 0, review: 0, done: 65 },
+        { slug: "29-android-app-release", title: "Android App Release", status: "active", last: "2026-09-21", focus: "Phase 0 and Phase 1 in parallel. The Play Console tickets that gate the release are yours.", todo: 3, blocked: 0, progress: 7, review: 28, done: 3 },
+        { slug: "38-monetization-strategy", title: "Monetization Strategy", status: "active", last: "2026-09-18", focus: "The +50% campaign is live. Executing the price increase in Paddle is still in review.", todo: 0, blocked: 0, progress: 2, review: 13, done: 2 },
+        { slug: "32-website-multi-language", title: "Website Multi-Language", status: "active", last: "2026-09-15", focus: "The support page landed in the full roster and is in review. One security todo is still open.", todo: 9, blocked: 0, progress: 0, review: 12, done: 109 },
+        { slug: "39-youtube-tutorial-videos", title: "YouTube Tutorial Videos", status: "active", last: "2026-09-14", focus: "All thirteen pipeline videos are live and linked from the docs and the Feature Guide.", todo: 0, blocked: 0, progress: 0, review: 0, done: 33 },
+        { slug: "28-idiom-taxonomy-and-direction", title: "Proverbs, Idioms & Direction", status: "active", last: "2026-09-08", focus: "The German hub carries two subjects. Everything implemented is waiting on review.", todo: 0, blocked: 0, progress: 0, review: 8, done: 2 },
+        { slug: "36-store-listing-aso", title: "Store Listing ASO", status: "active", last: "2026-08-28", focus: "The pipeline is live. Open question: lead the Chrome store name with Web Highlighter.", todo: 0, blocked: 0, progress: 1, review: 5, done: 0 },
+        { slug: "35-self-served-ads", title: "Self-Served Ads", status: "active", last: "2026-08-24", focus: "Decisions are locked. Enabling the feed in production is the remaining human todo.", todo: 1, blocked: 0, progress: 0, review: 11, done: 1 },
+        { slug: "24-blog-serve-from-nuxt", title: "Blog Served from Nuxt", status: "active", last: "2026-07-27", focus: "The blog is live on Nuxt. Ghost decommission is blocked on the droplet audit.", todo: 1, blocked: 1, progress: 0, review: 28, done: 0 },
+        { slug: "20-free-pdf-highlighter", title: "Free PDF Highlighter", status: "active", last: "2026-06-29", focus: "Eleven issues are in review. Privacy-policy wording is still in progress, and it is yours.", todo: 0, blocked: 0, progress: 1, review: 16, done: 0 },
+        { slug: "12-standalone-notes", title: "Standalone Notes", status: "active", last: "2026-06-26", focus: "Phases 5–8 are implemented and sitting in review.", todo: 0, blocked: 0, progress: 0, review: 16, done: 5 },
+        { slug: "30-ios-app-release", title: "iOS App Release", status: "paused", last: "2026-08-18", focus: "Paused until Android is in production. Apple Developer enrolment is waiting on you.", todo: 10, blocked: 0, progress: 0, review: 0, done: 0 },
+        { slug: "21-mobile-app", title: "Mobile App", status: "shipped", last: "2026-08-18", focus: "Shipped in 13.0.36. Kept as the historical record.", todo: 0, blocked: 0, progress: 0, review: 0, done: 60 },
+      ];
+
+      const STANDALONE = { slug: "", title: "Standalone", status: "active", last: "2026-09-16", focus: "Issues with no project. This is the largest in-review pile on the board.", todo: 13, blocked: 0, progress: 1, review: 77, done: 6 };
+
+      const ISSUES = [
+        { id: "0495", title: "Play Console — app content declarations and store listing", cat: "task", status: "in-progress", who: "human", project: "29-android-app-release", created: "2026-09-02" },
+        { id: "0454", title: "Maintainer setup — Firebase Android app and signing certificates", cat: "task", status: "in-progress", who: "human", project: "29-android-app-release", created: "2026-08-20" },
+        { id: "0484", title: "Play Console — create the app record and opt into Play App Signing", cat: "task", status: "in-progress", who: "human", project: "29-android-app-release", created: "2026-08-28" },
+        { id: "0482", title: "Release upload keystore, kept outside the repo", cat: "task", status: "in-progress", who: "human", project: "29-android-app-release", created: "2026-08-28" },
+        { id: "0864", title: "ToS promises a 14-day refund, the pricing UI promises 30", cat: "bug", status: "in-progress", who: "human", project: "29-android-app-release", created: "2026-09-12" },
+        { id: "0496", title: "Release-candidate device-QA sweep on the Play internal build", cat: "task", status: "in-progress", who: "agent", project: "29-android-app-release", created: "2026-09-04" },
+        { id: "0497", title: "Website, docs and product facts announce the Android app", cat: "user-story", status: "in-progress", who: "agent", project: "29-android-app-release", created: "2026-09-04" },
+        { id: "0385", title: "Google Play — submit to production and answer review", cat: "task", status: "todo", who: "human", project: "29-android-app-release", created: "2026-08-11" },
+        { id: "0730", title: "Play Console service account so CI can sign the AAB", cat: "task", status: "todo", who: "human", project: "29-android-app-release", created: "2026-09-01" },
+        { id: "0202", title: "Specs and privacy-policy wording for anonymous PDF uploads", cat: "task", status: "in-progress", who: "human", project: "20-free-pdf-highlighter", created: "2026-06-18" },
+        { id: "0734", title: "Move the Node runtime to 26 everywhere", cat: "task", status: "in-progress", who: "human", project: "", created: "2026-09-03" },
+        { id: "0357", title: "Apple Notes article freshness", cat: "task", status: "in-progress", who: "agent", project: "07-keyword-analysis", created: "2026-07-22" },
+        { id: "0678", title: "Evaluate high-tier monetization directions and decide", cat: "task", status: "in-progress", who: "agent", project: "38-monetization-strategy", created: "2026-09-02" },
+        { id: "0682", title: "Price lock-in campaign — announce the increase", cat: "user-story", status: "in-progress", who: "agent", project: "38-monetization-strategy", created: "2026-09-02" },
+        { id: "0725", title: "Chrome store name — lead with Web Highlighter", cat: "task", status: "in-progress", who: "agent", project: "36-store-listing-aso", created: "2026-08-27" },
+        { id: "0323", title: "Ghost decommission and pipeline retirement", cat: "task", status: "blocked", who: "human", project: "24-blog-serve-from-nuxt", created: "2026-07-20" },
+        { id: "0308", title: "Droplet and live-Ghost audit for the blog migration", cat: "task", status: "todo", who: "human", project: "24-blog-serve-from-nuxt", created: "2026-07-18" },
+        { id: "0627", title: "GET /users/userinfo is unauthenticated and leaks profile data", cat: "bug", status: "todo", who: "human", project: "32-website-multi-language", created: "2026-08-19" },
+        { id: "0640", title: "Enable the self-served feed in production", cat: "task", status: "todo", who: "human", project: "35-self-served-ads", created: "2026-08-24" },
+        { id: "0505", title: "Apple Developer Program enrolment", cat: "task", status: "todo", who: "human", project: "30-ios-app-release", created: "2026-08-18" },
+        { id: "0510", title: "App Store Connect record and first TestFlight build", cat: "task", status: "todo", who: "human", project: "30-ios-app-release", created: "2026-08-18" },
+        { id: "0286", title: "Per-device sync state roams via chrome.storage", cat: "bug", status: "todo", who: "human", project: "19-sync-reliability", created: "2026-06-19" },
+        { id: "0351", title: "Design the multi-property listicle funnel", cat: "user-story", status: "todo", who: "human", project: "07-keyword-analysis", created: "2026-07-21" },
+        { id: "0681", title: "Execute the global +50% price increase in Paddle", cat: "task", status: "in-review", who: "human", project: "38-monetization-strategy", created: "2026-09-02" },
+        { id: "0171", title: "Windowed PDF text layer renders vertically compressed", cat: "bug", status: "in-review", who: "human", project: "15-pdf-performance", created: "2026-06-09" },
+        { id: "0807", title: "Auth page desktop — full-bleed layout, no page scroll", cat: "user-story", status: "in-review", who: "agent", project: "29-android-app-release", created: "2026-09-16" },
+        { id: "0808", title: "yarn dev starts every service except the website under i18n", cat: "bug", status: "in-review", who: "agent", project: "", created: "2026-09-16" },
+        { id: "0816", title: "Premium benefits — feature points instead of a paragraph", cat: "user-story", status: "in-review", who: "agent", project: "29-android-app-release", created: "2026-09-16" },
+        { id: "0821", title: "Feature Guide reuses the hand-made YouTube videos", cat: "task", status: "done", who: "agent", project: "39-youtube-tutorial-videos", created: "2026-09-16" },
+        { id: "0810", title: "Video — Tags", cat: "task", status: "done", who: "agent", project: "39-youtube-tutorial-videos", created: "2026-09-16" },
+        { id: "0320", title: "Pre-environment blog cutover and fix cycle", cat: "task", status: "in-review", who: "human", project: "24-blog-serve-from-nuxt", created: "2026-07-22" },
+        { id: "0321", title: "Prod blog cutover — nginx flip, GSC, monitoring", cat: "task", status: "in-review", who: "human", project: "24-blog-serve-from-nuxt", created: "2026-07-22" },
+      ];
+
+      const SPECS = [
+        ["01", "Landing & Public Pages", 37],
+        ["02", "Authentication & Account", 19],
+        ["03", "Highlighting", 38],
+        ["04", "Organize Library", 30],
+        ["05", "Reader", 10],
+        ["06", "AI Features", 20],
+        ["13", "Mobile app", 39],
+      ];
+
+      const PROTOS = [
+        { id: "desk", name: "Desk", line: "A front door", thesis: "Start from what needs you and the projects you touched last. The board is where you go second, and only for one scope." },
+        { id: "rail", name: "Rail", line: "Project first", thesis: "The project is the navigation. Today and each PRD live in one rail, ordered by the last session in wip.md." },
+        { id: "queues", name: "Queues", line: "Three piles", thesis: "Drop the five equal columns. Your pile, the agent's pile, and in-review grouped by project — 292 cards never paint at once." },
+        { id: "dir", name: "Directory", line: "Find, then open", thesis: "Home is a table you can sort: last session, current focus, open counts. A project opens only when you mean it to." },
+        { id: "now", name: "Now", line: "Keep the board", thesis: "Keep the kanban, but only for what is moving. A Now strip replaces the chip wall. Done stays folded." },
+      ];
+
+      const state = {
+        proto: "desk",
+        view: "home",
+        slug: null,
+        tab: "issues",
+        issue: null,
+        doc: null,
+        spec: null,
+        query: "",
+        sort: "last",
+        sortDir: -1,
+        scope: "attention",
+        showDone: false,
+        openGroups: {},
+        opened: [],
+        dirOpen: false,
+      };
+
+      const $stage = document.getElementById("stage");
+      const $switcher = document.getElementById("switcher");
+      const $drawer = document.getElementById("drawer");
+
+      function esc(s) {
+        return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+      }
+      function projectBy(slug) {
+        if (!slug) return STANDALONE;
+        return PROJECTS.find((p) => p.slug === slug) || { slug, title: slug, status: "active", last: "2026-09-01", focus: "", todo: 0, blocked: 0, progress: 0, review: 0, done: 0 };
+      }
+      function shortDate(iso) {
+        const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const [y, m, d] = iso.split("-").map(Number);
+        return d + " " + months[m - 1];
+      }
+      function statusPill(status) {
+        const map = { todo: "todo", blocked: "blocked", "in-progress": "progress", "in-review": "review", done: "done" };
+        const label = { todo: "Todo", blocked: "Blocked", "in-progress": "In progress", "in-review": "In review", done: "Done" };
+        return `<span class="pill ${map[status] || ""}">${label[status] || esc(status)}</span>`;
+      }
+      function whoPill(who) {
+        return `<span class="pill ${who}">${who}</span>`;
+      }
+      function issueRow(i) {
+        const p = projectBy(i.project);
+        return `<button class="row" data-act="issue" data-id="${i.id}">
+          <div class="id">#${i.id}</div>
+          <div class="ttl">${esc(i.title)}</div>
+          <div class="meta">${statusPill(i.status)}${whoPill(i.who)}<span class="pill">${esc(p.title)}</span></div>
+        </button>`;
+      }
+      function card(i) {
+        const p = projectBy(i.project);
+        return `<button class="card" data-act="issue" data-id="${i.id}">
+          <div class="meta"><span class="id" style="font-family:var(--mono);font-size:10px;color:var(--ink-3)">#${i.id}</span><span class="pill ${i.cat === "bug" ? "bug" : ""}">${esc(i.cat)}</span>${whoPill(i.who)}</div>
+          <div class="ttl">${esc(i.title)}</div>
+          <div class="meta"><span class="pill">${esc(p.title)}</span></div>
+        </button>`;
+      }
+      function matchesQuery(text) {
+        const q = state.query.trim().toLowerCase();
+        if (!q) return true;
+        return text.toLowerCase().includes(q);
+      }
+      function humanOpen() {
+        return ISSUES.filter((i) => i.who === "human" && i.status !== "done" && matchesQuery(i.title + " " + i.id));
+      }
+      function inFlight() {
+        return ISSUES.filter((i) => i.status === "in-progress" && matchesQuery(i.title));
+      }
+      function byStatus(status, slug) {
+        return ISSUES.filter((i) => i.status === status && (slug == null || i.project === slug) && matchesQuery(i.title));
+      }
+      function recentProjects() {
+        return [...PROJECTS].sort((a, b) => b.last.localeCompare(a.last));
+      }
+      function activeRecent() {
+        return recentProjects().filter((p) => p.status === "active");
+      }
+
+      function mast(title, kicker, views, active) {
+        const nav = views
+          .map((v) => `<button data-act="view" data-view="${v.id}" class="${active === v.id ? "active" : ""}">${esc(v.label)}</button>`)
+          .join("");
+        return `<header class="mast"><div><div class="kicker">${kicker}</div><h1>${title}</h1></div><nav class="nav">${nav}</nav></header>`;
+      }
+
+      function kanban(slug, opts) {
+        const cols = [
+          ["todo", "Todo", "todo"],
+          ["blocked", "Blocked", "blocked"],
+          ["in-progress", "In progress", "progress"],
+          ["in-review", "In review", "review"],
+        ].filter((c) => !(opts.attention && c[0] === "in-review"));
+        if (opts.showDone) cols.push(["done", "Done", "done"]);
+        const p = slug ? projectBy(slug) : null;
+        const countFor = (status) => {
+          if (p) {
+            return { todo: p.todo, blocked: p.blocked, "in-progress": p.progress, "in-review": p.review, done: p.done }[status];
+          }
+          if (opts.attention) {
+            if (status === "todo") return humanOpen().filter((i) => i.status === "todo").length;
+            if (status === "in-progress") return BOARD.progress;
+            if (status === "blocked") return BOARD.blocked;
+            if (status === "in-review") return 0;
+            return 0;
+          }
+          return { todo: BOARD.todo, blocked: BOARD.blocked, "in-progress": BOARD.progress, "in-review": BOARD.review, done: BOARD.done }[status];
+        };
+        const html = cols
+          .map(([status, label, cls]) => {
+            let cards = byStatus(status, slug || undefined);
+            if (!slug && opts.attention && status === "todo") cards = cards.filter((i) => i.who === "human");
+            if (!slug && opts.attention && status === "in-review") cards = [];
+            const total = countFor(status);
+            const cap = opts.attention ? cards.length : 3;
+            const shown = cards.slice(0, cap);
+            const rest = Math.max(0, total - shown.length);
+            return `<section class="column ${cls}"><header><span>${label}</span><span class="n">${total}</span></header><div class="list">${shown.map(card).join("")}${rest ? `<div class="more">${rest} more on the live board</div>` : ""}</div></section>`;
+          })
+          .join("");
+        return `<div class="board" style="grid-template-columns:repeat(${cols.length},minmax(200px,1fr))">${html}</div>`;
+      }
+
+      function reviewGroups(limit) {
+        const rows = [STANDALONE, ...PROJECTS].filter((p) => p.review > 0).sort((a, b) => b.review - a.review);
+        return rows
+          .slice(0, limit || rows.length)
+          .map((p) => {
+            const open = state.openGroups[p.slug || "standalone"];
+            const samples = ISSUES.filter((i) => i.project === p.slug && i.status === "in-review");
+            const body = open
+              ? `<div class="body">${samples.map(issueRow).join("") || ""}<div class="more">${Math.max(0, p.review - samples.length)} more in review — open the project to verify in batches</div></div>`
+              : "";
+            return `<div class="group"><button class="head" data-act="group" data-slug="${esc(p.slug)}"><span class="name">${esc(p.title)}</span><span class="n">${p.review}</span></button>${body}</div>`;
+          })
+          .join("");
+      }
+
+      function renderDesk() {
+        if (state.view === "specs") return mast("Specs", "Coverage, read only", deskViews(), "specs") + specsList();
+        if (state.view === "board") {
+          const options = [`<option value="attention" ${state.scope === "attention" ? "selected" : ""}>Attention — yours, blocked, in progress</option>`, `<option value="all" ${state.scope === "all" ? "selected" : ""}>Every project</option>`]
+            .concat(activeRecent().map((p) => `<option value="${esc(p.slug)}" ${state.scope === p.slug ? "selected" : ""}>${esc(p.title)}</option>`))
+            .join("");
+          const scopeSlug = state.scope !== "attention" && state.scope !== "all" ? state.scope : null;
+          return (
+            mast("Board", state.scope === "attention" ? "Scoped to what is moving" : "One scope at a time", deskViews(), "board") +
+            `<div class="now"><label class="kicker" style="align-self:center">Scope</label><select class="search" data-field="scope" style="width:auto">${options}</select></div>` +
+            kanban(scopeSlug, { attention: state.scope === "attention", showDone: state.scope !== "attention" })
+          );
+        }
+        const yours = humanOpen();
+        const flight = inFlight();
+        const cont = activeRecent().slice(0, 6);
+        return (
+          mast("Home", "Vol. 01 — what needs a person", deskViews(), "home") +
+          `<div class="stats">
+            <div class="stat"><b>${BOARD.humanOpen}</b><span>Need you</span></div>
+            <div class="stat"><b>${BOARD.progress}</b><span>In progress</span></div>
+            <div class="stat"><b>${BOARD.review}</b><span>In review, by project</span></div>
+            <div class="stat"><b>${activeRecent().length}</b><span>Active projects</span></div>
+          </div>
+          <div class="desk">
+            <section class="col"><h2>Your turn</h2>${yours.map(issueRow).join("")}</section>
+            <section class="col"><h2>Continue — last session in wip.md</h2>${cont.map(continueCard).join("")}</section>
+            <section class="col"><h2>In review, grouped</h2>${reviewGroups(6)}</section>
+          </div>`
+        );
+      }
+      function deskViews() {
+        return [
+          { id: "home", label: "Home" },
+          { id: "board", label: "Board" },
+          { id: "specs", label: "Specs" },
+        ];
+      }
+      function continueCard(p) {
+        return `<button class="continue" data-act="open-project" data-slug="${esc(p.slug)}">
+          <div class="top"><h3>${esc(p.title)}</h3><span class="when">${shortDate(p.last)}</span></div>
+          <p>${esc(p.focus)}</p>
+          <div class="counts">${p.progress} in progress · ${p.review} in review · ${p.todo} todo</div>
+        </button>`;
+      }
+
+      function renderRail() {
+        const groups = [
+          ["Today", [{ slug: "__today__", title: "Today", last: "Across projects", status: "active" }]],
+          ["Active", recentProjects().filter((p) => p.status === "active")],
+          ["Paused", PROJECTS.filter((p) => p.status === "paused")],
+          ["Shipped", PROJECTS.filter((p) => p.status === "shipped")],
+        ];
+        const rail = groups
+          .map(([label, items]) => {
+            if (!items.length) return "";
+            return `<div class="sec">${label}</div>${items
+              .map((p) => {
+                const id = p.slug;
+                const on = (id === "__today__" && state.view === "today") || (state.view === "project" && state.slug === id);
+                return `<button class="item ${on ? "active" : ""}" data-act="rail" data-slug="${esc(id)}"><div class="t">${esc(p.title)}</div><div class="s">${p.last.startsWith("2026") ? shortDate(p.last) : esc(p.last)}</div></button>`;
+              })
+              .join("")}`;
+          })
+          .join("");
+        let main;
+        if (state.view !== "project") {
+          const timeline = recentProjects()
+            .slice(0, 8)
+            .map(
+              (p) => `<button class="tl" data-act="open-project" data-slug="${esc(p.slug)}"><div class="d">${shortDate(p.last)}</div><div><strong>${esc(p.title)}</strong><div class="hint" style="margin-top:4px">${esc(p.focus)}</div></div></button>`,
+            )
+            .join("");
+          const newest = [...ISSUES].sort((a, b) => b.created.localeCompare(a.created)).slice(0, 5);
+          main = `<header class="mast"><div><div class="kicker">Today</div><h1>Last <em>sessions</em></h1></div></header>
+            <div class="pad" style="display:grid;grid-template-columns:1.2fr 0.8fr;gap:28px">
+              <div><h2 class="kicker">PRDs by last activity-log date</h2>${timeline}</div>
+              <div><h2 class="kicker">Newest issues</h2>${newest.map(issueRow).join("")}</div>
+            </div>`;
+        } else {
+          const p = projectBy(state.slug);
+          const tab = state.tab;
+          let body;
+          if (tab === "prd") {
+            body = `<div class="doc"><div class="kicker">prd.md</div><h2>${esc(p.title)}</h2><p>${esc(p.focus)}</p><p class="hint">The full PRD still opens from the file. This dummy shows the current-focus paragraph a home can lift out of wip.md without making you filter first.</p><button class="back" data-act="doc" data-doc="prd">Open the PRD panel</button></div>`;
+          } else if (tab === "activity") {
+            body = `<div class="timeline"><button class="tl" data-act="doc" data-doc="wip"><div class="d">${shortDate(p.last)}</div><div><strong>Session</strong><div class="hint" style="margin-top:4px">${esc(p.focus)}</div></div></button></div>`;
+          } else {
+            body = kanban(p.slug, { showDone: true });
+          }
+          main = `<header class="mast"><div><div class="kicker">${esc(p.slug)} · ${esc(p.status)} · ${shortDate(p.last)}</div><h1>${esc(p.title)}</h1></div><div class="nav"><button data-act="doc" data-doc="prd">PRD</button><button data-act="doc" data-doc="wip">WIP</button></div></header>
+            <div class="focus"><div class="kicker">Current focus</div><p>${esc(p.focus)}</p></div>
+            <div class="tabs">
+              <button data-act="tab" data-tab="issues" class="${tab === "issues" ? "active" : ""}">Issues</button>
+              <button data-act="tab" data-tab="prd" class="${tab === "prd" ? "active" : ""}">PRD</button>
+              <button data-act="tab" data-tab="activity" class="${tab === "activity" ? "active" : ""}">Activity</button>
+            </div>${body}`;
+        }
+        return `<div class="shell fill"><aside class="rail">${rail}</aside><div class="main">${main}</div></div>`;
+      }
+
+      function renderQueues() {
+        const yours = humanOpen().filter((i) => i.status !== "in-review");
+        const agent = inFlight().filter((i) => i.who === "agent");
+        return `<header class="mast"><div><div class="kicker">Three piles, not five columns</div><h1>Queues</h1></div><input id="q" class="search" data-field="query" placeholder="Filter these piles" value="${esc(state.query)}" /></header>
+          <div class="shelf"><div class="kicker" style="align-self:center;flex:0 0 auto">Recent PRDs</div>${activeRecent()
+            .slice(0, 6)
+            .map(
+              (p) => `<button data-act="doc-project" data-slug="${esc(p.slug)}"><div class="when">${shortDate(p.last)}</div><strong>${esc(p.title)}</strong></button>`,
+            )
+            .join("")}</div>
+          <div class="queues">
+            <section class="col"><h2>Your turn · ${yours.length} shown</h2>${yours.map(issueRow).join("")}</section>
+            <section class="col"><h2>Agent is in it · ${agent.length} shown</h2>${agent.map(issueRow).join("")}</section>
+            <section class="col"><h2>Ready for you to verify</h2>${reviewGroups()}</section>
+          </div>`;
+      }
+
+      function renderDir() {
+        if (state.view === "project" && state.slug) {
+          const p = projectBy(state.slug);
+          const groups = ["in-progress", "blocked", "todo", "in-review", "done"]
+            .map((status) => {
+              const items = ISSUES.filter((i) => i.project === p.slug && i.status === status);
+              const total = { "in-progress": p.progress, blocked: p.blocked, todo: p.todo, "in-review": p.review, done: p.done }[status];
+              if (!total && !items.length) return "";
+              return `<h2 style="margin-top:18px">${statusPill(status)} <span class="kicker">${total}</span></h2>${items.map(issueRow).join("") || `<div class="more">${total} on the live board, none in this sample</div>`}`;
+            })
+            .join("");
+          return `<header class="mast"><div><button class="back" data-act="view" data-view="table">All projects</button><h1>${esc(p.title)}</h1></div><div class="nav"><button data-act="doc" data-doc="prd">PRD</button><button data-act="doc" data-doc="wip">WIP</button></div></header>
+            <div class="focus"><div class="kicker">Current focus · ${shortDate(p.last)}</div><p>${esc(p.focus)}</p></div>
+            <div class="pad">${groups}</div>`;
+        }
+        const q = state.query.trim().toLowerCase();
+        let rows = [...PROJECTS];
+        if (q) rows = rows.filter((p) => (p.title + p.focus + p.slug).toLowerCase().includes(q));
+        const dir = state.sortDir;
+        rows.sort((a, b) => {
+          const k = state.sort;
+          if (k === "title") return a.title.localeCompare(b.title) * dir;
+          if (k === "review") return (a.review - b.review) * dir;
+          if (k === "todo") return (a.todo + a.progress + a.blocked - (b.todo + b.progress + b.blocked)) * dir;
+          return a.last.localeCompare(b.last) * dir;
+        });
+        const th = (key, label) => `<th><button data-act="sort" data-sort="${key}" class="${state.sort === key ? "on" : ""}">${label}${state.sort === key ? (dir < 0 ? " ↓" : " ↑") : ""}</button></th>`;
+        const recent = state.opened
+          .map((slug) => PROJECTS.find((p) => p.slug === slug))
+          .filter(Boolean)
+          .map((p) => `<button data-act="open-project" data-slug="${esc(p.slug)}">${esc(p.title)}</button>`)
+          .join("");
+        return `<header class="mast"><div><div class="kicker">${rows.length} projects · click a row</div><h1>Directory</h1></div><input id="q" class="search" data-field="query" placeholder="Find a project or phrase" value="${esc(state.query)}" /></header>
+          ${recent ? `<div class="recent-open"><span class="kicker">Opened this session</span>${recent}</div>` : ""}
+          <table class="dir"><thead><tr>${th("title", "Project")}${th("last", "Last session")}<th>Focus</th>${th("todo", "Open")}${th("review", "In review")}<th>Status</th></tr></thead><tbody>
+          ${rows
+            .map(
+              (p) => `<tr class="click" data-act="open-project" data-slug="${esc(p.slug)}"><td><div class="pt">${esc(p.title)}</div><div class="kicker">${esc(p.slug)}</div></td><td class="kicker" style="color:var(--ink)">${shortDate(p.last)}</td><td class="focus-cell">${esc(p.focus)}</td><td>${p.todo + p.progress + p.blocked}</td><td>${p.review}</td><td><span class="pill ${p.status}">${p.status}</span></td></tr>`,
+            )
+            .join("")}
+          </tbody></table>`;
+      }
+
+      function renderNow() {
+        if (state.view === "recent") {
+          const items = [
+            ...recentProjects().slice(0, 8).map((p) => ({ date: p.last, kind: "PRD", title: p.title, text: p.focus, slug: p.slug, id: "" })),
+            ...[...ISSUES].sort((a, b) => b.created.localeCompare(a.created)).slice(0, 6).map((i) => ({ date: i.created, kind: "Issue", title: "#" + i.id + " " + i.title, text: projectBy(i.project).title, slug: "", id: i.id })),
+          ].sort((a, b) => b.date.localeCompare(a.date));
+          return (
+            mast("Recent", "Sessions and new issues, one stream", nowViews(), "recent") +
+            `<div class="timeline">${items
+              .map((it) => {
+                const act = it.id ? `data-act="issue" data-id="${it.id}"` : `data-act="scope" data-scope="${esc(it.slug)}"`;
+                return `<button class="tl" ${act}><div class="d">${shortDate(it.date)}</div><div><span class="pill">${esc(it.kind)}</span><div class="ttl" style="font-family:var(--serif);font-size:16px;margin-top:4px">${esc(it.title)}</div><div class="hint">${esc(it.text)}</div></div></button>`;
+              })
+              .join("")}</div>`
+          );
+        }
+        if (state.view === "specs") return mast("Specs", "Unchanged", nowViews(), "specs") + specsList();
+        const chips = [{ slug: "attention", title: "Attention", sub: "Yours · blocked · in progress" }]
+          .concat(activeRecent().slice(0, 4).map((p) => ({ slug: p.slug, title: p.title, sub: shortDate(p.last) + " · " + p.review + " to review" })))
+          .concat([{ slug: "all", title: "All projects", sub: "Opens the directory" }]);
+        const strip = chips
+          .map((c) => `<button data-act="scope" data-scope="${esc(c.slug)}" class="${state.scope === c.slug ? "on" : ""}"><strong>${esc(c.title)}</strong><span class="sub">${esc(c.sub)}</span></button>`)
+          .join("");
+        const scoped = state.scope !== "attention" && state.scope !== "all" ? state.scope : null;
+        const p = scoped ? projectBy(scoped) : null;
+        const reviewBlock =
+          state.scope === "attention" || state.scope === "all"
+            ? `<div class="pad"><h2 class="kicker">In review stays grouped — ${BOARD.review} cards</h2>${reviewGroups(8)}</div>`
+            : "";
+        return (
+          mast(p ? p.title : "Board", p ? "Current focus: " + p.focus : "Default scope is attention, not all 630 cards", nowViews(), "board") +
+          `<div class="now">${strip}<button data-act="done" class="${state.showDone ? "on" : ""}"><strong>${state.showDone ? "Hide done" : "Show done"}</strong><span class="sub">${BOARD.done} done on the live board</span></button></div>` +
+          kanban(scoped, { attention: state.scope === "attention", showDone: state.showDone || !!scoped }) +
+          reviewBlock +
+          (state.dirOpen ? directoryOverlay() : "")
+        );
+      }
+      function nowViews() {
+        return [
+          { id: "board", label: "Board" },
+          { id: "recent", label: "Recent" },
+          { id: "specs", label: "Specs" },
+        ];
+      }
+      function directoryOverlay() {
+        const rows = recentProjects()
+          .map(
+            (p) => `<button class="row" data-act="scope" data-scope="${esc(p.slug)}"><div class="ttl">${esc(p.title)}</div><div class="meta"><span class="pill">${shortDate(p.last)}</span><span class="pill ${p.status}">${p.status}</span><span class="hint">${esc(p.focus)}</span></div></button>`,
+          )
+          .join("");
+        return `<div class="pad" style="border-top:1px solid var(--ink)"><h2 class="kicker">All projects · pick one to scope the board</h2>${rows}</div>`;
+      }
+
+      function specsList() {
+        return `<div class="pad">${SPECS.map(
+          ([id, title, n]) => `<button class="row" data-act="spec" data-id="${id}"><div class="id">${id}</div><div class="ttl">${esc(title)}</div><div class="hint">${n} scenarios</div></button>`,
+        ).join("")}<p class="hint">Specs mode stays. These prototypes do not redesign it.</p></div>`;
+      }
+
+      function renderStage() {
+        if (state.proto === "desk") return renderDesk();
+        if (state.proto === "rail") return renderRail();
+        if (state.proto === "queues") return renderQueues();
+        if (state.proto === "dir") return renderDir();
+        return renderNow();
+      }
+
+      function renderSwitcher() {
+        const current = PROTOS.find((p) => p.id === state.proto);
+        $switcher.innerHTML = `<div><div class="sw-kicker">Click dummy · keys 1–5 · <a href="rail-prototypes.html" style="color:inherit">Rail, round 2</a></div><div class="sw-title">Five ways <em>in</em></div></div>
+          <div><div class="sw-row">${PROTOS.map(
+            (p, i) => `<button class="sw-btn ${p.id === state.proto ? "active" : ""}" data-act="proto" data-proto="${p.id}"><strong>${i + 1} ${esc(p.name)}</strong><span>${esc(p.line)}</span></button>`,
+          ).join("")}</div><p class="sw-thesis">${esc(current.thesis)}</p></div>`;
+      }
+
+      function renderDrawer() {
+        if (state.issue) {
+          const i = ISSUES.find((x) => x.id === state.issue);
+          const p = projectBy(i.project);
+          $drawer.classList.add("open");
+          $drawer.innerHTML = `<button class="close" data-act="close">Close</button><div class="kicker">#${i.id} · ${esc(i.cat)}</div><h2>${esc(i.title)}</h2><div class="meta">${statusPill(i.status)}${whoPill(i.who)}<span class="pill">${esc(p.title)}</span></div><p style="margin-top:16px;line-height:1.5">Sample card from the live board. Opening it here stands in for the issue drawer. Created ${esc(i.created)}.</p><p class="hint">On the real board this drawer renders the markdown body. Drag-and-drop is unchanged in whichever prototype you pick — this dummy only changes how you arrive.</p>`;
+          return;
+        }
+        if (state.spec) {
+          const spec = SPECS.find((s) => s[0] === state.spec);
+          $drawer.classList.add("open");
+          $drawer.innerHTML = `<button class="close" data-act="close">Close</button><div class="kicker">Spec ${esc(spec[0])}</div><h2>${esc(spec[1])}</h2><p class="hint">${spec[2]} scenarios. Specs mode is intentionally the same in every prototype.</p>`;
+          return;
+        }
+        if (state.doc) {
+          const p = projectBy(state.slug);
+          const kind = state.doc === "prd" ? "PRD" : "WIP";
+          $drawer.classList.add("open");
+          $drawer.innerHTML = `<button class="close" data-act="close">Close</button><div class="kicker">${esc(p.slug)} · ${kind}</div><h2>${esc(p.title)}</h2><p style="font-family:var(--serif);font-size:18px;line-height:1.4">${esc(p.focus)}</p><p class="hint">Last session ${shortDate(p.last)}, read from the newest date heading in the activity log. The file itself stays in the editor.</p>`;
+          return;
+        }
+        $drawer.classList.remove("open");
+        $drawer.innerHTML = "";
+      }
+
+      function render() {
+        const active = document.activeElement;
+        const field = active && active.dataset ? active.dataset.field : null;
+        const caret = field && active.selectionStart;
+        renderSwitcher();
+        $stage.innerHTML = renderStage();
+        renderDrawer();
+        if (field) {
+          const el = $stage.querySelector(`[data-field="${field}"]`);
+          if (el) {
+            el.focus();
+            if (caret != null && el.setSelectionRange) el.setSelectionRange(caret, caret);
+          }
+        }
+      }
+
+      function remember(slug) {
+        if (!slug) return;
+        state.opened = [slug, ...state.opened.filter((s) => s !== slug)].slice(0, 5);
+      }
+
+      function setProto(id) {
+        state.proto = id;
+        state.issue = null;
+        state.doc = null;
+        state.spec = null;
+        state.query = "";
+        state.dirOpen = false;
+        state.view = id === "rail" ? "today" : id === "dir" ? "table" : id === "now" ? "board" : "home";
+        state.slug = null;
+        state.scope = "attention";
+        state.tab = "issues";
+        render();
+      }
+
+      document.body.addEventListener("click", (e) => {
+        const t = e.target.closest("[data-act]");
+        if (!t) return;
+        const act = t.dataset.act;
+        if (act === "proto") return setProto(t.dataset.proto);
+        if (act === "view") {
+          state.view = t.dataset.view;
+          state.issue = null;
+          state.doc = null;
+          state.spec = null;
+          if (state.view === "table") state.slug = null;
+          render();
+          return;
+        }
+        if (act === "issue") {
+          state.issue = t.dataset.id;
+          state.doc = null;
+          state.spec = null;
+          render();
+          return;
+        }
+        if (act === "close") {
+          state.issue = null;
+          state.doc = null;
+          state.spec = null;
+          render();
+          return;
+        }
+        if (act === "open-project") {
+          const slug = t.dataset.slug;
+          remember(slug);
+          state.slug = slug;
+          state.issue = null;
+          state.doc = null;
+          state.spec = null;
+          if (state.proto === "desk") {
+            state.view = "board";
+            state.scope = slug;
+          } else if (state.proto === "rail" || state.proto === "dir") {
+            state.view = "project";
+            state.tab = "issues";
+          } else if (state.proto === "now") {
+            state.view = "board";
+            state.scope = slug;
+            state.dirOpen = false;
+          }
+          render();
+          return;
+        }
+        if (act === "rail") {
+          const slug = t.dataset.slug;
+          state.issue = null;
+          state.doc = null;
+          if (slug === "__today__") {
+            state.view = "today";
+            state.slug = null;
+          } else {
+            state.view = "project";
+            state.slug = slug;
+            state.tab = "issues";
+            remember(slug);
+          }
+          render();
+          return;
+        }
+        if (act === "tab") {
+          state.tab = t.dataset.tab;
+          render();
+          return;
+        }
+        if (act === "doc") {
+          state.doc = t.dataset.doc;
+          state.issue = null;
+          if (!state.slug && t.dataset.slug) state.slug = t.dataset.slug;
+          render();
+          return;
+        }
+        if (act === "doc-project") {
+          state.slug = t.dataset.slug;
+          state.doc = "prd";
+          state.issue = null;
+          remember(state.slug);
+          render();
+          return;
+        }
+        if (act === "group") {
+          const key = t.dataset.slug || "standalone";
+          state.openGroups[key] = !state.openGroups[key];
+          render();
+          return;
+        }
+        if (act === "sort") {
+          if (state.sort === t.dataset.sort) state.sortDir *= -1;
+          else {
+            state.sort = t.dataset.sort;
+            state.sortDir = t.dataset.sort === "title" ? 1 : -1;
+          }
+          render();
+          return;
+        }
+        if (act === "scope") {
+          const scope = t.dataset.scope;
+          if (scope === "all" && state.proto === "now") {
+            state.dirOpen = !state.dirOpen;
+            state.scope = "all";
+            state.view = "board";
+          } else {
+            state.scope = scope;
+            state.dirOpen = false;
+            state.view = "board";
+            if (scope !== "attention" && scope !== "all") {
+              state.slug = scope;
+              remember(scope);
+            }
+          }
+          render();
+          return;
+        }
+        if (act === "done") {
+          state.showDone = !state.showDone;
+          render();
+          return;
+        }
+        if (act === "spec") {
+          state.issue = null;
+          state.doc = null;
+          state.spec = t.dataset.id;
+          render();
+        }
+      });
+
+      document.body.addEventListener("input", (e) => {
+        const t = e.target;
+        if (t.dataset && t.dataset.field === "query") {
+          state.query = t.value;
+          render();
+        }
+      });
+      document.body.addEventListener("change", (e) => {
+        const t = e.target;
+        if (t.dataset && t.dataset.field === "scope") {
+          state.scope = t.value;
+          if (t.value !== "attention" && t.value !== "all") remember(t.value);
+          render();
+        }
+      });
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+          state.issue = null;
+          state.doc = null;
+          state.spec = null;
+          state.dirOpen = false;
+          render();
+          return;
+        }
+        if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "SELECT" || e.target.tagName === "TEXTAREA")) return;
+        const n = Number(e.key);
+        if (n >= 1 && n <= 5) setProto(PROTOS[n - 1].id);
+      });
+
+      render();
+    </script>
+  </body>
+</html>

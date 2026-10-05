@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { readFile, stat } from "node:fs/promises";
 import { normalize, resolve, sep } from "node:path";
-import { writeFileAtomic } from "./files";
+import { serialized, writeFileAtomic } from "./files";
 
 // Document store for in-app editing (#0024, ADR-0005). Reads return a
 // content hash; writes must send the hash they started from, so an agent's
@@ -45,7 +45,11 @@ export async function readDoc(root: string, relPath: string): Promise<Doc> {
   return { path: relPath, content, hash: hashContent(content) };
 }
 
-export async function writeDoc(root: string, relPath: string, content: string, baseHash: string): Promise<Doc> {
+export function writeDoc(root: string, relPath: string, content: string, baseHash: string): Promise<Doc> {
+  return serialized(resolveDoc(root, relPath), () => writeChecked(root, relPath, content, baseHash));
+}
+
+async function writeChecked(root: string, relPath: string, content: string, baseHash: string): Promise<Doc> {
   const current = await readDoc(root, relPath);
   if (current.hash !== baseHash) {
     throw new DocError(409, "changed on disk since you started editing", { content: current.content, hash: current.hash });

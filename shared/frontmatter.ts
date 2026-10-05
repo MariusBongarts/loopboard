@@ -110,17 +110,31 @@ export function readIssueFields(text: string): IssueFields | null {
 }
 
 // Apply changed fields to the file's frontmatter, line by line.
+// Where each editable field goes when it is missing, so edits from the board,
+// the pickers and the editor all place lines the same way.
+const FIELD_ANCHORS: Record<keyof IssueFields, string[]> = {
+  title: ['id'],
+  status: ['category'],
+  assignee: ['status'],
+  project: ['assignee', 'status'],
+  parent: ['project', 'assignee'],
+  labels: ['parent', 'project', 'assignee'],
+};
+
+export function setIssueField(fm: string, key: keyof IssueFields, value: string | string[] | null): string {
+  if (key === 'labels') return setLine(fm, 'labels', formatLabels(Array.isArray(value) ? value : []), FIELD_ANCHORS.labels);
+  const text = Array.isArray(value) ? value.join(', ') : value;
+  if (key === 'title') return setLine(fm, 'title', yamlScalar(text ?? ''), FIELD_ANCHORS.title);
+  return setLine(fm, key, text || null, FIELD_ANCHORS[key]);
+}
+
 export function applyIssueFields(text: string, before: IssueFields, after: IssueFields): string {
   const inner = frontmatterInner(text);
   if (inner === null) return text;
   let fm = inner;
-  if (after.title !== before.title) fm = setLine(fm, 'title', yamlScalar(after.title), ['id']);
-  if (after.status !== before.status) fm = setLine(fm, 'status', after.status, ['category']);
-  if (after.assignee !== before.assignee) fm = setLine(fm, 'assignee', after.assignee, ['status']);
-  if (after.project !== before.project) fm = setLine(fm, 'project', after.project || null, ['assignee', 'status']);
-  if (after.parent !== before.parent) fm = setLine(fm, 'parent', after.parent || null, ['project', 'assignee']);
-  if (after.labels.join('\u0000') !== before.labels.join('\u0000')) {
-    fm = setLine(fm, 'labels', formatLabels(after.labels), ['parent', 'project', 'assignee']);
+  for (const key of ['title', 'status', 'assignee', 'project', 'parent'] as const) {
+    if (after[key] !== before[key]) fm = setIssueField(fm, key, after[key]);
   }
+  if (after.labels.join('\u0000') !== before.labels.join('\u0000')) fm = setIssueField(fm, 'labels', after.labels);
   return text.replace(/^---\r?\n[\s\S]*?\r?\n---/, () => `---\n${fm}\n---`);
 }

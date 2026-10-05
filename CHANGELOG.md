@@ -36,7 +36,16 @@ must apply are numbered in [MIGRATIONS.md](MIGRATIONS.md).
   across branches and worktrees; `check` ignores mentions inside code.
 
 ### Look and feel
-- Dark theme (system, light or dark), a Brand Kit, self-hosted fonts — no
-  request ever leaves the machine.
+- A calm, Linear-like look: neutral grays, one violet accent, Inter, status
+  icons, avatars, label pills and project badges; light, dark or system; a
+  Brand Kit; self-hosted fonts and icons — no request ever leaves the machine.
+- Issues open in a resizable side panel (‹ › and j/k through the board, list
+  or feed they came from) or as a full page at `/w/<ws>/issues/<NNNN>`.
+- Change status, assignee, project, labels and parent in place with small
+  pickers, or right-click any card or row for the same and more.
+- The rail holds every feed view and destination, collapses to icons (`[`),
+  and the rail, feed and issue panel resize by drag or keyboard.
+- Settings: theme and an editor — "Open in VS Code / Cursor" on every issue.
 - Empty columns shrink to strips, the feed can hide, and the board fades the
-  edge that hides columns.
+  edge that hides columns. Quick-created issues get the template's headings,
+  not its guidance prose.

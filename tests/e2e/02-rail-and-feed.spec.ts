@@ -47,19 +47,37 @@ test('the board follows file changes live', async ({ page }) => {
   }
 });
 
-test('filter the feed with the rail and the chips', async ({ page }) => {
+test('filter the feed from the rail', async ({ page }) => {
   await page.goto('/w/demo-repo');
+  const rail = page.getByRole('navigation', { name: 'Inbox navigation' });
   const rows = page.locator('.feed-row');
   await expect(rows).toHaveCount(9);
-  await page.locator('.rail-nav', { hasText: 'Needs you' }).click();
+  await expect(page.locator('.fchip')).toHaveCount(0);
+  await rail.getByRole('button', { name: /^Needs you/ }).click();
   await expect(rows).toHaveCount(2);
-  await page.locator('.fchip', { hasText: 'Sessions' }).click();
+  await rail.getByRole('button', { name: /^Sessions/ }).click();
   await expect(rows).toHaveCount(2);
   await expect(page.locator('.feed-kind')).toHaveText(['Session', 'Session']);
-  await page.locator('.fchip', { hasText: 'Issues' }).click();
+  await rail.getByRole('button', { name: /^Issues/ }).click();
   await expect(rows).toHaveCount(7);
-  await page.locator('.rail-nav', { hasText: 'Inbox' }).click();
+  await expect(page.locator('.list-head h2')).toHaveText('Issues');
+  await rail.getByRole('button', { name: /^Inbox/ }).click();
   await expect(rows).toHaveCount(9);
+});
+
+test('collapse the rail to icons, and back', async ({ page }) => {
+  await page.goto('/w/demo-repo');
+  const rail = page.getByRole('navigation', { name: 'Inbox navigation' });
+  await rail.getByRole('button', { name: 'Collapse sidebar' }).click();
+  await expect(rail).toHaveClass(/collapsed/);
+  expect((await rail.boundingBox())!.width).toBeLessThan(60);
+  await rail.getByRole('button', { name: /^Sessions/ }).click();
+  await expect(page.locator('.feed-row')).toHaveCount(2);
+  await page.reload();
+  await expect(page.getByRole('navigation', { name: 'Inbox navigation' })).toHaveClass(/collapsed/);
+  await page.keyboard.press('[');
+  await expect(page.getByRole('navigation', { name: 'Inbox navigation' })).not.toHaveClass(/collapsed/);
+  expect((await page.getByRole('navigation', { name: 'Inbox navigation' }).boundingBox())!.width).toBeGreaterThan(200);
 });
 
 test('search narrows the feed and the project list', async ({ page }) => {
@@ -106,10 +124,10 @@ test('narrow the feed to one project, and pin it', async ({ page }) => {
   await expect(page.locator('.rail-sec', { hasText: 'Pinned' })).toHaveCount(0);
 });
 
-test('resize the rail', async ({ page }) => {
+test('resize the rail and the feed', async ({ page }) => {
   await page.goto('/w/demo-repo');
   const rail = page.locator('.inbox-rail');
-  const handle = page.getByRole('separator');
+  const handle = page.getByRole('separator', { name: 'Resize sidebar' });
   const box = (await handle.boundingBox())!;
   await page.mouse.move(box.x + box.width / 2, box.y + 200);
   await page.mouse.down();
@@ -118,6 +136,18 @@ test('resize the rail', async ({ page }) => {
   expect(Math.round((await rail.boundingBox())!.width)).toBeGreaterThan(300);
   await page.reload();
   expect(Math.round((await page.locator('.inbox-rail').boundingBox())!.width)).toBeGreaterThan(300);
-  await page.getByRole('separator').dblclick();
+  await page.getByRole('separator', { name: 'Resize sidebar' }).dblclick();
   await expect.poll(async () => Math.round((await page.locator('.inbox-rail').boundingBox())!.width)).toBe(248);
+
+  const feed = page.locator('.inbox-list');
+  const feedHandle = page.getByRole('separator', { name: 'Resize feed' });
+  await expect(feedHandle).toHaveAttribute('aria-valuenow', '380');
+  await feedHandle.focus();
+  await page.keyboard.press('Shift+ArrowRight');
+  await expect(feedHandle).toHaveAttribute('aria-valuenow', '444');
+  expect(Math.round((await feed.boundingBox())!.width)).toBe(444);
+  await page.reload();
+  await expect(page.getByRole('separator', { name: 'Resize feed' })).toHaveAttribute('aria-valuenow', '444');
+  await page.getByRole('separator', { name: 'Resize feed' }).dblclick();
+  await expect(page.getByRole('separator', { name: 'Resize feed' })).toHaveAttribute('aria-valuenow', '380');
 });

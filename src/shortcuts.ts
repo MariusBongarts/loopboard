@@ -13,8 +13,9 @@ export const SHORTCUTS = {
   search: { keys: ['/'], display: '/', label: 'Search the feed and projects' },
   next: { keys: ['j'], display: 'j', label: 'Next item in the feed' },
   prev: { keys: ['k'], display: 'k', label: 'Previous item in the feed' },
+  sidebar: { keys: ['['], display: '[', label: 'Collapse or expand the sidebar' },
   help: { keys: ['?'], display: '?', label: 'Open Help' },
-  close: { keys: ['Escape'], display: 'Esc', label: 'Close a drawer or dialog; clear a search box' },
+  close: { keys: ['Escape'], display: 'Esc', label: 'Close a menu, dialog or the issue panel; clear a search box' },
 } satisfies Record<string, Shortcut>;
 
 export type ShortcutId = keyof typeof SHORTCUTS;
@@ -33,4 +34,11 @@ export function isTyping(e: KeyboardEvent): boolean {
 
 export function hasModifier(e: KeyboardEvent): boolean {
   return e.metaKey || e.ctrlKey || e.altKey;
+}
+
+// Something that owns the keyboard is open: a dialog, a menu, the backlog
+// drawer — or the issue panel, unless the caller is the panel itself.
+export function overlayOpen(opts: { ignorePanel?: boolean } = {}): boolean {
+  if (document.querySelector('.modal-backdrop, .menu, .backlog-drawer')) return true;
+  return !opts.ignorePanel && document.querySelector('.issue-panel') !== null;
 }
