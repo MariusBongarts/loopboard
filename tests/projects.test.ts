@@ -45,6 +45,25 @@ describe('parsePhases', () => {
   it('returns nothing without a Phases section', () => {
     expect(parsePhases('# P\n\n## Activity log\n')).toEqual([]);
   });
+
+  // #0100: `shop#0003` is issue 0003 of another harness, not the local one.
+  const listed = (line: string) => parsePhases(`## Phases\n\n### Phase 1 — A\n\n- [ ] ${line}\n`)[0].ids;
+
+  it('leaves a number directly after a letter or digit out of the phase', () => {
+    expect(listed('shop#0003 — in the shop harness')).toEqual([]);
+    expect(listed('#0001 after shop#0003')).toEqual(['0001']);
+  });
+
+  it('still counts a bare, bracketed or sentence-ending #NNNN', () => {
+    expect(listed('#0003')).toEqual(['0003']);
+    expect(listed('Export (#0003)')).toEqual(['0003']);
+    expect(listed('Export, after #0003.')).toEqual(['0003']);
+  });
+
+  it('counts the number inside an issue-file link once', () => {
+    expect(listed('[First](../../issues/0003-first.md) — todo')).toEqual(['0003']);
+    expect(listed('[#0003 First](../../issues/_archive/0003-first.md) — done')).toEqual(['0003']);
+  });
 });
 
 describe('projectProgress', () => {
@@ -75,6 +94,12 @@ describe('projectProgress', () => {
     const progress = projectProgress(project, issues);
     expect(progress).toMatchObject({ closed: 1, total: 2 });
     expect(progress.phases.map((p) => p.name)).toEqual(['Phase 1 — Clean slate']);
+  });
+
+  it("keeps another harness's issue out of a phase's count (#0100)", () => {
+    const project = { slug: '01-p', wipBody: wip.replace('#0003 and #0004', 'shop#0003 and #0004') } as Project;
+    const progress = projectProgress(project, [issue('0003', 'done'), issue('0004', 'todo')]);
+    expect(progress.phases).toEqual([{ name: 'Phase 2 — Ship', ids: ['0004'], closed: 0, total: 1 }]);
   });
 });
 

@@ -167,7 +167,8 @@ AND each shows its PRD number, title, last session, how many issues need me,
     count; backlog ideas don't, so parked ideas never hold a project below 100%)
 AND one small bar per `### Phase …` heading in the WIP's Phases section,
     counting the issues it lists (dated headings, and headings with nothing
-    scheduled such as "Backlog", get no bar)
+    scheduled such as "Backlog", get no bar; `shop#0003`, an issue of another
+    harness, doesn't count as the local 0003)
 WHEN I click a project
 THEN its board opens
 ```

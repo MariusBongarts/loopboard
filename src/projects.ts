@@ -1,3 +1,4 @@
+import { issueRefSource } from '../shared/refs';
 import { needsYou, prdNumber } from './inbox';
 import { isClosed, type Issue, type Project } from './types';
 
@@ -17,7 +18,8 @@ export interface ProjectProgress extends Progress {
   needsYou: number;
 }
 
-const ISSUE_REF_RE = /issues\/(?:_archive\/)?(\d{4})-|#(\d{4})\b/g;
+// An issue-file link (group 1) or a local `#NNNN` (group 3, #0100).
+const ISSUE_REF_RE = new RegExp(String.raw`issues\/(?:_archive\/)?(\d{4})-|${issueRefSource()}`, 'g');
 
 // `### Phase …` headings under `## Phases`, each with the issues it lists.
 export function parsePhases(wipBody: string): Phase[] {
@@ -28,7 +30,7 @@ export function parsePhases(wipBody: string): Phase[] {
     // Dated headings are journal entries that strayed into the section.
     if (!heading || /^\d{4}-\d{2}-\d{2}/.test(heading[1])) continue;
     const ids = new Set<string>();
-    for (const m of chunk.matchAll(ISSUE_REF_RE)) ids.add(m[1] ?? m[2]);
+    for (const m of chunk.matchAll(ISSUE_REF_RE)) ids.add(m[1] ?? m[3]);
     phases.push({ name: heading[1], ids: [...ids] });
   }
   return phases;
