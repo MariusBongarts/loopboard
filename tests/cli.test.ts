@@ -195,3 +195,42 @@ describe('bin/loopboard.js (#0076)', () => {
     expect(node(join(tmp, 'loopboard')).stderr).toBe(direct.stderr);
   });
 });
+
+// `check` prints the board's own list of skipped files (#0071).
+describe('loopboard check', () => {
+  it('lists the files the board skips and fails on them with --strict', async () => {
+    const path = await repo('alpha');
+    const issues = join(path, '.agents', 'issues');
+    await issue(path, '0001');
+    await writeFile(join(issues, '0002-Tax-Return.md'), '---\nid: 0002\ntitle: Tax return\n---\n');
+    await writeFile(join(issues, '0003-broken.md'), '---\nid: 0003\ntitle: Broken: unquoted colon\n---\n');
+    // Nothing can read a folder as a file, on any platform.
+    await mkdir(join(issues, '0004-unreadable.md'));
+
+    const lenient = await run('check', path);
+
+    expect(lenient).toMatchObject({ code: 0, err: '' });
+    expect(lenient.out.split('\n')).toEqual([
+      '! issues/0002-Tax-Return.md: skipped — name must be NNNN-slug.md (lowercase letters, digits and dashes)',
+      expect.stringMatching(/^! issues\/0003-broken\.md: skipped — invalid frontmatter: /),
+      expect.stringMatching(/^! issues\/0004-unreadable\.md: skipped — can't be read \(E\w+\)$/),
+      '✓ no duplicate numbers (3 skipped files)',
+    ]);
+
+    const strict = await run('check', path, '--strict');
+
+    expect(strict).toMatchObject({ code: 1, err: '' });
+    expect(strict.out.split('\n')).toEqual([
+      expect.stringMatching(/^✗ issues\/0002-Tax-Return\.md: skipped — /),
+      expect.stringMatching(/^✗ issues\/0003-broken\.md: skipped — /),
+      expect.stringMatching(/^✗ issues\/0004-unreadable\.md: skipped — /),
+    ]);
+  });
+
+  it('passes --strict when nothing is skipped', async () => {
+    const path = await repo('beta');
+    await issue(path, '0001');
+
+    expect(await run('check', path, '--strict')).toEqual({ code: 0, out: '✓ no duplicate numbers', err: '' });
+  });
+});

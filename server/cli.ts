@@ -4,6 +4,7 @@ import { join, resolve } from "node:path";
 import { parseArgs, UsageError, type Args, type Flags } from "./args";
 import { checkRoot, nextId, type IdKind } from "./ids";
 import { applyPlan, InitError, planInit, summarizePlan } from "./init";
+import { readBoard } from "./issues";
 import { applyRenumber, planRenumber, RenumberError } from "./renumber";
 import { openBrowser } from "./open";
 import { configDir, packageRoot, packageVersion } from "./paths";
@@ -216,7 +217,7 @@ commands["next-id"] = {
 
 commands.check = {
   usage: "check [path]",
-  summary: "Find duplicate numbers and dangling references (--branches, --strict)",
+  summary: "Find duplicate numbers, dangling references and files the board skips (--branches, --strict)",
   flags: { "--branches": "switch", "--strict": "switch" },
   async run({ positionals, switches }) {
     const root = rootFor(positionals[0]);
@@ -230,10 +231,16 @@ commands.check = {
       if (local) console.log(`  fix: loopboard renumber ${d.id} --file ${local.name}`);
     }
     for (const r of report.dangling) console.log(`${strict ? "✗" : "!"} ${r.file}: ${r.ref} points at no issue`);
-    const failed = report.duplicates.length > 0 || (strict && report.dangling.length > 0);
+    // The board's own list of files it can't show (#0071).
+    const { skipped } = await readBoard(root);
+    for (const f of skipped) console.log(`${strict ? "✗" : "!"} ${f.file}: skipped — ${f.reason}`);
+    const failed = report.duplicates.length > 0 || (strict && report.dangling.length + skipped.length > 0);
     if (!failed) {
-      const note = report.dangling.length ? ` (${report.dangling.length} dangling reference warnings)` : "";
-      console.log(`✓ no duplicate numbers${note}`);
+      const notes = [
+        ...(report.dangling.length ? [`${report.dangling.length} dangling reference warnings`] : []),
+        ...(skipped.length ? [`${skipped.length} skipped ${skipped.length === 1 ? "file" : "files"}`] : []),
+      ];
+      console.log(`✓ no duplicate numbers${notes.length ? ` (${notes.join(", ")})` : ""}`);
     }
     return failed ? 1 : 0;
   },

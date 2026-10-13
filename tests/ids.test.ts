@@ -71,6 +71,21 @@ describe('next-id', () => {
   });
 });
 
+// The board reports a mis-named file as skipped; its number stays taken (#0071).
+describe('near-miss names', () => {
+  it('count for the next number', async () => {
+    await writeFile(join(root, 'issues', '0009-Tax-Return.md'), '---\nid: 0009\ntitle: Tax return\n---\n');
+    await mkdir(join(root, 'projects', '05-Offline-Mode'));
+    expect(nextId(root, 'issue')).toBe('0010');
+    expect(nextId(root, 'project')).toBe('06');
+  });
+
+  it('collide with a well-named file that has the same number', async () => {
+    await writeFile(join(root, 'issues', '0001_first.md'), '---\nid: 0001\ntitle: First\n---\n');
+    expect(checkRoot(root, false).duplicates.map((d) => d.id)).toEqual(['0001']);
+  });
+});
+
 describe('check', () => {
   it('flags two different files with one number in the working tree', async () => {
     await issue(join(root, 'issues'), '0001', 'twin');

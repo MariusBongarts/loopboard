@@ -161,11 +161,22 @@ export interface WorkspaceSummary extends Workspace {
   issueCount: number;
 }
 
+// A file or folder the reader couldn't show, relative to the root (#0071).
+export interface SkippedFile {
+  file: string;
+  reason: string;
+}
+
+export function skippedLabel(count: number): string {
+  return count === 1 ? '1 file skipped' : `${count} files skipped`;
+}
+
 export interface ApiData {
   workspace: WorkspaceSummary;
   issues: Issue[];
   projects: Project[];
   specs: Spec[];
+  skipped: SkippedFile[];
 }
 
 export const STANDALONE = '__standalone__';

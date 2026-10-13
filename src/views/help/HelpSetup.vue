@@ -23,7 +23,7 @@ const COMMANDS = [
   { cmd: 'npx loopboard init --with-extras', does: 'Adds tdd, diagnose, improve-codebase-architecture and write-a-skill.' },
   { cmd: 'npx loopboard', does: 'Opens the board for this repo; a running board adds it to the switcher.' },
   { cmd: 'npx loopboard next-id issue', does: 'The next free issue number across every branch and worktree.' },
-  { cmd: 'npx loopboard check --branches', does: 'Finds duplicate numbers and dangling references.' },
+  { cmd: 'npx loopboard check --branches', does: 'Finds duplicate numbers, dangling references and files the board skips.' },
 ];
 </script>
 

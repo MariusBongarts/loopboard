@@ -2,6 +2,7 @@ import { existsSync, readdirSync, statSync } from "node:fs";
 import { mkdir, readFile } from "node:fs/promises";
 import { basename, dirname, join, resolve } from "node:path";
 import { serialized, writeFileAtomic } from "./files";
+import { matchName } from "./names";
 
 // One running loopboard remembers many repos (ADR-0002, #0008).
 export interface Workspace {
@@ -168,14 +169,12 @@ export async function setLastUsed(configDir: string, id: string): Promise<void> 
   });
 }
 
-const ISSUE_FILE_RE = /^\d{4}-[^/]+\.md$/;
-
 export function summarize(workspace: Workspace): WorkspaceSummary {
   const available = existsSync(join(workspace.root, "issues"));
   let issueCount = 0;
   if (available) {
     try {
-      issueCount = readdirSync(join(workspace.root, "issues")).filter((f) => ISSUE_FILE_RE.test(f)).length;
+      issueCount = readdirSync(join(workspace.root, "issues")).filter((f) => matchName("issue", f)?.valid).length;
     } catch {
       issueCount = 0;
     }

@@ -36,6 +36,7 @@ import {
   type ColumnKey,
   type Issue,
   type Project,
+  type SkippedFile,
   type Spec,
   type WorkspaceSummary,
 } from '../types';
@@ -56,6 +57,7 @@ const props = defineProps<{
   issues: Issue[];
   projects: Project[];
   specs: Spec[];
+  skipped: SkippedFile[];
   request: { slug: string; tab: 'board' | 'prd'; nonce: number } | null;
 }>();
 const router = useRouter();
@@ -71,7 +73,7 @@ const emit = defineEmits<{
   (e: 'reorder', payload: { column: ColumnKey; ids: string[]; draggedId: string }): void;
   (e: 'selection', issue: Issue | null): void;
   (e: 'pane-project', slug: string | null): void;
-  (e: 'new-issue' | 'new-project' | 'settings'): void;
+  (e: 'new-issue' | 'new-project' | 'settings' | 'skipped'): void;
 }>();
 
 const SELECTED_KEY = 'inbox.selected';
@@ -382,6 +384,7 @@ onBeforeUnmount(() => {
       :counts="counts"
       :projects-count="props.projects.length"
       :specs-count="props.specs.length"
+      :skipped-count="props.skipped.length"
       :sections="railSections"
       :pinned="pinnedSlugs"
       :views="views"
@@ -391,6 +394,7 @@ onBeforeUnmount(() => {
       @new-issue="emit('new-issue')"
       @new-project="emit('new-project')"
       @settings="emit('settings')"
+      @skipped="emit('skipped')"
       @open-issues="openIssues()"
       @set-filter="setFilter"
       @scope="scopeTo"

@@ -6,6 +6,7 @@ import {
   CircleHelp,
   CircleUserRound,
   FileCheck2,
+  FileWarning,
   Inbox,
   Layers,
   List,
@@ -23,7 +24,7 @@ import type { SavedView } from '../api';
 import { toneClass } from '../colors';
 import { prdNumber, relativeDay, type InboxFilter } from '../inbox';
 import type { LiveState } from '../live';
-import type { Project, WorkspaceSummary } from '../types';
+import { skippedLabel, type Project, type WorkspaceSummary } from '../types';
 import type { View } from '../workspace';
 
 // The rail (#0047): feed views, workspace destinations, saved views and
@@ -37,6 +38,7 @@ const props = defineProps<{
   counts: Record<InboxFilter, number>;
   projectsCount: number;
   specsCount: number;
+  skippedCount: number;
   sections: { label: string; projects: Project[] }[];
   pinned: string[];
   views: SavedView[];
@@ -46,7 +48,7 @@ const props = defineProps<{
 const query = defineModel<string>('query', { required: true });
 const collapsed = defineModel<boolean>('collapsed', { required: true });
 const emit = defineEmits<{
-  (e: 'refresh' | 'new-issue' | 'new-project' | 'settings' | 'open-issues'): void;
+  (e: 'refresh' | 'new-issue' | 'new-project' | 'settings' | 'open-issues' | 'skipped'): void;
   (e: 'set-filter', filter: InboxFilter): void;
   (e: 'scope' | 'toggle-pin', slug: string): void;
   (e: 'show-view', view: View): void;
@@ -227,6 +229,17 @@ const feedOn = (key: InboxFilter) => props.view === 'feed' && props.filter === k
     </div>
 
     <div class="rail-foot">
+      <!-- Files the reader couldn't show (#0071); absent when there are none. -->
+      <button
+        v-if="props.skippedCount"
+        type="button"
+        class="rail-nav rail-skipped"
+        :title="skippedLabel(props.skippedCount)"
+        @click="emit('skipped')"
+      >
+        <FileWarning class="rail-icon-glyph" :size="16" aria-hidden="true" />
+        <span class="rail-name">{{ skippedLabel(props.skippedCount) }}</span>
+      </button>
       <RouterLink class="rail-nav" :to="{ path: '/help', query: { from: props.workspace?.id } }" title="Help (?)">
         <CircleHelp class="rail-icon-glyph" :size="16" aria-hidden="true" />
         <span class="rail-name">Help</span>
@@ -342,6 +355,7 @@ const feedOn = (key: InboxFilter) => props.view === 'feed' && props.filter === k
   position: sticky;
   bottom: 0;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 2px;
   margin-top: auto;
@@ -349,6 +363,8 @@ const feedOn = (key: InboxFilter) => props.view === 'feed' && props.filter === k
   background: var(--bg-subtle);
 }
 .rail-foot .rail-nav { flex: 1; min-width: 0; }
+.rail-foot .rail-skipped { flex: 0 0 100%; }
+.rail-skipped .rail-icon-glyph { color: var(--amber-text); }
 
 /* Collapsed: icons only, labels in tooltips. */
 .inbox-rail.collapsed { padding: 10px 6px 0; align-items: stretch; }
@@ -362,6 +378,6 @@ const feedOn = (key: InboxFilter) => props.view === 'feed' && props.filter === k
 .collapsed .rail-sec { justify-content: center; height: 12px; padding: 0; }
 .collapsed .rail-sec-label, .collapsed .rail-sec-add { display: none; }
 .collapsed .rail-sec::after { content: ""; width: 16px; height: 1px; background: var(--border); }
-.collapsed .rail-foot { flex-direction: column; gap: 2px; }
-.collapsed .rail-foot .rail-nav { width: 100%; }
+.collapsed .rail-foot { flex-direction: column; flex-wrap: nowrap; gap: 2px; }
+.collapsed .rail-foot .rail-nav { flex: 0 0 auto; width: 100%; }
 </style>

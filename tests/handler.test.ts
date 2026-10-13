@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { request } from 'node:http';
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { AddressInfo } from 'node:net';
@@ -82,6 +82,36 @@ describe('API over HTTP', () => {
 
     const data = await call('GET', '/api/w/demo/data');
     expect(JSON.parse(data.body).issues.map((i: { id: string }) => i.id)).toEqual(['0001']);
+  });
+
+  // One bad file must not take the workspace down (#0071).
+  it('reports files it has to skip instead of dropping them or failing', async () => {
+    const root = join(tmp, 'demo', '.agents');
+    const bad = [join(root, 'issues', '0002-Tax-Return.md'), join(root, 'issues', '0003-broken.md'), join(root, 'issues', '0004-offline.md'), join(root, 'projects')];
+    await writeFile(bad[0], '---\nid: 0002\ntitle: Tax return\n---\n');
+    await writeFile(bad[1], '---\nid: 0003\ntitle: Broken: unquoted colon\n---\n');
+    // A placeholder that points nowhere reads like one that fails to hydrate.
+    if (process.platform === 'win32') await mkdir(bad[2]);
+    else await symlink(join(root, 'gone.md'), bad[2]);
+    await mkdir(join(root, 'projects', 'Offline-Mode'), { recursive: true });
+    try {
+      const data = await call('GET', '/api/w/demo/data');
+      expect(data.status).toBe(200);
+      const body = JSON.parse(data.body);
+      expect(body.issues.map((i: { id: string }) => i.id)).toEqual(['0001']);
+      expect(body.skipped).toEqual([
+        { file: 'issues/0002-Tax-Return.md', reason: expect.stringContaining('NNNN-slug.md') },
+        { file: 'issues/0003-broken.md', reason: expect.stringContaining('invalid frontmatter') },
+        { file: 'issues/0004-offline.md', reason: expect.stringContaining("can't be read") },
+        { file: 'projects/Offline-Mode', reason: expect.stringContaining('NN-slug') },
+      ]);
+      // The counter agrees with the reader about the mis-named file.
+      const { workspaces } = JSON.parse((await call('GET', '/api/workspaces')).body);
+      expect(workspaces[0].issueCount).toBe(3);
+    } finally {
+      for (const path of bad) await rm(path, { recursive: true, force: true });
+    }
+    expect(JSON.parse((await call('GET', '/api/w/demo/data')).body).skipped).toEqual([]);
   });
 
   it('rewrites an issue through the workspace route', async () => {

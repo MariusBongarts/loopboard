@@ -6,7 +6,7 @@ import {
   ALL_STATUSES,
   findIssueFile,
   readAllIssues,
-  readAllProjects,
+  readBoard,
   type Status,
 } from "./issues";
 import { issueActivity } from "./activity";
@@ -187,16 +187,15 @@ route("GET", /^\/api\/w\/([^/]+)\/data$/, async (ctx, _req, res, m) => {
   const workspace = await findWorkspace(ctx, m.params[0]);
   const summary = summarize(workspace);
   if (!summary.available) {
-    json(res, 200, { workspace: summary, issues: [], projects: [], specs: [] });
+    json(res, 200, { workspace: summary, issues: [], projects: [], specs: [], skipped: [] });
     return;
   }
-  const [issues, projects, specs] = await Promise.all([
-    readAllIssues(workspace.root),
-    readAllProjects(workspace.root),
+  const [{ issues, projects, skipped }, specs] = await Promise.all([
+    readBoard(workspace.root),
     readAllSpecs(workspace.root),
   ]);
   await setLastUsed(ctx.configDir, workspace.id);
-  json(res, 200, { workspace: summary, issues, projects, specs });
+  json(res, 200, { workspace: summary, issues, projects, specs, skipped });
 });
 
 // Server-Sent Events: "change" whenever files under the root change (#0010).

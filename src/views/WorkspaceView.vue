@@ -12,6 +12,7 @@ import IssuePanel from '../components/IssuePanel.vue';
 import MenuHost from '../components/MenuHost.vue';
 import InboxView from '../components/InboxView.vue';
 import SettingsDialog from '../components/SettingsDialog.vue';
+import SkippedFilesDialog from '../components/SkippedFilesDialog.vue';
 import WontfixModal from '../components/WontfixModal.vue';
 import WorkspaceMissing from '../components/WorkspaceMissing.vue';
 import type { IssueEdit } from '../issueMenus';
@@ -31,6 +32,7 @@ import {
   type ColumnKey,
   type Issue,
   type Project,
+  type SkippedFile,
   type Spec,
   ALL_STATUSES,
   COLUMN_LABEL,
@@ -71,6 +73,9 @@ async function loadViews() {
   }
 }
 const specs = ref<Spec[]>([]);
+// Files the reader couldn't show; the rail counts them (#0071).
+const skipped = ref<SkippedFile[]>([]);
+const skippedOpen = ref(false);
 const panelIssue = ref<Issue | null>(null);
 // The list the panel was opened from, so ‹ › and j/k step through it (#0050).
 const panelKeys = ref<{ id: string; archived: boolean }[]>([]);
@@ -106,6 +111,7 @@ async function load() {
     issues.value = data.issues;
     projects.value = data.projects;
     specs.value = data.specs ?? [];
+    skipped.value = data.skipped ?? [];
     if (pendingOpenId) {
       const created = data.issues.find((i) => i.id === pendingOpenId && !i.archived);
       if (created) {
@@ -163,13 +169,15 @@ watch(workspaceId, () => {
   issues.value = [];
   projects.value = [];
   specs.value = [];
+  skipped.value = [];
+  skippedOpen.value = false;
   views.value = [];
   load();
   void loadViews();
 });
 
 function anyDialogOpen(): boolean {
-  return wontfixModalOpen.value || createOpen.value || projectDialogOpen.value || paletteOpen.value || settingsOpen.value || activeMenu.value !== null;
+  return wontfixModalOpen.value || createOpen.value || projectDialogOpen.value || paletteOpen.value || settingsOpen.value || skippedOpen.value || activeMenu.value !== null;
 }
 
 function onGlobalKeydown(e: KeyboardEvent) {
@@ -356,6 +364,9 @@ const commands = computed<Command[]>(() => {
     { id: 'settings', title: 'Settings', group: 'Actions', keywords: 'preferences theme editor vscode cursor', run: () => (settingsOpen.value = true) },
     { id: 'go-help', title: 'Open Help', group: 'Actions', hint: SHORTCUTS.help.display, run: () => router.push({ path: '/help', query: { from: ws } }) },
   );
+  if (skipped.value.length) {
+    list.push({ id: 'skipped', title: 'Show skipped files', group: 'Actions', keywords: 'malformed unreadable invalid missing hidden', run: () => (skippedOpen.value = true) });
+  }
   for (const w of paletteWorkspaces.value) {
     if (w.id === ws) continue;
     list.push({ id: `ws-${w.id}`, title: `Switch to ${w.name}`, group: 'Workspaces', keywords: w.id, run: () => router.push(`/w/${w.id}`) });
@@ -579,6 +590,7 @@ async function onCancelWontfix() {
       :issues="issues"
       :projects="projects"
       :specs="specs"
+      :skipped="skipped"
       :live="liveState"
       :request="paneRequest"
       @refresh="load"
@@ -587,6 +599,7 @@ async function onCancelWontfix() {
       @new-issue="openCreate(false)"
       @new-project="projectDialogOpen = true"
       @settings="settingsOpen = true"
+      @skipped="skippedOpen = true"
       @open-issue="openIssue"
       @open-backlog="openBacklog"
       @drop="onDrop"
@@ -623,6 +636,7 @@ async function onCancelWontfix() {
     <CreateProjectDialog :open="projectDialogOpen" @close="projectDialogOpen = false" @created="onProjectCreated" />
     <CommandPalette :open="paletteOpen" :commands="commands" @close="paletteOpen = false" />
     <SettingsDialog :open="settingsOpen" @close="settingsOpen = false" />
+    <SkippedFilesDialog :open="skippedOpen" :files="skipped" @close="skippedOpen = false" />
     <WontfixModal
       :open="wontfixModalOpen"
       :issue-title="pendingWontfix?.issue.title ?? ''"

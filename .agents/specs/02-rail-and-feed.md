@@ -18,6 +18,7 @@ Status legend in [`_specs.md`](_specs.md#e2e-coverage).
 | Narrow the feed to one project | 🟡 | `02-rail-and-feed.spec.ts`. Not asserted: Paused section, empty project opening its board |
 | Pin a project to the top of the rail | ✅ | `02-rail-and-feed.spec.ts`: pin, remembered after reload, unpin; order unit-tested |
 | Resize the rail and the feed | ✅ | `02-rail-and-feed.spec.ts`: drag and keys, remembered after reload, double-click resets; clamp unit-tested in `tests/resize.test.ts` |
+| See which files the board skipped | ✅ | `02-rail-and-feed.spec.ts`: count in the rail, the list with reasons, the copied prompt, fixed files leave the list live, collapsed tooltip, ⌘K. Every reason unit-tested in `tests/issues.test.ts`, the prompt in `tests/prompts.test.ts` |
 | The board follows file changes live | 🟡 | `02-rail-and-feed.spec.ts`: live dot, a status change moves the card, a new file appears, selection kept. Not asserted: offline badge and catch-up. Debounce unit-tested in `tests/watch.test.ts` |
 
 ### Scenario: The feed lists sessions and issues by day
@@ -130,6 +131,25 @@ THEN the pane resizes — the rail between 180 and 460 px, the feed between
     280 and 600 px — and the width is remembered
 WHEN I double-click the edge
 THEN the pane returns to its default width (248 / 380 px)
+```
+
+### Scenario: See which files the board skipped
+
+```
+GIVEN files the board can't show: an issue file with invalid frontmatter,
+    one whose name looks like an issue but isn't `NNNN-slug.md` (capitals,
+    spaces, a sync conflict copy), one that can't be read, or a project
+    folder not named `NN-slug`
+WHEN I open the workspace
+THEN the bottom of the rail says "N files skipped" — nothing when there are
+    none, an icon with that tooltip when the rail is collapsed
+WHEN I click it (or run "Show skipped files" from ⌘K)
+THEN a dialog lists each path with its reason
+AND offers a prompt to copy that asks the agent to fix exactly those files
+    and to run `loopboard check` afterwards
+AND loopboard changes none of the files itself
+WHEN a file is fixed
+THEN it leaves the list and shows up on the board without a reload
 ```
 
 ### Scenario: The board follows file changes live
