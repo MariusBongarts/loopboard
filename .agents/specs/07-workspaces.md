@@ -19,7 +19,7 @@ Status legend in [`_specs.md`](_specs.md#e2e-coverage).
 | See what needs me across all workspaces | 🟡 | `07-workspaces.spec.ts`: totals, groups, deep link with selection. Not asserted: skipped list, refresh on focus |
 | A workspace whose folder disappeared | 🟡 | `07-workspaces.spec.ts`: "folder missing" in the menu. Not asserted: opening it |
 | List workspaces from the terminal | ✅ | [`cli.spec.ts`](../../tests/e2e/cli.spec.ts) runs the built binary from a folder without a root or git, no board running: table, `--json`, empty registry. Same in `tests/workspaces.test.ts` |
-| Forget workspaces from the terminal | ✅ | [`cli.spec.ts`](../../tests/e2e/cli.spec.ts): unknown id forgets nothing, files and saved views stay, the running board's switcher drops the entry on reload. Several ids at once in `tests/workspaces.test.ts` |
+| Forget workspaces from the terminal | ✅ | [`cli.spec.ts`](../../tests/e2e/cli.spec.ts): unknown id forgets nothing, files and saved views stay, the running board's switcher drops the entry on reload. Several ids at once and waiting for another writer of the registry in `tests/workspaces.test.ts` |
 
 ### Scenario: Open the last-used workspace
 
@@ -65,7 +65,8 @@ AND ↑/↓ move through suggestions, Tab or Enter takes one
 WHEN I press Enter (or "Add workspace") on a repo path
 THEN the repo is registered and opens at /w/<workspace>, its id being the
     folder name as a slug (§ 0): "Büro" opens at /w/buero, however the name
-    is composed on disk
+    is composed on disk or in the path I typed — it is one workspace either
+    way
 AND adding a repo that is already registered just opens it, under the id it
     already has
 ```
@@ -133,7 +134,8 @@ WHEN I run `loopboard workspaces forget <id>…`
 THEN those entries leave the registry and each is printed with its path
 AND no file in any repo changes; a forgotten workspace's saved views stay in
     the config folder, and the output names the file
-AND a running board no longer lists them on its next load
+AND a running board no longer lists them on its next load, and nothing the
+    board writes to the registry at that moment brings them back
 WHEN one of the ids is not registered
 THEN it exits with 1, names that id and forgets nothing
 ```

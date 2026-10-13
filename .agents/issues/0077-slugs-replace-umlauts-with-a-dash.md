@@ -61,3 +61,10 @@ Slugs stay readable: `NNNN-groesse-der-uebersicht-aendern.md`,
   accents. #0078 takes the folder's slug from the same function. Vitest:
   `tests/workspaces.test.ts` "slugify" and the registry tests marked #0077,
   `tests/create.test.ts` for issue files, project folders and the cut.
+- Review round: one folder reached through a composed and a decomposed
+  spelling of its path registered twice (`buero`, `buero-2`); the registry
+  now treats two roots as one when their composed spellings match and they
+  are the same folder on disk. `slugify` returns an empty string for a name
+  with nothing to keep, and each caller names that case: `workspace` for a
+  workspace id, `untitled` for an issue file or a project folder (they used
+  to be called `workspace` too).

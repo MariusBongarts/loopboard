@@ -24,7 +24,9 @@
   ids: `ä`, `ö`, `ü` and `ß` are written out (`ae`, `oe`, `ue`, `ss`), other
   accented Latin letters keep their base letter (`é` → `e`, `ñ` → `n`), and
   every other run of characters becomes one dash. Issue and project slugs
-  are cut at 60 characters.
+  are cut at 60 characters. A name that leaves nothing (only symbols, or a
+  script without a Latin form) becomes `untitled` for an issue or a project
+  and `workspace` for a workspace id.
 - **Current focus** — the first paragraph of a WIP's `## Current focus`
   section; what the project is doing right now.
 - **Session** — one dated `### YYYY-MM-DD` entry in a WIP's `## Activity log`.

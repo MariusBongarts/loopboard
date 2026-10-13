@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
-import { rename, writeFile } from "node:fs/promises";
+import { mkdir, open, rename, rm, stat, writeFile } from "node:fs/promises";
+import { dirname } from "node:path";
 
 // Write to a temp file and rename over the target, so a crash or a watcher
 // never sees a half-written file.
@@ -21,6 +22,39 @@ export function serialized<T>(key: string, run: () => Promise<T>): Promise<T> {
     if (queues.get(key) === settled) queues.delete(key);
   });
   return next;
+}
+
+const LOCK_RETRY_MS = 20;
+// A write takes milliseconds: an older lock was left by a process that died.
+const LOCK_STALE_MS = 5000;
+
+// `serialized` across processes, for a file a running board and the CLI both
+// write (#0099): `run` holds `<path>.lock`, and everyone else waits for it.
+export async function withFileLock<T>(path: string, run: () => Promise<T>): Promise<T> {
+  const lock = `${path}.lock`;
+  for (;;) {
+    try {
+      await (await open(lock, "wx")).close();
+      break;
+    } catch (err) {
+      const code = err instanceof Error && "code" in err ? err.code : "";
+      if (code === "EEXIST") {
+        const age = await stat(lock).then((s) => Date.now() - s.mtimeMs, () => 0);
+        if (age > LOCK_STALE_MS) await rm(lock, { force: true });
+        else await new Promise((r) => setTimeout(r, LOCK_RETRY_MS));
+      } else if (code === "ENOENT") {
+        await mkdir(dirname(lock), { recursive: true });
+      } else {
+        // A folder that takes no lock file (read-only): as without one.
+        return run();
+      }
+    }
+  }
+  try {
+    return await run();
+  } finally {
+    await rm(lock, { force: true });
+  }
 }
 
 export function todayIso(now = new Date()): string {

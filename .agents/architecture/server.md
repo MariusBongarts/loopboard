@@ -70,7 +70,10 @@ on Windows, else `$XDG_CONFIG_HOME/loopboard` or `~/.config/loopboard`.
 Read-modify-writes run one at a time per key (`serialized` in
 [files.ts](../../server/files.ts)): the registry per config dir, and each issue
 file for PATCHes and editor saves — two picks in quick succession can't drop
-each other's change. Every write goes through `writeFileAtomic` with a unique
+each other's change. The registry has a second writer, the CLI next to a
+running board, so its updates also hold `workspaces.json.lock`
+(`withFileLock`; a lock older than five seconds was left by a dead process
+and is taken over) (#0099). Every write goes through `writeFileAtomic` with a unique
 temp name.
 
 ## Why targeted line edits

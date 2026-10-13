@@ -1,7 +1,7 @@
 import { existsSync, readdirSync, statSync } from "node:fs";
 import { mkdir, readFile } from "node:fs/promises";
 import { basename, dirname, join, resolve } from "node:path";
-import { serialized, writeFileAtomic } from "./files";
+import { serialized, withFileLock, writeFileAtomic } from "./files";
 import { matchName } from "./names";
 
 // One running loopboard remembers many repos (ADR-0002, #0008).
@@ -57,8 +57,9 @@ const WRITTEN_OUT: Record<string, string> = {
 const WRITTEN_OUT_RE = new RegExp(`[${Object.keys(WRITTEN_OUT).join("")}]`, "g");
 
 // The one slug behind issue file names, project folders and workspace ids.
+// Empty when the name has nothing a slug can keep; each caller names that.
 export function slugify(name: string): string {
-  const slug = name
+  return name
     .normalize("NFC")
     .toLowerCase()
     .replace(WRITTEN_OUT_RE, (letter) => WRITTEN_OUT[letter])
@@ -66,7 +67,6 @@ export function slugify(name: string): string {
     .replace(/\p{M}/gu, "")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
-  return slug || "workspace";
 }
 
 function registryFile(configDir: string): string {
@@ -97,15 +97,18 @@ export async function saveRegistry(configDir: string, registry: Registry): Promi
 }
 
 // Read-modify-write, one at a time per config dir: two requests at once
-// (say, opening a workspace while adding another) must not drop an update.
+// (say, opening a workspace while adding another) must not drop an update,
+// and neither must the CLI next to a running board (#0099).
 function updateRegistry<T>(configDir: string, change: (registry: Registry) => T): Promise<T> {
-  return serialized(`registry:${configDir}`, async () => {
-    const registry = await loadRegistry(configDir);
-    const before = JSON.stringify(registry);
-    const result = change(registry);
-    if (JSON.stringify(registry) !== before) await saveRegistry(configDir, registry);
-    return result;
-  });
+  return serialized(`registry:${configDir}`, () =>
+    withFileLock(registryFile(configDir), async () => {
+      const registry = await loadRegistry(configDir);
+      const before = JSON.stringify(registry);
+      const result = change(registry);
+      if (JSON.stringify(registry) !== before) await saveRegistry(configDir, registry);
+      return result;
+    })
+  );
 }
 
 export class RootNotFoundError extends Error {
@@ -115,14 +118,27 @@ export class RootNotFoundError extends Error {
   }
 }
 
+// One folder reached through a composed and a decomposed spelling of its
+// name (macOS hands out both) is one root (#0077).
+function sameRoot(a: string, b: string): boolean {
+  if (a === b) return true;
+  if (a.normalize("NFC") !== b.normalize("NFC")) return false;
+  try {
+    const [x, y] = [statSync(a), statSync(b)];
+    return x.ino === y.ino && x.dev === y.dev;
+  } catch {
+    return false;
+  }
+}
+
 // Registers (or re-selects) the repo at `path`; deduplicated by root.
 export async function registerWorkspace(configDir: string, path: string): Promise<Workspace> {
   const found = detectRoot(path);
   if (!found) throw new RootNotFoundError(resolve(path));
   return updateRegistry(configDir, (registry) => {
-    let workspace = registry.workspaces.find((w) => resolve(w.root) === found.root);
+    let workspace = registry.workspaces.find((w) => sameRoot(resolve(w.root), found.root));
     if (!workspace) {
-      const base = slugify(basename(found.repoPath));
+      const base = slugify(basename(found.repoPath)) || "workspace";
       const taken = new Set(registry.workspaces.map((w) => w.id));
       let id = base;
       for (let n = 2; taken.has(id); n++) id = `${base}-${n}`;

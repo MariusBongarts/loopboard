@@ -57,6 +57,12 @@ describe('createIssue', () => {
     expect(slug).toBe('01-schriftgroessen-fuer-menues-knoepfe-und-fusszeilen-ueberall');
   });
 
+  it('calls an issue or project whose title leaves no slug "untitled"', async () => {
+    expect((await createIssue(root, { title: '???', category: 'task' })).filename).toBe('0001-untitled.md');
+    expect((await createIssue(root, { title: '日本語のタイトル', category: 'task' })).filename).toBe('0002-untitled.md');
+    expect((await createProject(root, '🚀🚀')).slug).toBe('01-untitled');
+  });
+
   it('leaves files that carry an older slug alone (#0077)', async () => {
     const old = '0001-gr-e-der-bersicht-ndern.md';
     await writeFile(join(root, 'issues', old), '---\nid: 0001\ntitle: Größe der Übersicht ändern\nstatus: todo\n---\n');

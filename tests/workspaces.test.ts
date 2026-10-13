@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+import { mkdir, mkdtemp, readFile, rm, utimes, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { launch, main } from '../server/cli';
@@ -79,7 +80,11 @@ describe('slugify', () => {
 
   it('still collapses everything else into single dashes', () => {
     expect(slugify('  My App_v2 (old)!  ')).toBe('my-app-v2-old');
-    expect(slugify('日本語')).toBe('workspace');
+  });
+
+  it('is empty for a name with nothing to keep, so each caller can name it', () => {
+    expect(slugify('日本語')).toBe('');
+    expect(slugify('???')).toBe('');
   });
 });
 
@@ -117,6 +122,23 @@ describe('workspace registry', () => {
     expect((await registerWorkspace(config, decomposed)).id).toBe('buero-2');
   });
 
+  it('registers one folder once, however its name is composed in the path (#0077)', async () => {
+    const composed = await repo('B\u00fcro', '.agents');
+    const decomposed = join(tmp, 'Bu\u0308ro');
+    // APFS and NTFS open the folder under either spelling; ext4 keeps two folders apart.
+    const oneFolder = existsSync(decomposed);
+    if (!oneFolder) await repo('Bu\u0308ro', '.agents');
+
+    await registerWorkspace(config, composed);
+    await registerWorkspace(config, decomposed);
+
+    expect((await loadRegistry(config)).workspaces.map((w) => w.id)).toEqual(oneFolder ? ['buero'] : ['buero', 'buero-2']);
+  });
+
+  it('calls a folder whose name leaves no slug "workspace"', async () => {
+    expect((await registerWorkspace(config, await repo('日本語', '.agents'))).id).toBe('workspace');
+  });
+
   it('keeps the id a workspace was registered under (#0077)', async () => {
     const path = await repo('Büro', '.agents');
     const root = join(path, '.agents');
@@ -150,6 +172,41 @@ describe('workspace registry', () => {
     const { removed } = await removeWorkspaces(config, ['three', 'one']);
     expect(removed.map((w) => w.id)).toEqual(['one', 'three']);
     expect(await loadRegistry(config)).toMatchObject({ workspaces: [{ id: 'two' }], lastUsed: 'two' });
+  });
+
+  // The CLI writes the registry next to a running board (#0099).
+  it('waits for another process that holds the registry, then builds on what it wrote', async () => {
+    const file = join(config, 'workspaces.json');
+    await registerWorkspace(config, await repo('one', '.agents'));
+    await writeFile(`${file}.lock`, '');
+    let done = false;
+    const forget = removeWorkspaces(config, ['one']).then((result) => {
+      done = true;
+      return result;
+    });
+    await new Promise((r) => setTimeout(r, 120));
+    expect(done).toBe(false);
+
+    // The other process adds a workspace and lets go.
+    const registry = JSON.parse(await readFile(file, 'utf8'));
+    registry.workspaces.push({ id: 'two', name: 'two', repoPath: '/two', root: '/two/.agents' });
+    await writeFile(file, JSON.stringify(registry));
+    await rm(`${file}.lock`);
+
+    expect((await forget).removed.map((w) => w.id)).toEqual(['one']);
+    expect((await loadRegistry(config)).workspaces.map((w) => w.id)).toEqual(['two']);
+    expect(existsSync(`${file}.lock`)).toBe(false);
+  });
+
+  it('takes over a lock that a process left behind', async () => {
+    const file = join(config, 'workspaces.json');
+    await registerWorkspace(config, await repo('one', '.agents'));
+    await writeFile(`${file}.lock`, '');
+    const longAgo = new Date(Date.now() - 60_000);
+    await utimes(`${file}.lock`, longAgo, longAgo);
+
+    expect(await removeWorkspace(config, 'one')).toBe(true);
+    expect(existsSync(`${file}.lock`)).toBe(false);
   });
 
   it('reports a workspace whose folder disappeared as unavailable', async () => {

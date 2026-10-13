@@ -62,3 +62,10 @@ Until the CLI is on the PATH (#0076), run it from a clone: `pnpm build`, then
   `{ id, name, path, exists }`. `forget` is all or nothing: one unknown id
   and no entry goes. The saved-views line appears only for a workspace that
   has a views file.
+- Review round: the CLI is a second writer of `workspaces.json` next to a
+  running board, and the registry was only serialized inside one process: a
+  `forget` that overlapped a board write (the board notes the last-used
+  workspace on every load) could be undone although the CLI had printed
+  "forgot". Every registry update now holds `workspaces.json.lock`. Run as a
+  stress test against the built CLI: the forgotten entry came back in 0 of
+  25 rounds (before: 37 of 40).
