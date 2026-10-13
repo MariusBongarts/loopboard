@@ -3,7 +3,7 @@ import { request } from 'node:http';
 import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { AddressInfo } from 'node:net';
+import { connect, type AddressInfo } from 'node:net';
 import type { Server } from 'node:http';
 import { latestMigration } from '../server/migrations';
 import { packageRoot } from '../server/paths';
@@ -235,5 +235,23 @@ describe('API over HTTP', () => {
       await until(() => !watchHub.watching(root));
       await call('DELETE', '/api/workspaces/away');
     }
+  });
+
+  // Its "close" fires before the route subscribes; the watcher, its retries
+  // and its poll would then run for good (#0072).
+  it('keeps no subscription for a client that hangs up while the stream is being set up', async () => {
+    const root = join(tmp, 'demo', '.agents');
+    for (let i = 0; i < 20; i++) {
+      await new Promise<void>((resolve) => {
+        const socket = connect(port, '127.0.0.1', () => {
+          socket.write(`GET /api/w/demo/events HTTP/1.1\r\nHost: localhost:${port}\r\n\r\n`, () => {
+            socket.destroy();
+            resolve();
+          });
+        });
+      });
+    }
+    await new Promise((r) => setTimeout(r, 200));
+    expect(watchHub.watching(root)).toBe(false);
   });
 });

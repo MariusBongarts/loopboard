@@ -20,6 +20,18 @@ export function onLiveEvent(event: LiveEvent, state: LiveState): { state: LiveSt
   }
 }
 
+// One run at a time: calls made while it runs get the same promise. Five
+// clicks on "Refresh" are one read and one toast (#0072).
+export function singleFlight<T>(run: () => Promise<T>): () => Promise<T> {
+  let pending: Promise<T> | null = null;
+  return () => {
+    pending ??= run().finally(() => {
+      pending = null;
+    });
+    return pending;
+  };
+}
+
 // Follows /api/w/:ws/events (#0010).
 export function useLiveUpdates(workspace: Ref<string>, onChange: () => void) {
   const state = ref<LiveState>('connecting');

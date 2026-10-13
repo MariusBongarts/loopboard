@@ -20,9 +20,9 @@ Status legend in [`_specs.md`](_specs.md#e2e-coverage).
 | Resize the rail and the feed | ✅ | `02-rail-and-feed.spec.ts`: drag and keys, remembered after reload, double-click resets; clamp unit-tested in `tests/resize.test.ts` |
 | See which files the board skipped | 🟡 | `02-rail-and-feed.spec.ts`: count in the rail, the list with reasons, the copied prompt, fixed files leave the list live, collapsed tooltip, ⌘K. Not asserted: no notice when nothing is skipped (the demo fixture always has one). Every reason unit-tested in `tests/issues.test.ts`, the prompt and its escaping in `tests/prompts.test.ts` |
 | The board follows file changes live | 🟡 | `02-rail-and-feed.spec.ts`: live dot, a status change moves the card, a new file appears, selection kept. Not asserted: the open panel and scroll position. Debounce unit-tested in `tests/watch.test.ts` |
-| The board says when it stops being live | 🟡 | `02-rail-and-feed.spec.ts` drives the event stream: "Not live" and "Offline" badges, the refetch, the dot coming back with a catch-up. The watcher failure, the re-watch with backoff and the stream's `stale` / `ready` are in `tests/watch.test.ts`, `tests/handler.test.ts` and `tests/live.test.ts` (#0072) |
-| Refresh on demand | ✅ | `02-rail-and-feed.spec.ts`: a click on the dot, "Refresh" in ⌘K and a click on the badge each show a change made on disk; toast |
-| Folders the watcher can't follow still update | ❌ | Vitest only — `tests/watch.test.ts`: a symlinked `issues/` is polled, `LOOPBOARD_POLL_MS`, what a poll compares |
+| The board says when it stops being live | 🟡 | `02-rail-and-feed.spec.ts` drives the event stream: "Not live" and "Offline" badges, the refetch, the dot coming back with a catch-up. The watcher failure, the re-watch with backoff (and its restart), a polled root staying live and the stream's `stale` / `ready` are in `tests/watch.test.ts`, `tests/handler.test.ts` and `tests/live.test.ts` (#0072) |
+| Refresh on demand | ✅ | `02-rail-and-feed.spec.ts`: a click on the dot, "Refresh" in ⌘K and a click on the badge each show a change made on disk; toast. One read for several clicks in `tests/live.test.ts` |
+| Folders the watcher can't follow still update | ❌ | Vitest only — `tests/watch.test.ts`: each symlinked folder is polled (and a root without one isn't), `LOOPBOARD_POLL_MS`, what a poll compares |
 
 ### Scenario: The feed lists sessions and issues by day
 
@@ -195,6 +195,10 @@ THEN the dot is back and changes made in the meantime are fetched
 WHEN the connection to loopboard drops
 THEN an "Offline" badge replaces the dot
 AND after reconnecting, changes made in the meantime are fetched
+AND a workspace that is polled (see "Folders the watcher can't follow still
+    update") keeps its dot while the watcher is down: its changes still
+    arrive
+AND collapsed, the badge is a dot with the same click target as the live dot
 ```
 
 ### Scenario: Refresh on demand
@@ -203,18 +207,22 @@ AND after reconnecting, changes made in the meantime are fetched
 GIVEN a workspace, live or not
 WHEN I click the live indicator (the dot or a badge) or choose "Refresh" in ⌘K
 THEN the workspace is read from disk again and a "Refreshed" toast confirms it
+AND clicks while that read is running start no second one: one read, one
+    toast
 ```
 
 ### Scenario: Folders the watcher can't follow still update
 
 ```
-GIVEN a root whose issues/ or projects/ folder is a symlink
+GIVEN a root where issues/, projects/, specs/, issues/_archive or one
+    project folder is a symlink when the board opens it
 WHEN a file behind the link changes
-THEN the board updates within a few seconds: those two folders are checked
-    every 2 s for a different number of markdown files or a newer one
+THEN the board updates within a few seconds: issues/, projects/ and specs/
+    are checked every 2 s for a different number of markdown files or a
+    newer one
 GIVEN a root whose changes never reach the watcher (some network or synced
     folders)
 WHEN I start loopboard with LOOPBOARD_POLL_MS=<milliseconds> (250 or more)
-THEN issues/ and projects/ of every workspace are checked at that interval
-    as well, and a difference updates the board like any other change
+THEN those three folders of every workspace are checked at that interval as
+    well, and a difference updates the board like any other change
 ```

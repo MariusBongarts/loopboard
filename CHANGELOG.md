@@ -18,9 +18,9 @@ must apply are numbered in [MIGRATIONS.md](MIGRATIONS.md).
   and never touches a repo's files.
 - Live updates: the board follows file changes as agents work. When the file
   watcher fails it says "Not live", refetches and recovers on its own;
-  "Refresh" is a click on the live indicator or ⌘K away. Symlinked `issues/`
-  and `projects/` folders are polled, and `LOOPBOARD_POLL_MS` polls every
-  workspace.
+  "Refresh" is a click on the live indicator or ⌘K away. A workspace with a
+  symlinked `issues/`, `projects/`, `specs/`, archive or project folder is
+  polled, and `LOOPBOARD_POLL_MS` polls every workspace.
 
 ### Set up and upgrade
 - `loopboard init` scaffolds the workflow (skills, templates, specs,

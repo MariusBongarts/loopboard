@@ -52,9 +52,22 @@ recovers on its own, and a manual refresh is always one action away.
 - The stream gained a `stale` event; `ready` is sent again once the root is
   watched. A root that can't be watched when a client connects (missing
   folder) is reported and retried the same way.
-- Polling runs next to the watcher, not instead of it: the watcher still
-  covers `specs/`. A change both see causes two refetches.
+- Polling runs next to the watcher, not instead of it. A change both see
+  causes two refetches.
 - Not covered: a watcher that goes quiet without an error. On macOS a
   replaced root raises none, and a renamed folder only produces directory
   events, which the hub ignores (#0010) — `LOOPBOARD_POLL_MS` catches both
   for `issues/` and `projects/`.
+- Review round:
+  - The fallback also starts when `specs/`, `issues/_archive` or a single
+    project folder is the symlink, and a poll covers `specs/` too. Links are
+    looked for when the first client subscribes; one added later is found on
+    the next subscription.
+  - A polled root counts as watched: the stream says `ready`, not `stale`,
+    while its watcher is down, because its changes still arrive.
+  - The event route no longer subscribes for a client that hung up while the
+    workspace was looked up. Such a subscription was never ended, and with
+    it the watcher, its retries and its poll.
+  - "Refresh" runs once however often it is clicked while it runs.
+  - Tests: every symlink position, the backoff starting over after a watcher
+    held (the hold time is an option of the hub), the hung-up client.

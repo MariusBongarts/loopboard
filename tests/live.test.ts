@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { onLiveEvent, type LiveEvent, type LiveState } from '../src/live';
+import { onLiveEvent, singleFlight, type LiveEvent, type LiveState } from '../src/live';
 
 // Feeds a stream of events through the reducer; counts the refetches.
 function run(events: LiveEvent[], from: LiveState = 'connecting') {
@@ -37,5 +37,38 @@ describe('onLiveEvent', () => {
   it('is not live when the first thing it hears is stale', () => {
     expect(run(['stale'])).toEqual({ state: 'stale', refetches: 1 });
     expect(run(['ready', 'error', 'stale'])).toEqual({ state: 'stale', refetches: 1 });
+  });
+});
+
+// "Refresh" clicked several times in a row (#0072).
+describe('singleFlight', () => {
+  it('shares one run between calls made while it runs, then runs again', async () => {
+    let runs = 0;
+    let finish: () => void = () => {};
+    const refresh = singleFlight(() => {
+      runs++;
+      return new Promise<void>((resolve) => (finish = resolve));
+    });
+
+    const calls = [refresh(), refresh(), refresh()];
+    expect(runs).toBe(1);
+    finish();
+    await Promise.all(calls);
+
+    const later = refresh();
+    expect(runs).toBe(2);
+    finish();
+    await later;
+  });
+
+  it('runs again after a run that failed', async () => {
+    let runs = 0;
+    const refresh = singleFlight(async () => {
+      if (++runs === 1) throw new Error('offline');
+    });
+
+    await expect(refresh()).rejects.toThrow('offline');
+    await refresh();
+    expect(runs).toBe(2);
   });
 });

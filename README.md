@@ -105,8 +105,9 @@ loopboard --version         # from any folder; build again after pulling
 The board follows file changes through the operating system's file watcher
 and says "Not live" when that stops working. On a network or synced folder
 that reports no changes, start it with `LOOPBOARD_POLL_MS=2000` to also check
-`issues/` and `projects/` every two seconds; a symlinked `issues/` or
-`projects/` folder is checked that way on its own.
+`issues/`, `projects/` and `specs/` every two seconds; a workspace where one
+of them, the archive or a project folder is a symlink is checked that way on
+its own.
 
 ## Contributing
 

@@ -16,7 +16,7 @@ import SkippedFilesDialog from '../components/SkippedFilesDialog.vue';
 import WontfixModal from '../components/WontfixModal.vue';
 import WorkspaceMissing from '../components/WorkspaceMissing.vue';
 import type { IssueEdit } from '../issueMenus';
-import { useLiveUpdates } from '../live';
+import { singleFlight, useLiveUpdates } from '../live';
 import { activeMenu, closeMenu } from '../menu';
 import { buildRelations } from '../relations';
 import { EDITOR_LABEL, editorChoice, issueEditorUrl } from '../editor';
@@ -150,10 +150,10 @@ function scheduleReload() {
 const { state: liveState } = useLiveUpdates(workspaceId, scheduleReload);
 
 // Always one action away (#0072): ⌘K and a click on the live indicator.
-async function refresh() {
+const refresh = singleFlight(async () => {
   await load();
   if (!errorFromLoad) toast('Refreshed');
-}
+});
 
 // A missing root can't be watched, so poll until it's back (#0015).
 let missingTimer: ReturnType<typeof setInterval> | null = null;

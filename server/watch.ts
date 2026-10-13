@@ -1,4 +1,4 @@
-import { lstatSync, watch, type FSWatcher } from "node:fs";
+import { lstatSync, readdirSync, watch, type FSWatcher } from "node:fs";
 import { readdir, stat } from "node:fs/promises";
 import { join } from "node:path";
 
@@ -16,8 +16,12 @@ export interface WatchOptions {
   debounceMs?: number;
   // Poll every root at this interval; 0 polls only roots the watcher can't follow.
   pollMs?: number;
+  // The interval for those roots.
+  linkedPollMs?: number;
   // First re-watch delay after a failure; doubles up to RETRY_MAX_MS.
   retryMs?: number;
+  // A watcher that held this long starts the backoff over when it dies.
+  holdMs?: number;
   watch?: WatchFn;
 }
 
@@ -28,6 +32,8 @@ interface Entry {
   retry: ReturnType<typeof setTimeout> | null;
   failures: number;
   openedAt: number;
+  // A polled root is followed even while its watcher is down.
+  polled: boolean;
   poll: ReturnType<typeof setTimeout> | null;
   seen: string | null;
 }
@@ -38,7 +44,7 @@ const RELEVANT = /\.md$/i;
 const IGNORED = /(^|[\\/])(\.git|node_modules)([\\/]|$)/;
 
 const RETRY_MAX_MS = 30_000;
-const POLLED = ["issues", "projects"] as const;
+const POLLED = ["issues", "projects", "specs"] as const;
 const POLL_DEPTH = 3;
 const POLL_MIN_MS = 250;
 const POLL_FALLBACK_MS = 2000;
@@ -50,15 +56,25 @@ export function pollInterval(value: string | undefined): number {
   return Number.isFinite(ms) && ms > 0 ? Math.max(Math.round(ms), POLL_MIN_MS) : 0;
 }
 
-// fs.watch reports nothing from behind a symlink (#0072).
+function isLink(path: string): boolean {
+  try {
+    return lstatSync(path).isSymbolicLink();
+  } catch {
+    return false;
+  }
+}
+
+// fs.watch reports nothing from behind a symlink (#0072). The polled folders,
+// the archive and every project folder may be one.
 function hasLinkedFolder(root: string): boolean {
-  return POLLED.some((dir) => {
-    try {
-      return lstatSync(join(root, dir)).isSymbolicLink();
-    } catch {
-      return false;
-    }
-  });
+  const projects = join(root, "projects");
+  let folders: string[] = [];
+  try {
+    folders = readdirSync(projects);
+  } catch {
+    // No projects/: nothing more to look at.
+  }
+  return [...POLLED.map((dir) => join(root, dir)), join(root, "issues", "_archive"), ...folders.map((name) => join(projects, name))].some(isLink);
 }
 
 async function stamps(dir: string, depth: number): Promise<string[]> {
@@ -75,8 +91,8 @@ async function stamps(dir: string, depth: number): Promise<string[]> {
   return found.flat();
 }
 
-// What a poll compares (#0072): the markdown files in issues/ and projects/
-// with their mtimes, so a new count or a newer file reads as a change.
+// What a poll compares (#0072): the markdown files in issues/, projects/ and
+// specs/ with their mtimes, so a new count or a newer file reads as a change.
 // stat follows symlinks.
 export async function snapshot(root: string): Promise<string> {
   const found = await Promise.all(POLLED.map((dir) => stamps(join(root, dir), 1)));
@@ -89,23 +105,27 @@ export class WatchHub {
   private entries = new Map<string, Entry>();
   private readonly debounceMs: number;
   private readonly pollMs: number;
+  private readonly linkedPollMs: number;
   private readonly retryMs: number;
+  private readonly holdMs: number;
   private readonly watchFn: WatchFn;
 
   constructor(options: WatchOptions = {}) {
     this.debounceMs = options.debounceMs ?? 150;
     this.pollMs = options.pollMs ?? 0;
+    this.linkedPollMs = options.linkedPollMs ?? POLL_FALLBACK_MS;
     this.retryMs = options.retryMs ?? 1000;
+    this.holdMs = options.holdMs ?? RETRY_MAX_MS;
     this.watchFn = options.watch ?? watch;
   }
 
   subscribe(root: string, listener: Listener): () => void {
     let entry = this.entries.get(root);
     if (!entry) {
-      entry = { watcher: null, listeners: new Set(), timer: null, retry: null, failures: 0, openedAt: 0, poll: null, seen: null };
+      const pollMs = this.pollMs || (hasLinkedFolder(root) ? this.linkedPollMs : 0);
+      entry = { watcher: null, listeners: new Set(), timer: null, retry: null, failures: 0, openedAt: 0, polled: pollMs > 0, poll: null, seen: null };
       this.entries.set(root, entry);
       if (!this.open(root, entry)) this.retryLater(root, entry);
-      const pollMs = this.pollMs || (hasLinkedFolder(root) ? POLL_FALLBACK_MS : 0);
       if (pollMs) this.poll(root, entry, pollMs);
     }
     entry.listeners.add(listener);
@@ -117,9 +137,11 @@ export class WatchHub {
     };
   }
 
-  // False while a root's watcher is down and waiting for its next retry.
+  // False while a root's watcher is down and waiting for its next retry,
+  // unless the root is polled: its changes still arrive.
   watching(root: string): boolean {
-    return !!this.entries.get(root)?.watcher;
+    const entry = this.entries.get(root);
+    return !!entry && (!!entry.watcher || entry.polled);
   }
 
   private open(root: string, entry: Entry): boolean {
@@ -144,8 +166,8 @@ export class WatchHub {
     if (entry.watcher !== watcher) return;
     watcher.close();
     entry.watcher = null;
-    if (Date.now() - entry.openedAt > RETRY_MAX_MS) entry.failures = 0;
-    this.emit(entry, "stale");
+    if (Date.now() - entry.openedAt > this.holdMs) entry.failures = 0;
+    if (!entry.polled) this.emit(entry, "stale");
     this.retryLater(root, entry);
   }
 
@@ -154,8 +176,8 @@ export class WatchHub {
     entry.failures++;
     entry.retry = setTimeout(() => {
       entry.retry = null;
-      if (this.open(root, entry)) this.emit(entry, "ready");
-      else this.retryLater(root, entry);
+      if (!this.open(root, entry)) this.retryLater(root, entry);
+      else if (!entry.polled) this.emit(entry, "ready");
     }, delay);
   }
 

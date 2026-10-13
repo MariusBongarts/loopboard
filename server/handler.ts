@@ -199,9 +199,13 @@ route("GET", /^\/api\/w\/([^/]+)\/data$/, async (ctx, _req, res, m) => {
 });
 
 // Server-Sent Events: "change" whenever files under the root change (#0010),
-// "stale" while the watcher is down and "ready" once it watches (#0072).
+// "stale" while nothing follows the root and "ready" once the watcher or a
+// poll does (#0072).
 route("GET", /^\/api\/w\/([^/]+)\/events$/, async (ctx, req, res, m) => {
   const workspace = await findWorkspace(ctx, m.params[0]);
+  // A client that left during the lookup: its "close" has fired already, so
+  // nothing would ever end a subscription made now (#0072).
+  if (req.destroyed || res.destroyed) return;
   res.writeHead(200, {
     "content-type": "text/event-stream; charset=utf-8",
     "cache-control": "no-store",
