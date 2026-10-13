@@ -18,7 +18,10 @@
 Format: [`grill-with-docs/ADR-FORMAT.md`](../skills/grill-with-docs/ADR-FORMAT.md).
 Decisions 0001–0005 were locked in the
 [open-source launch PRD](../projects/01-open-source-launch/prd.md) and are
-not built yet; each names the issue that implements it.
+not built yet; each names the issue that implements it. Decisions 0007 and
+0008 fix the on-disk contract of
+[a tree of harnesses](../projects/04-harness-tree/prd.md) before it is
+built.
 
 | # | Decision | Implemented by |
 |---|---|---|
@@ -28,6 +31,8 @@ not built yet; each names the issue that implements it.
 | [0004](decisions/0004-sequential-branch-aware-ids.md) | Keep sequential IDs; allocate them across all branches and worktrees | #0016–#0018 |
 | [0005](decisions/0005-wysiwyg-with-block-splice.md) | WYSIWYG editing that only re-serializes the blocks you changed | #0025, #0026 |
 | [0006](decisions/0006-remotion-renders-mp4s-ship.md) | Remotion renders the Help Center's videos; only the MP4s ship | #0064, #0065 |
+| [0007](decisions/0007-identity-file-in-the-harness.md) | A harness carries its identity in `.agents/harness.md`; amends 0002 | #0078, #0079, #0080, #0103 |
+| [0008](decisions/0008-harness-ids-and-qualified-references.md) | Harness ids are short lowercase words, and references carry them in front | #0078, #0079, #0082 |
 
 ## How to update these docs
 

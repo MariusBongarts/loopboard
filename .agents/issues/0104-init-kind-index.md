@@ -38,8 +38,9 @@ folder"**.
 
 - PRD story 6. Split from #0081 in the review round.
 - Also needs #0078, which adds `--kind` and the id rules to `init`.
-- `--kind index` is an addition next to the decided `--kind docs`; whether
-  the flag keeps that name is question 4 in #0101.
+- `--kind index` was an addition next to the decided `--kind docs`. The
+  maintainer accepted it on 2026-10-13 (#0101, question 4): the flag keeps
+  its name, and ADR-0007 has the mapping onto `kind` and `type`.
 - `check` is per root today. The parent chain is the first thing it reads
   from the registry, so it has to work when there is none — a public repo's
   CI has no registry.

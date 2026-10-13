@@ -12,15 +12,18 @@ The six standalone issues that come before the tree are built.
 [#0076](../../issues/0076-cli-callable-everywhere-and-registry-cleanup.md)
 and [#0099](../../issues/0099-list-and-forget-workspaces-from-the-cli.md)
 (the CLI and the registry) are `in-review`: linking the clone and choosing
-which registry entries to forget are the maintainer's steps. Nothing of the
-project itself is built yet. Next is
-[#0078](../../issues/0078-init-kind-docs.md) — `loopboard init --kind docs`.
-#0078 can't start before
-[#0101](../../issues/0101-adrs-for-identity-ids-and-references.md), the ADRs
-that fix the id pattern and the reference syntax, and #0101 waits on the
-maintainer's answers. The identity file (#0079) comes next and unblocks the
-rest of phase 1. Read "Questions for the maintainer" first: four issues wait
-on answers.
+which registry entries to forget are the maintainer's steps. Of the project
+itself the conventions are written and nothing is built:
+[#0101](../../issues/0101-adrs-for-identity-ids-and-references.md) recorded
+the identity file, the id pattern, the reserved words, the reference syntax
+and what `init --kind` means in ADR-0007 and ADR-0008. Next is
+[#0078](../../issues/0078-init-kind-docs.md) — `loopboard init --kind docs`
+— which is unblocked: everything it needs is decided. #0101 stays with the
+maintainer for two questions that don't touch #0078: what a shared
+repository's identity file holds, and how a worktree or second clone opens.
+The identity file (#0079) comes after #0078 and unblocks the rest of
+phase 1. Read "Questions for the maintainer" first: four issues wait on
+answers.
 
 ## Before the tree
 
@@ -41,8 +44,10 @@ Until those are done:
   refuses the flag and writes nothing; before, it took `docs` for the target
   and scaffolded a full code harness into a new `docs/` folder. #0078 makes
   it work.
-- **Don't write ids into identity files** before #0101 is accepted: an id
-  never changes, and its pattern isn't fixed yet.
+- **Write an id only as ADR-0008 allows it.** The pattern and the reserved
+  words are fixed since #0101. In a git repository that others clone, keep
+  the identity file to what is true for everyone: what such a file holds is
+  still an open question (#0101, question 5).
 - **Register each harness once, through its real path.** A symlinked path
   becomes a second workspace until #0080 lands.
 - **Don't move or rename a registered harness folder** until #0079 and #0080
@@ -52,9 +57,9 @@ Until those are done:
   issue 0003, and neither is a link to that harness's issue file; loopboard
   reads such references from #0082 on.
 
-The rest of phase 1 can follow the tree. Once #0101 is accepted, identity
-files and references can be written by hand, because today's code ignores
-them; #0102 has to be done before the first upgrade of a docs harness.
+The rest of phase 1 can follow the tree. Since #0101's ADRs, identity files
+and references can be written by hand, because today's code ignores them;
+#0102 has to be done before the first upgrade of a docs harness.
 
 Before phase 3: #0074 (one "Needs you" rule) and #0075 (the generated large
 fixture and its measurements) — the Overview builds on both. Also related
@@ -73,7 +78,7 @@ Notes say "Also needs".
 
 Goal: a harness carries its own identity, a harness without code can be scaffolded, and references between harnesses are defined, checked and resolvable.
 
-- [ ] [#0101 Record the identity file, the id pattern and the reference syntax in ADRs](../../issues/0101-adrs-for-identity-ids-and-references.md) — todo (human: questions)
+- [ ] [#0101 Record the identity file, the id pattern and the reference syntax in ADRs](../../issues/0101-adrs-for-identity-ids-and-references.md) — in-progress (human: two questions left)
 - [ ] [#0078 Set up a harness without code with loopboard init --kind docs](../../issues/0078-init-kind-docs.md) — todo
 - [ ] [#0102 Keep a docs harness lean when it is upgraded](../../issues/0102-keep-a-docs-harness-lean-through-upgrades.md) — todo
 - [ ] [#0079 Take a harness's id, name and parent from its identity file](../../issues/0079-harness-identity-file.md) — todo
@@ -121,6 +126,30 @@ Goal: the documents an issue points at open from the board, and every harness ha
 - [ ] [#0098 Add a Home tab with INDEX.md, AGENTS.md and the identity](../../issues/0098-home-tab.md) — backlog
 
 ## Activity log
+
+### 2026-10-13 — ids and references decided
+
+- The maintainer accepted the assumed answers to questions 2–4 below, and
+  #0101 wrote them down:
+  [ADR-0007](../../architecture/decisions/0007-identity-file-in-the-harness.md)
+  for the identity file and the `--kind` flag,
+  [ADR-0008](../../architecture/decisions/0008-harness-ids-and-qualified-references.md)
+  for ids and references.
+- An id matches `^[a-z][a-z0-9-]{0,30}[a-z0-9]$` and is none of fifteen
+  reserved words; `--kind code|docs|index` names the scaffold and maps onto
+  the file's `kind` and `type`; a file reference ends at whitespace and
+  writes a space as `%20`.
+- The issues README has its "Reserved fields and references" section, the
+  glossary four terms — identity file, harness id, reserved word, qualified
+  reference — and the PRD's contract says "decided" where it said "assumed"
+  for these three questions.
+- #0078 is unblocked. No answer differed from its proposal, so no issue's
+  criteria changed.
+- Still open: questions 5 and 6 — a shared repository's identity file, and
+  worktrees. ADR-0007 records both as assumed, and #0101 stays `in-progress`
+  with the maintainer for exactly those two.
+- No example value for `recurrence` in the README: what the field holds is
+  a question in #0090.
 
 ### 2026-10-13 — review of the six
 
@@ -224,7 +253,8 @@ Goal: the documents an issue points at open from the board, and every harness ha
 
 Collected while planning and in the review round. Each has the answer the
 issues assume, so work can continue where nothing is blocked; overrule
-anything. Questions 2–4 block #0078 through #0101.
+anything. Questions 2–4 were answered on 2026-10-13 and stay here for the
+record; nothing blocks #0078 any more.
 
 1. **A root log of what was done where (#0109).** You asked, as a maybe, for
    a root memory file that keeps book whenever something was done somewhere.
@@ -235,18 +265,19 @@ anything. Questions 2–4 block #0078 through #0101.
    often has none. For those, #0109 proposes a `LOG.md` at the top node that
    a CLI command appends to from the session loop. Derived only, written
    too, or something else?
-2. **Id pattern and reserved words (#0101).** Assumed: lowercase letters,
-   digits and hyphens, starting with a letter, 2 to 32 characters; URL
-   schemes, `github`, YAML keywords and `workspace` can't be ids. A folder
-   whose slug starts with a digit then needs an explicit id.
-3. **File references and the `source:` line (#0101).** Assumed: a path ends
-   at whitespace and writes a space as `%20`; a word before a colon only
-   counts when it is a registered id; `source:` is never scanned.
-4. **`--kind` on `init` versus `kind:` in the file (#0101).** The flag is
-   `--kind docs`, while the file's `kind` is `harness` or `index` and `docs`
-   is a `type`. Assumed: the flag names the scaffold (`code`, `docs`,
-   `index`) and maps onto the two fields; `--kind index` is my addition
-   (#0104). Rename the flag if the double meaning bothers you.
+2. **Id pattern and reserved words (#0101).** *Answered 2026-10-13: as
+   assumed (ADR-0008).* Lowercase letters, digits and hyphens, starting with
+   a letter, 2 to 32 characters; URL schemes, `github`, YAML keywords and
+   `workspace` can't be ids. A folder whose slug starts with a digit needs
+   an explicit id.
+3. **File references and the `source:` line (#0101).** *Answered
+   2026-10-13: as assumed (ADR-0008).* A path ends at whitespace and writes
+   a space as `%20`; a word before a colon only counts when it is a
+   registered id; `source:` is never scanned.
+4. **`--kind` on `init` versus `kind:` in the file (#0101).** *Answered
+   2026-10-13: as assumed (ADR-0007).* The flag stays `--kind`: it names the
+   scaffold (`code`, `docs`, `index`) and maps onto the file's `kind` and
+   `type`; `--kind index` is in (#0104).
 5. **A shared repository's identity file (#0101, #0079).** In a public repo
    `id`, `name` and `parent` are public. Assumed: this repo ships
    `id: loopboard` and `parent: null`, and a personal name or parent lives

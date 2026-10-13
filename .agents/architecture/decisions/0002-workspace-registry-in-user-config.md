@@ -1,6 +1,6 @@
 # One server remembers many repos in a per-user registry
 
-- **Status**: accepted — built in #0008, #0009
+- **Status**: accepted — built in #0008, #0009; amended by [ADR-0007](0007-identity-file-in-the-harness.md), not built yet: a workspace's id and name come from the harness
 - **Date**: 2026-10-04
 
 The maintainer runs loopboard against many repos; today that is one dev

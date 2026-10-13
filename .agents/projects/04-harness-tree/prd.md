@@ -119,14 +119,19 @@ network.
 
 ## Implementation decisions
 
-The on-disk contract below was decided by the maintainer on 2026-10-13. Where
-a line goes beyond those decisions it says **assumed** and names where the
-question is settled; #0101 turns the assumptions about the contract into two
-ADRs before anything is written into real folders. After that the contract
-can be written by hand: today's code ignores the identity file and unknown
-frontmatter fields, and qualified references are inert in issue bodies and
-for `check` (the one exception is #0100). The examples use one tree
-throughout:
+The on-disk contract below was decided by the maintainer on 2026-10-13, and
+so was its fine print: the id pattern, the reserved words, where a file
+reference ends and what `init --kind` means (#0101). Two ADRs record it —
+[ADR-0007](../../architecture/decisions/0007-identity-file-in-the-harness.md)
+for the identity file and
+[ADR-0008](../../architecture/decisions/0008-harness-ids-and-qualified-references.md)
+for ids and references. Where a line still says **assumed**, it goes beyond
+those decisions and names where the question is settled; two of them are
+open questions in #0101 — a shared repository's identity file, and
+worktrees. The contract can be written by hand: today's code ignores the
+identity file and unknown frontmatter fields, and qualified references are
+inert in issue bodies and for `check` (the one exception is #0100). The
+examples use one tree throughout:
 
 ```text
 home         index     top node; names the objects folder
@@ -151,7 +156,7 @@ home         index     top node; names the objects folder
   | Field | Value |
   |---|---|
   | `schema` | integer; the version of this file format, `1` for now |
-  | `id` | kebab-case ASCII; unique among the nodes you register; never changes. **Assumed** (#0101): lowercase letters, digits and hyphens, starting with a letter, 2 to 32 characters, and not a reserved word |
+  | `id` | kebab-case ASCII; unique among the nodes you register; never changes. Lowercase letters, digits and hyphens, starting with a letter and ending with a letter or digit, 2 to 32 characters, and not a reserved word (ADR-0008) |
   | `name` | display name; any characters, quoted where YAML needs it |
   | `kind` | `harness` or `index` |
   | `parent` | the id of another node, or `null` for a top node |
@@ -183,15 +188,16 @@ home         index     top node; names the objects folder
   today's workspace id — not always: the registry appends `-2` when a second
   folder has the same name, and a name without letters or digits becomes
   `workspace`. So `init` looks at the registry before it writes an id
-  (#0078). Once loopboard reads the file, the id comes from there and
-  survives a move or a rename of the folder.
+  (#0078), and a slug that breaks the pattern — `2026-taxes` starts with a
+  digit — needs an explicit `--id`. Once loopboard reads the file, the id
+  comes from there and survives a move or a rename of the folder.
 - **A shared repository publishes its identity file.** In a git repository
   that others clone, `id`, `name`, `parent` and `aliases` travel to every
   clone. The file therefore holds what belongs to the project — this repo
   will ship `id: loopboard`, `name: loopboard`, `parent: null` — and ids and
-  parents in a public repo should be generic. **Assumed** (#0101): a name or
-  a parent that is personal lives in the per-user registry as an override;
-  the file's values are the defaults.
+  parents in a public repo should be generic. **Assumed** (#0101, question
+  5, still open): a name or a parent that is personal lives in the per-user
+  registry as an override; the file's values are the defaults.
 - **Three node levels.** A **harness** has its own board (`issues/`,
   `projects/`). An **index node** has an identity and an `INDEX.md`, no
   `issues/`. Everything else is a plain folder. The tree is formed by
@@ -220,11 +226,14 @@ home         index     top node; names the objects folder
   because a `#` after a space starts a YAML comment, and the list is written
   flow-style on one line.
 
-  **Assumed** (#0101): a path ends at the next whitespace and writes a space
-  as `%20`; `<word>:<path>` only counts as a reference when the word is a
-  registered id or alias; and some words can never be ids — URL schemes,
-  `github` (the `source: github#N` field has the shape of a reference) and
-  YAML keywords such as `true`, `null`, `on` and `no`.
+  Decided in #0101 (ADR-0008): a path ends at the next whitespace, without
+  trailing punctuation, and writes a space as `%20`; `<word>:<path>` only
+  counts as a reference when the word is a registered id or alias; an
+  issue's `source:` line is never scanned; and some words can never be ids
+  or aliases — the URL schemes `http`, `https`, `mailto`, `file`, `ftp` and
+  `tel`, `github` (the `source: github#N` field has the shape of a
+  reference), the YAML keywords `true`, `false`, `null`, `yes`, `no`, `on`
+  and `off`, and `workspace`.
 - **Docs harnesses live without git.** They sit in a cloud-synced folder.
   Everything must work without git, and the docs scaffold must not depend on
   symlinks, because the sync client doesn't sync a symlink as a folder. Conflict
@@ -236,8 +245,11 @@ home         index     top node; names the objects folder
   verify command and without specs, and `issues/` and `projects/` with
   READMEs and templates worded for a harness without code — no skill copies
   by default, no symlinks, and no link to a file the scaffold didn't create.
-  **Assumed:** `--kind index` exists next to the decided `--kind docs`; it
-  writes the identity file (`kind: index`) and an `INDEX.md`.
+  `index` writes the identity file (`kind: index`) and an `INDEX.md`
+  (#0104). The flag names the scaffold, not the field, and maps onto the
+  file's `kind` and `type` (ADR-0007): `code` is `kind: harness` with
+  `type: code`, `docs` is `kind: harness` with `type: docs`, and `index` is
+  `kind: index` without a type.
 - **Objects.** Two types to start: `person` and `organisation`, one markdown
   file each, with frontmatter `type`, `id`, `name` and, on a person, an
   optional `org`. The body is free notes — what you and your agents know
@@ -303,9 +315,10 @@ home         index     top node; names the objects folder
   is gone updates the entry in place. When both paths exist, a plain copy is
   refused and both folders are named. A git worktree or second clone is not
   a copy: the identity file is committed, so every checkout carries the same
-  id. **Assumed** (#0101, built in #0080): it opens as a secondary checkout
-  of the same harness, and references resolve to the primary one. Without an
-  identity file a workspace behaves as it does today.
+  id. **Assumed** (#0101, question 6, still open; built in #0080): it opens
+  as a secondary checkout of the same harness, and references resolve to the
+  primary one. Without an identity file a workspace behaves as it does
+  today.
 - **Root detection keeps its order.** `.agents/issues`, then `ai/issues`.
   The identity file is a second way in only for a node that has neither: an
   index node, or a harness whose `issues/` doesn't exist yet. It never wins
@@ -363,13 +376,14 @@ home         index     top node; names the objects folder
   comes from; the code slugs the folder name. Both now come from the
   harness, and the registry maps id to path. ADR-0002 also keeps personal
   state "never in the repo": a personal name or parent stays in the registry
-  as an override. A new ADR records this (#0101).
+  as an override — still assumed (#0101, question 5). ADR-0007 records both
+  and amends ADR-0002.
 - **ADR-0003 rejected "a per-repo config file".** The identity file doesn't
   name the root, and root detection keeps its order; it gains a second way
   in for nodes that have an identity file and no `issues/` (#0081). It is one
   more file per harness — accepted because an id that lives outside the
   harness can't survive a move; `init` and the migration write it, so nobody
-  keeps it by hand.
+  keeps it by hand (ADR-0007).
 - **#0028, "`parent:` is the only relation".** `blocked-by:` adds a
   multi-valued relation that can cross harnesses. `parent:` keeps working.
   The badge and toggle #0028 called "waiting" become "blocked by" and "Hide

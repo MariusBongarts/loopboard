@@ -74,5 +74,26 @@
 - **Harness level** — the last migration a harness applied: the
   `<!-- loopboard:migration MNNN -->` marker in its `AGENTS.md`; no marker
   means M000.
+- **Identity file** — `.agents/harness.md` in a harness's folder: frontmatter
+  with the **harness id**, a name, a kind, a parent and optional aliases,
+  and one paragraph saying what the harness is for. A convention loopboard
+  reads from a later release; until then a workspace's id is the **slug** of
+  its folder
+  ([ADR-0007](../architecture/decisions/0007-identity-file-in-the-harness.md)).
+- **Harness id** — the name a harness gives itself in its **identity file**
+  and that a **qualified reference** carries in front: lowercase letters,
+  digits and hyphens, 2 to 32 characters, starting with a letter and ending
+  with a letter or digit, never a **reserved word**, never changed once
+  written. An **alias** is a second, shorter id that follows the same rules
+  and resolves like it
+  ([ADR-0008](../architecture/decisions/0008-harness-ids-and-qualified-references.md)).
+- **Reserved word** — a word that can never be a **harness id** or an alias,
+  because it would read as something else: the URL schemes `http`, `https`,
+  `mailto`, `file`, `ftp` and `tel`; `github`; the YAML keywords `true`,
+  `false`, `null`, `yes`, `no`, `on` and `off`; and `workspace`.
+- **Qualified reference** — a reference into another harness, with that
+  harness's id in front: `shop#0412` for an issue, `shop#P04` for a project
+  by its number, `company:contracts/lease.pdf` for a file. A plain `#NNNN`
+  is always local. Plain text to loopboard until a later release.
 - **Help Center** — `/help` and its pages: Overview, Working with AI agents
   (the **course**), Set up a repo, Upgrade a harness, Reference.

@@ -51,6 +51,12 @@ half the scaffold first**.
   #0101, whose ADR fixes the id pattern and the flag's name, and #0076,
   which makes the CLI refuse flags it doesn't know and declares which flags
   take a value.
+- What #0101 decided for this issue, on 2026-10-13: an id matches
+  `^[a-z][a-z0-9-]{0,30}[a-z0-9]$` and is not one of the reserved words
+  listed in ADR-0008; the flag stays `--kind` and maps onto the file's
+  `kind` and `type` as the table in ADR-0007 says. #0101's two open
+  questions — a shared repository's file, worktrees — don't concern a docs
+  harness.
 - Today's `init` creates 28 files plus a manifest, and 8 symlinks, in an
   empty folder — the eight core skills, four code seed folders and a
   `SETUP.md` that asks for a verify command. The copy fallback for skill

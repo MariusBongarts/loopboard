@@ -119,3 +119,29 @@ column on loopboard's board (1 = top, lower = higher priority). It is
 **not** severity (P0/P1/P2). loopboard writes it when the maintainer
 drags a card into a chosen vertical position; existing issues without
 the field sort below prioritized ones, by id ascending.
+
+## Reserved fields and references
+
+Reserved: loopboard reads the fields and references below from a later
+release. Until then it leaves the fields alone and shows the references as
+plain text, so what you write today stays valid. All four fields are
+optional.
+
+| Field | Meaning | Example |
+|---|---|---|
+| `due` | The day the issue has to be finished. | `due: 2026-11-30` |
+| `waiting-on` | Who owes a reply: a person or an organisation, or a list of them. Quoted, because YAML doesn't let a plain value start with `@`. | `waiting-on: "@accountant"` |
+| `blocked-by` | Every issue or project that must finish first: a list on one line, a local issue as bare digits (` #` would start a comment). `parent:` stays the single local blocker. | `blocked-by: [0029, shop#0412]` |
+| `recurrence` | Which recurring duty and period the issue stands for. `loopboard recur` writes it; never set it by hand. | — |
+
+| Reference | Points at | Example |
+|---|---|---|
+| `<id>#NNNN` | An issue in another harness. | `shop#0412` |
+| `<id>#PNN` | A project in another harness, by its number. | `shop#P04` |
+| `<id>:<path>` | A file in another harness, relative to that harness's folder. A space in the path is written `%20`. | `company:contracts/lease.pdf` |
+| `@id` | A person or an organisation. | `@accountant` |
+
+`<id>` is the id a harness carries in its `.agents/harness.md`: lowercase
+letters, digits and hyphens, 2 to 32 characters, starting with a letter and
+ending with a letter or digit. A plain `#NNNN` always means an issue in this
+harness.

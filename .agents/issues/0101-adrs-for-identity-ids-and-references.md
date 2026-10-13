@@ -2,7 +2,7 @@
 id: 0101
 title: Record the identity file, the id pattern and the reference syntax in ADRs
 category: task
-status: todo
+status: in-progress
 assignee: human
 project: 04-harness-tree
 phase: 1
@@ -32,32 +32,13 @@ called `github`.
 
 ## Questions
 
-Assigned to the maintainer: each answer becomes part of the on-disk format.
-Every question has the answer the PRD and the issues assume — "as proposed"
-is a complete reply.
+Two are left, assigned to the maintainer: each answer becomes part of the
+on-disk format. Both have the answer the PRD and the issues assume — "as
+proposed" is a complete reply — and
+[ADR-0007](../architecture/decisions/0007-identity-file-in-the-harness.md)
+records that answer as **assumed**. They keep their numbers, because #0079,
+#0080 and the WIP cite them.
 
-1. **Id pattern.** Proposal: lowercase ASCII letters, digits and hyphens;
-   starts with a letter, ends with a letter or digit; 2 to 32 characters. A
-   folder whose slug starts with a digit (`2026-taxes`) then needs an
-   explicit `--id`. Starting with a letter keeps YAML from reading an id as
-   a number or a date.
-2. **Reserved words** that can never be an id or an alias. Proposal: URL
-   schemes (`http`, `https`, `mailto`, `file`, `ftp`, `tel`), `github`, the
-   YAML keywords (`true`, `false`, `null`, which loopboard's own YAML reader
-   converts, and `yes`, `no`, `on`, `off`, which stricter readers convert)
-   and `workspace` (what an empty slug falls back to). Single letters are
-   out through the minimum length, which also keeps Windows drive letters
-   from reading as file references.
-3. **File references.** Proposal: `<id>:<path>` ends at the next whitespace,
-   a space in a path is written `%20`, and trailing punctuation doesn't
-   belong to the path. `<word>:<path>` counts as a reference only when the
-   word is a registered id or alias. The `source:` line of an issue is never
-   scanned for references.
-4. **`--kind` on `init` versus `kind:` in the file.** `init --kind docs` is
-   decided, while the file's `kind` is `harness` or `index` and `docs` is a
-   `type`. Proposal: the flag names the scaffold (`code`, `docs`, `index`)
-   and maps onto the two fields; `--kind index` is an addition (#0104).
-   Rename the flag if the double meaning bothers you.
 5. **A shared repository's identity file.** In a git repository that others
    clone, `id`, `name`, `parent` and `aliases` are public. Proposal: the
    file holds the project's id and name and a parent that is true for
@@ -69,13 +50,45 @@ is a complete reply.
    another one opens as a secondary checkout of the same id and is never the
    target of a reference (#0080).
 
+Neither touches #0078: a docs harness is not a shared repository and has no
+worktrees. The first and the fourth criterion stay open until both are
+answered; everything in them that doesn't hang on these two questions is
+written.
+
+## Answered (2026-10-13)
+
+The maintainer accepted the proposals to questions 1–4 as written (in the
+WIP they are questions 2–4). They are decided and recorded in
+[ADR-0008](../architecture/decisions/0008-harness-ids-and-qualified-references.md)
+and, for the flag, in ADR-0007.
+
+1. **Id pattern.** Lowercase ASCII letters, digits and hyphens; starts with
+   a letter, ends with a letter or digit; 2 to 32 characters —
+   `^[a-z][a-z0-9-]{0,30}[a-z0-9]$`. A folder whose slug starts with a digit
+   (`2026-taxes`) needs an explicit `--id`.
+2. **Reserved words** that can never be an id or an alias: `http`, `https`,
+   `mailto`, `file`, `ftp`, `tel`, `github`, `true`, `false`, `null`, `yes`,
+   `no`, `on`, `off` and `workspace`.
+3. **File references.** `<id>:<path>` ends at the next whitespace, a space
+   in a path is written `%20`, and trailing punctuation doesn't belong to
+   the path. `<word>:<path>` counts as a reference only when the word is a
+   registered id or alias. The `source:` line of an issue is never scanned.
+4. **`--kind` on `init`.** The flag keeps its name and names the scaffold:
+   `code` (`kind: harness`, `type: code`), `docs` (`kind: harness`,
+   `type: docs`) and `index` (`kind: index`, no `type`).
+
+The WIP's short form of these questions leaves out two clauses of the
+proposals above — an id ends with a letter or digit, and trailing
+punctuation doesn't belong to a path. Both are in ADR-0008; say so if either
+was not meant.
+
 ## Acceptance criteria
 
 - [ ] An ADR records that a harness carries its identity in `.agents/harness.md`: why in the harness and not only in the registry (it amends ADR-0002 and revisits the per-repo file ADR-0003 turned down), the fields, that the file always sits in `.agents/` — also next to a legacy `ai/` root, with root detection unchanged — what a shared repository's file holds, where a personal name or parent lives, and how a worktree or second clone opens
-- [ ] A second ADR records ids and references: the exact id pattern with its minimum and maximum length, the reserved words, the three qualified forms, aliases, unqualified `#NNNN` staying local, where a path ends and how a space is written, when `<word>:<path>` counts, that the `source:` line is never scanned, and that frontmatter lists write a local issue as bare digits, flow-style on one line
-- [ ] The issues README gains a short "Reserved fields and references" section — `due`, the quoted `waiting-on`, `blocked-by`, `recurrence`, the three reference forms and `@id`, one line and one example each — marked as reserved: loopboard reads them from a later release
+- [x] A second ADR records ids and references: the exact id pattern with its minimum and maximum length, the reserved words, the three qualified forms, aliases, unqualified `#NNNN` staying local, where a path ends and how a space is written, when `<word>:<path>` counts, that the `source:` line is never scanned, and that frontmatter lists write a local issue as bare digits, flow-style on one line
+- [x] The issues README gains a short "Reserved fields and references" section — `due`, the quoted `waiting-on`, `blocked-by`, `recurrence`, the three reference forms and `@id`, one line and one example each — marked as reserved: loopboard reads them from a later release
 - [ ] The PRD's contract section says what was decided: every "assumed" that these questions cover is removed or replaced, and #0078, #0079, #0080 and #0082 are updated where an answer differs from the proposal
-- [ ] `loopboard check` passes and the scaffold tests still pass — the README is shipped text
+- [x] `loopboard check` passes and the scaffold tests still pass — the README is shipped text
 
 ## Out of scope
 
@@ -85,9 +98,19 @@ is a complete reply.
 
 ## Notes
 
-- This issue is first in phase 1 and blocks #0078, #0079 and #0082: they
-  cite the ADRs instead of repeating the rules.
-- Once the questions are answered, flip the issue to `assignee: agent`; the
-  rest is writing.
+- This issue is first in phase 1. #0078 and #0082 cite the ADRs instead of
+  repeating the rules, and everything they cite is decided. #0079 and #0080
+  build on the assumed answers to questions 5 and 6.
+- Once those two are answered, flip the issue to `assignee: agent`. What is
+  left is writing: the "Still assumed" section of ADR-0007, the two lines
+  the PRD still marks as assumed, and #0079 or #0080 where an answer differs
+  from the proposal.
+- Written so far: ADR-0007 with everything but those two points decided,
+  ADR-0008, the README section, the glossary's identity file, harness id,
+  reserved word and qualified reference, and the PRD's contract section for
+  questions 1–4. No answer differed from its proposal, so #0078 and #0082
+  keep their criteria.
+- `recurrence` has no example value in the README: what the field holds is
+  question 2 in #0090, and `loopboard recur` writes it.
 - README wording is shipped text, not a workflow change — no migration
   entry. The docs variant of the README gets the same section in #0078.
