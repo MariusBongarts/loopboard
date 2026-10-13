@@ -14,7 +14,7 @@ against temp git repos; edge cases in `tests/ids.test.ts`. Status legend in [`_s
 | Numbers taken on other branches and worktrees count | 🟡 | [`cli.spec.ts`](../../tests/e2e/cli.spec.ts): unmerged branch. Worktrees and remote refs in `tests/ids.test.ts` |
 | Find duplicate numbers | ✅ | [`cli.spec.ts`](../../tests/e2e/cli.spec.ts): working tree and `--branches` |
 | Find dangling references | ✅ | [`cli.spec.ts`](../../tests/e2e/cli.spec.ts): warning, `--strict` fails. Code is skipped (`tests/ids.test.ts`) |
-| Renumber an issue | 🟡 | [`cli.spec.ts`](../../tests/e2e/cli.spec.ts): file, `id:`, next free number. Reference rewriting and `--dry-run` in `tests/ids.test.ts` |
+| Renumber an issue | 🟡 | [`cli.spec.ts`](../../tests/e2e/cli.spec.ts): file, `id:`, next free number, `--path`. Reference rewriting and `--dry-run` in `tests/ids.test.ts` |
 | Renumber one of two twins | ✅ | [`cli.spec.ts`](../../tests/e2e/cli.spec.ts): refuses without `--file`, moves only the named file |
 | Renumber a project | ✅ | [`cli.spec.ts`](../../tests/e2e/cli.spec.ts): folder, `project:` and links; `--dry-run` writes nothing |
 
@@ -67,6 +67,7 @@ THEN 0001-first.md becomes 0005-first.md with `id: 0005`
 AND every #0001, `parent: 0001` and link to the file under the root points at
     0005; --dry-run lists the edits without making them
 AND without a new number, the next free one is used
+AND `--path <repo>` renumbers in another repo, with or without a new number
 ```
 
 ### Scenario: Renumber one of two twins

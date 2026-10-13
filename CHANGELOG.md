@@ -8,6 +8,9 @@ must apply are numbered in [MIGRATIONS.md](MIGRATIONS.md).
 ### Run anywhere
 - `npx loopboard [path]` starts a local board for any repo with an `.agents/`
   (or legacy `ai/`) folder; a second repo joins the running server.
+- The CLI runs from any folder — every command takes the repo as a path — and
+  refuses a flag it doesn't know instead of reading it as a path. A clone
+  linked with `npm link` says to run `pnpm build` when it isn't built.
 - One server for every repo: a workspace switcher in the top-left, workspaces
   remembered in `~/.config/loopboard`, folder suggestions when adding one.
 - Live updates: the board follows file changes as agents work.

@@ -27,8 +27,8 @@ export function repo(parent: string, name: string, root: '.agents' | 'ai' | null
   return path;
 }
 
-export function loopboard(args: string[], cwd: string, config: string): Run {
-  const r = spawnSync(process.execPath, [BIN, ...args], { cwd, env: { ...process.env, LOOPBOARD_CONFIG_DIR: config }, encoding: 'utf8' });
+export function loopboard(args: string[], cwd: string, config: string, bin = BIN): Run {
+  const r = spawnSync(process.execPath, [bin, ...args], { cwd, env: { ...process.env, LOOPBOARD_CONFIG_DIR: config }, encoding: 'utf8' });
   return { status: r.status ?? -1, stdout: r.stdout, stderr: r.stderr };
 }
 

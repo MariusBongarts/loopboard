@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { createHash } from 'node:crypto';
 import { request } from 'node:http';
-import { existsSync, lstatSync, readFileSync, rmSync, writeFileSync, mkdirSync } from 'node:fs';
+import { copyFileSync, existsSync, lstatSync, readFileSync, readdirSync, rmSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { git, loopboard, repo, sandbox, serve } from './cli';
 
@@ -59,6 +59,55 @@ test.describe('§ 1 running loopboard', () => {
       first.proc.kill();
       other.proc.kill();
     }
+  });
+
+  test('every command runs from another folder', async () => {
+    const elsewhere = repo(box.dir, 'elsewhere', null);
+    const app = join(box.dir, 'app');
+    expect(loopboard(['init', '../app'], elsewhere, box.config).status).toBe(0);
+    writeFileSync(join(app, '.agents/issues/0001-first.md'), '---\nid: 0001\ntitle: First\nstatus: todo\n---\n');
+    expect(loopboard(['next-id', 'issue', '../app'], elsewhere, box.config).stdout.trim()).toBe('0002');
+    expect(loopboard(['check', '../app'], elsewhere, box.config).status).toBe(0);
+    expect(loopboard(['renumber', '0001', '--path', '../app'], elsewhere, box.config).stdout).toContain('moved issues/0001-first.md → issues/0002-first.md');
+
+    const server = await serve(['--port', '0', '../app'], elsewhere, box.config);
+    try {
+      const data = await (await fetch(server.url.replace('/w/app', '/api/w/app/data'))).json();
+      expect(data.issues.map((i: { id: string }) => i.id)).toEqual(['0002']);
+    } finally {
+      server.proc.kill();
+    }
+    expect(readdirSync(elsewhere)).toEqual([]);
+  });
+
+  test('a clone that is not built says what to run', () => {
+    const clone = join(box.dir, 'clone');
+    mkdirSync(join(clone, 'bin'), { recursive: true });
+    writeFileSync(join(clone, 'package.json'), '{ "name": "loopboard", "type": "module" }\n');
+    copyFileSync(join(process.cwd(), 'bin', 'loopboard.js'), join(clone, 'bin', 'loopboard.js'));
+    const r = loopboard(['--version'], box.dir, box.config, join(clone, 'bin', 'loopboard.js'));
+    expect(r.status).toBe(1);
+    expect(r.stderr).toMatch(/^loopboard isn't built yet: run `pnpm build` in .+, then try again\.\n$/);
+  });
+
+  test('a flag the command does not know stops it', () => {
+    // #0078 makes --kind valid and takes this case over.
+    const plain = repo(box.dir, 'plain', null);
+    const r = loopboard(['init', '--kind', 'docs'], plain, box.config);
+    expect(r.status).toBe(1);
+    expect(r.stderr).toBe('Unknown flag --kind: `loopboard init` takes --with-extras, --upgrade, --force, --dry-run.\n');
+    expect(loopboard(['init', '--help'], plain, box.config).stdout).toContain('Usage');
+    expect(readdirSync(plain)).toEqual([]);
+
+    const app = repo(box.dir, 'app');
+    const board = loopboard(['--no-open', '--port', '0', '--strict'], app, box.config);
+    expect(board.status).toBe(1);
+    expect(board.stderr).toBe('Unknown flag --strict: `loopboard [path]` takes --port, --no-open.\n');
+    expect(existsSync(box.config)).toBe(false);
+
+    // A flag with a value never takes a positional's place.
+    expect(loopboard(['renumber', '0001', '--path', '../app'], plain, box.config).stdout).toContain('moved issues/0001-first.md → issues/0002-first.md');
+    expect(loopboard(['renumber', '0002', '--path'], plain, box.config).stderr).toBe('Flag --path needs a value.\n');
   });
 });
 

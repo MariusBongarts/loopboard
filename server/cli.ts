@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 import { readFile, rm, writeFile, mkdir } from "node:fs/promises";
 import { join, resolve } from "node:path";
+import { parseArgs, UsageError, type Args, type Flags } from "./args";
 import { checkRoot, nextId, type IdKind } from "./ids";
 import { applyPlan, InitError, planInit, summarizePlan } from "./init";
 import { applyRenumber, planRenumber, RenumberError } from "./renumber";
@@ -9,7 +10,7 @@ import { configDir, packageRoot, packageVersion } from "./paths";
 import { createAppServer, listen } from "./serve";
 import { detectRoot, registerWorkspace } from "./workspaces";
 
-export type Command = (args: string[]) => Promise<number>;
+export type Command = (args: Args) => Promise<number>;
 
 const HELP = `loopboard ${packageVersion()} — a local board for the issues, PRDs and specs in .agents/
 
@@ -21,8 +22,21 @@ Usage
   loopboard --version | --help
 `;
 
+// Printed below the command list (#0076).
+const HELP_NOTES = `
+Every command runs from any folder: name the repo with [path], or with --path
+for renumber. A flag a command doesn't know stops it with exit code 1 before
+anything is written.
+
+From a clone, \`pnpm build && npm link\` puts loopboard on the PATH. It runs the
+clone's build/, so build again after pulling. \`npx loopboard\` needs the
+published package.
+`;
+
 // Commands other than "start" register here so later slices add to one table.
-export const commands: Record<string, { summary: string; run: Command }> = {};
+// `usage` follows "loopboard " in --help; `flags` is every flag the command
+// takes, and whether it has a value (#0076).
+export const commands: Record<string, { usage: string; summary: string; flags: Flags; run: Command }> = {};
 
 interface RunningServer {
   port: number;
@@ -42,24 +56,6 @@ async function findRunningServer(dir: string): Promise<RunningServer | null> {
   } catch {
     return null;
   }
-}
-
-function flag(args: string[], name: string): boolean {
-  return args.includes(name);
-}
-
-function option(args: string[], name: string): string | undefined {
-  const i = args.indexOf(name);
-  return i >= 0 ? args[i + 1] : undefined;
-}
-
-function positionals(args: string[], withValues: string[] = []): string[] {
-  const out: string[] = [];
-  for (let i = 0; i < args.length; i++) {
-    if (withValues.includes(args[i])) i++;
-    else if (!args[i].startsWith("-")) out.push(args[i]);
-  }
-  return out;
 }
 
 export interface LaunchOptions {
@@ -114,14 +110,24 @@ export async function launch(opts: LaunchOptions): Promise<LaunchResult> {
   };
 }
 
-async function start(args: string[]): Promise<number> {
-  const result = await launch({
-    target: resolve(positionals(args, ["--port"])[0] ?? "."),
-    port: Number(option(args, "--port") ?? 5180),
+const BOARD_FLAGS: Flags = { "--port": "value", "--no-open": "switch" };
+
+// `loopboard [path]` as launch options. The path resolves against the working
+// directory, so the board opens from any folder (#0076). Exported for tests.
+export function launchOptions(argv: string[]): LaunchOptions & { open: boolean } {
+  const args = parseArgs(argv, BOARD_FLAGS, "loopboard [path]");
+  return {
+    target: resolve(args.positionals[0] ?? "."),
+    port: Number(args.values["--port"] ?? 5180),
     configDir: configDir(),
     clientDir: join(packageRoot(), "build", "client"),
-  });
-  const open = !flag(args, "--no-open");
+    open: !args.switches.has("--no-open"),
+  };
+}
+
+async function start(argv: string[]): Promise<number> {
+  const { open, ...options } = launchOptions(argv);
+  const result = await launch(options);
   if (result.kind === "error") {
     console.error(result.message);
     return 1;
@@ -143,18 +149,20 @@ async function start(args: string[]): Promise<number> {
 }
 
 commands.init = {
+  usage: "init [path]",
   summary: "Set up the workflow in a repo (--with-extras, --upgrade, --force, --dry-run)",
-  async run(args) {
-    const repoPath = resolve(positionals(args)[0] ?? ".");
-    const upgrade = flag(args, "--upgrade");
-    const dryRun = flag(args, "--dry-run");
+  flags: { "--with-extras": "switch", "--upgrade": "switch", "--force": "switch", "--dry-run": "switch" },
+  async run({ positionals, switches }) {
+    const repoPath = resolve(positionals[0] ?? ".");
+    const upgrade = switches.has("--upgrade");
+    const dryRun = switches.has("--dry-run");
     try {
       const actions = await planInit({
         repoPath,
         packageRoot: packageRoot(),
-        withExtras: flag(args, "--with-extras"),
+        withExtras: switches.has("--with-extras"),
         upgrade,
-        force: flag(args, "--force"),
+        force: switches.has("--force"),
       });
       if (!dryRun) await applyPlan(repoPath, actions, packageVersion());
       console.log(summarizePlan(actions, dryRun));
@@ -189,11 +197,13 @@ function rootFor(path: string | undefined): string | null {
 }
 
 commands["next-id"] = {
+  usage: "next-id <issue|project> [path]",
   summary: "Print the next free issue or project number across all branches",
-  async run(args) {
-    const [kind, path] = positionals(args);
+  flags: {},
+  async run({ positionals }) {
+    const [kind, path] = positionals;
     if (kind !== "issue" && kind !== "project") {
-      console.error("Usage: loopboard next-id <issue|project> [path]");
+      console.error(`Usage: loopboard ${commands["next-id"].usage}`);
       return 1;
     }
     const root = rootFor(path);
@@ -204,12 +214,14 @@ commands["next-id"] = {
 };
 
 commands.check = {
+  usage: "check [path]",
   summary: "Find duplicate numbers and dangling references (--branches, --strict)",
-  async run(args) {
-    const root = rootFor(positionals(args)[0]);
+  flags: { "--branches": "switch", "--strict": "switch" },
+  async run({ positionals, switches }) {
+    const root = rootFor(positionals[0]);
     if (!root) return 1;
-    const strict = flag(args, "--strict");
-    const report = checkRoot(root, flag(args, "--branches"));
+    const strict = switches.has("--strict");
+    const report = checkRoot(root, switches.has("--branches"));
     for (const d of report.duplicates) {
       console.log(`✗ duplicate ${d.kind} ${d.id}:`);
       for (const n of d.names) console.log(`    ${n.name}  (${n.where})`);
@@ -227,17 +239,19 @@ commands.check = {
 };
 
 commands.renumber = {
-  summary: "Move an issue (NNNN) or project (NN) to a new number, fixing references (--file, --dry-run)",
-  async run(args) {
-    const [oldId, newId] = positionals(args, ["--file"]);
-    const root = rootFor(option(args, "--path"));
+  usage: "renumber <old> [new]",
+  summary: "Move an issue (NNNN) or project (NN) to a new number, fixing references (--path <repo>, --file <name>, --dry-run)",
+  flags: { "--path": "value", "--file": "value", "--dry-run": "switch" },
+  async run({ positionals, switches, values }) {
+    const [oldId, newId] = positionals;
+    const root = rootFor(values["--path"]);
     if (!root || !oldId) {
-      if (!oldId) console.error("Usage: loopboard renumber <old> [new] [--file <name>] [--dry-run]");
+      if (!oldId) console.error(`Usage: loopboard ${commands.renumber.usage} [--path <repo>] [--file <name>] [--dry-run]`);
       return 1;
     }
     try {
-      const plan = planRenumber({ root, oldId, newId, file: option(args, "--file") });
-      const dry = flag(args, "--dry-run");
+      const plan = planRenumber({ root, oldId, newId, file: values["--file"] });
+      const dry = switches.has("--dry-run");
       console.log(`${dry ? "would move" : "moved"} ${plan.from} → ${plan.to}`);
       for (const e of plan.edits) console.log(`  ${dry ? "would update" : "updated"} ${e.file}`);
       for (const f of plan.ambiguous) console.log(`  ! ${f} mentions #${oldId}, which may mean the other ${oldId} — left as is`);
@@ -255,11 +269,11 @@ commands.renumber = {
 
 export async function main(argv: string[]): Promise<number> {
   const [first, ...rest] = argv;
-  if (first === "--help" || first === "-h" || first === "help") {
-    const extra = Object.entries(commands)
-      .map(([name, c]) => `  loopboard ${name.padEnd(22)}${c.summary}`)
+  if (first === "help" || argv.includes("--help") || argv.includes("-h")) {
+    const extra = Object.values(commands)
+      .map((c) => `  loopboard ${c.usage}\n      ${c.summary}`)
       .join("\n");
-    console.log(HELP + (extra ? `\nCommands\n${extra}\n` : ""));
+    console.log(HELP + (extra ? `\nCommands\n${extra}\n` : "") + HELP_NOTES);
     return 0;
   }
   if (first === "--version" || first === "-v") {
@@ -267,6 +281,15 @@ export async function main(argv: string[]): Promise<number> {
     return 0;
   }
   const command = first ? commands[first] : undefined;
-  if (command) return command.run(rest);
-  return start(argv);
+  try {
+    if (command) return await command.run(parseArgs(rest, command.flags, `loopboard ${first}`));
+    return await start(argv);
+  } catch (err) {
+    // An unknown flag stops the command before it writes anything (#0076).
+    if (err instanceof UsageError) {
+      console.error(err.message);
+      return 1;
+    }
+    throw err;
+  }
 }
