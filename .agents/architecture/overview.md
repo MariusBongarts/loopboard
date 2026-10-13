@@ -22,7 +22,10 @@ history, and a per-user registry remembers which repos (workspaces) exist.
   of [`tests/e2e/fixtures/workspace/`](../../tests/e2e/fixtures/workspace/)
   served on port 5199; [`cli.spec.ts`](../../tests/e2e/cli.spec.ts) runs the
   built binary (global setup runs `pnpm build:app`) against temp repos with
-  their own config dir. CI: [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml).
+  their own config dir. Vitest loads [vite.config.ts](../../vite.config.ts)
+  without the dev plugin and with a config dir in the temp folder, so a test
+  run never writes to the user's registry (#0111). CI:
+  [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml).
 
 ## Data flow
 
@@ -56,6 +59,6 @@ A workspace is registered by its repo path; the root is detected as
 `.agents/`, then `ai/`, then the path itself
 ([ADR-0003](decisions/0003-dot-agents-root-with-detection.md)). The CLI
 registers the folder it runs in; `pnpm dev` registers `BASE_PATH` (resolved
-against this repo) or this repo
+against this repo) or this repo — nothing else does, tests included
 ([ADR-0001](decisions/0001-npx-cli-with-a-local-server.md),
 [ADR-0002](decisions/0002-workspace-registry-in-user-config.md)).

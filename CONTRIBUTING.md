@@ -35,6 +35,12 @@ pnpm test:e2e # Playwright: the board and the built CLI, against temp copies
 pnpm demo     # re-record the README demo GIFs into docs/media/
 ```
 
+`pnpm dev` registers your clone as a workspace in your user config
+(`loopboard workspaces` lists them). Tests and the type-check never write
+there: Vitest runs without the dev server's API and with a config directory in
+the temp folder. To keep the dev server's registry apart as well, for example
+in a second worktree, set `LOOPBOARD_CONFIG_DIR=<folder>`.
+
 The README demo is scripted ([`scripts/demo/`](scripts/demo/)): Playwright
 films the real board while the script edits a demo repo's issue files like an
 agent would. CI re-records it on every push to main that touches the UI and

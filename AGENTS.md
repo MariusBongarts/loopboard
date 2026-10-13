@@ -88,6 +88,6 @@ chores → a standalone issue in `.agents/issues/`. Move issues with the
 
 - Install: `pnpm install`
 - Dev: `pnpm dev` (registers this repo's `.agents/`; `BASE_PATH=<path>` registers another repo)
-- Test: `pnpm test` (Vitest) · E2E: `pnpm test:e2e` (Playwright, fixture repos)
+- Test: `pnpm test` (Vitest, never touches your workspace registry) · E2E: `pnpm test:e2e` (Playwright, fixture repos)
 - Lint: `pnpm lint:fix`
 - Verify: `pnpm verify` (run after every task)
