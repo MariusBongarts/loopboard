@@ -49,7 +49,8 @@ Until those are done:
   land: it still gets a new workspace id.
 - **References to other harnesses stay plain text.** Since #0100 a
   `shop#0003` in a WIP note or a phase list is no longer taken for the local
-  issue 0003; loopboard reads such references from #0082 on.
+  issue 0003, and neither is a link to that harness's issue file; loopboard
+  reads such references from #0082 on.
 
 The rest of phase 1 can follow the tree. Once #0101 is accepted, identity
 files and references can be written by hand, because today's code ignores
@@ -120,6 +121,25 @@ Goal: the documents an issue points at open from the board, and every harness ha
 - [ ] [#0098 Add a Home tab with INDEX.md, AGENTS.md and the identity](../../issues/0098-home-tab.md) — backlog
 
 ## Activity log
+
+### 2026-10-13 — review of the six
+
+- Three reviewers went through the six issues before the tree; what they
+  found is fixed in the issues' own code, and each issue's notes say what
+  changed. The larger ones: `check` printed a fix for a mis-named twin that
+  moved the issue on the board instead (#0071); an empty issue file made the
+  reader throw (#0071); file names reached the agent prompt and the terminal
+  unescaped (#0071); `#0061/#0062` had stopped counting as two references
+  (#0100); a `forget` from the CLI could be undone by a running board
+  (#0099).
+- Two issues were filed. #0111, `done`: every test run registered the
+  checkout as a workspace, because Vitest starts a Vite server from the
+  config that carries the dev plugin. #0112, `todo`: the inbox visual
+  baselines fail, so the full e2e run is red and had no owner.
+- Not done: focus handling in dialogs (no trap, Esc only inside, focus not
+  returned). It predates these issues and concerns every dialog.
+- The e2e suite was not run in this round. Two of its tests were adjusted to
+  the new prompt format and to a `next-id` assertion that can fail.
 
 ### 2026-10-13 — before the tree
 

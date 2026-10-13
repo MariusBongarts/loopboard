@@ -82,7 +82,7 @@ the maintainer's machine or in the full e2e run:
 
 - [ ] Merge and push this slice, so a linked clone and a later release run the same code
 - [ ] Link the clone (`pnpm build && npm link`), then run `loopboard --version` from another folder
-- [x] `pnpm test:e2e` passes with the three new scenarios in `cli.spec.ts` — run with the full suite when the six issues before the tree were brought together
+- [x] The three new scenarios in `cli.spec.ts` pass in `pnpm test:e2e` — seen in the full run when the six issues before the tree were brought together. That run as a whole ended red on the two inbox visual baselines, which failed before this work too; #0112 owns them
 
 ## Notes
 

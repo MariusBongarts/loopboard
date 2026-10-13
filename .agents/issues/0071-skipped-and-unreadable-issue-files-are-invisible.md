@@ -75,7 +75,7 @@ down.
   projects, specs and the issue page show the new row. Those with the board
   in view (inbox, panel, menu, editor, palette) were left alone: the board's
   toolbar had already moved away from them before this change, and the inbox
-  ones fail without it too.
+  ones fail without it too (#0112).
 - Review round:
   - A near miss that shares its number with another file is a duplicate
     (`check` exits 1). `renumber` takes its candidates from the allocator's
