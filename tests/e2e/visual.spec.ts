@@ -40,7 +40,7 @@ for (const theme of ['light', 'dark'] as const) {
     await expect(page).toHaveScreenshot(`page-${theme}.png`, { animations: 'disabled' });
   });
 
-  test(`list, projects, specs and help — ${theme}`, async ({ page }) => {
+  test(`list, projects and specs — ${theme}`, async ({ page }) => {
     await open(page, '/w/demo-repo/issues', theme);
     await expect(page.locator('.issue-row').first()).toBeVisible();
     await expect(page).toHaveScreenshot(`list-${theme}.png`, { animations: 'disabled' });
@@ -50,8 +50,17 @@ for (const theme of ['light', 'dark'] as const) {
     await page.goto('/w/demo-repo/specs');
     await expect(page.locator('.spec-scenario').first()).toBeVisible();
     await expect(page).toHaveScreenshot(`specs-${theme}.png`, { animations: 'disabled' });
-    await page.goto('/help');
+  });
+
+  test(`help center — ${theme}`, async ({ page }) => {
+    await open(page, '/help', theme);
+    await expect(page.locator('.course-poster')).toHaveJSProperty('complete', true);
     await expect(page).toHaveScreenshot(`help-${theme}.png`, { animations: 'disabled', fullPage: false });
+    await page.goto('/help/upgrade');
+    await expect(page.locator('tr[data-workspace]')).toHaveCount(2);
+    // Temp-dir paths and the package version change from run to run.
+    const mask = [page.locator('.repo-path'), page.locator('.version')];
+    await expect(page).toHaveScreenshot(`help-upgrade-${theme}.png`, { animations: 'disabled', fullPage: false, mask });
   });
 }
 

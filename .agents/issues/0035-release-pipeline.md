@@ -27,7 +27,7 @@ impression, and Windows path/symlink handling only shows up on Windows.
 
 ## Acceptance criteria
 
-- [ ] `private: true` is removed and `repository`/`homepage` are set (deferred here from #0003) — `private` removed; `repository`/`homepage` wait for #0001
+- [x] `private: true` is removed and `repository`/`homepage` are set (deferred here from #0003)
 - [x] `npm pack` contains no tests, fixtures, `.agents/issues` or prototypes
 - [ ] The smoke job passes on all three OSs — passes locally on macOS (`pnpm smoke`); CI runs after the first push
 - [ ] Pushing a version tag publishes to npm with provenance and updates the changelog
@@ -49,6 +49,6 @@ impression, and Windows path/symlink handling only shows up on Windows.
 
 ## Review
 
-Needs the maintainer: set `repository`/`homepage` once #0001 decides the
-GitHub home, add the `NPM_TOKEN` secret, and confirm CI (incl. smoke) is green
-on the first push. Then tag `v1.0.0` from #0036.
+Needs the maintainer: add the `NPM_TOKEN` secret and confirm CI (incl.
+smoke) is green on the first push (running since 2026-10-05).
+`repository`/`homepage`/`bugs` point at github.com/MariusBongarts/loopboard. Then tag `v1.0.0` from #0036.

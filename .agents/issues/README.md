@@ -72,7 +72,10 @@ section).
 
 The default path is **`in-progress → done`**: the agent closes what it can
 verify itself. `in-review` is the exception and always means "waiting on
-you", so it never fills up silently.
+you", so it never fills up silently. The
+[`issue-grooming`](../skills/issue-grooming/SKILL.md) skill sweeps the board
+against git and releases: it closes work that shipped while waiting, and asks
+about stale, duplicate or outdated issues.
 
 ### Side states (any time)
 

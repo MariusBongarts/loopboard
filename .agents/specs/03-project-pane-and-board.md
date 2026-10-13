@@ -23,6 +23,7 @@ Status legend in [`_specs.md`](_specs.md#e2e-coverage).
 | Hide the feed for a wider board | ✅ | `03-project-pane-and-board.spec.ts` |
 | Columns out of view are hinted | ✅ | `03-project-pane-and-board.spec.ts` |
 | See every project's progress | ✅ | `03-project-pane-and-board.spec.ts`; phase parsing and counts unit-tested in `tests/projects.test.ts` |
+| Filter and sort the projects | ✅ | `03-project-pane-and-board.spec.ts`: filter, empty state, `?q=` survives Back, sort remembered. Each ordering unit-tested (`sortProjectRows`) |
 
 ### Scenario: The pane follows the selected item
 
@@ -160,7 +161,7 @@ THEN those cards disappear until I turn it off or switch projects
 ```
 WHEN I click Projects in the rail (or "Go to Projects" in ⌘K)
 THEN /w/<workspace>/projects lists every project grouped Active / Paused /
-    Shipped, most recent session first
+    Shipped, most recent session first (see "Filter and sort the projects")
 AND each shows its PRD number, title, last session, how many issues need me,
     and a closed/total bar (done and wontfix count as closed; archived issues
     count; backlog ideas don't, so parked ideas never hold a project below 100%)
@@ -169,4 +170,22 @@ AND one small bar per `### Phase …` heading in the WIP's Phases section,
     scheduled such as "Backlog", get no bar)
 WHEN I click a project
 THEN its board opens
+```
+
+### Scenario: Filter and sort the projects
+
+```
+GIVEN the Projects view
+WHEN I type in "Filter projects"
+THEN only projects whose number, title, slug or current focus match every
+    word stay, and the header count follows
+AND the filter is kept in the URL (`?q=`), so Back from a board restores it
+AND a filter that matches nothing says "No projects match "…""
+WHEN I pick Last active, Newest, Progress, Needs you or Name from the sort
+    button
+THEN projects are ordered that way inside each group: most recent session,
+    highest PRD number, largest share closed (nothing scheduled last), most
+    issues needing me, or A–Z; ties fall back to the most recent session
+    (Name to the title)
+AND the choice is remembered in this browser
 ```

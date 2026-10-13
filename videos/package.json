@@ -1,0 +1,27 @@
+{
+  "name": "loopboard-videos",
+  "private": true,
+  "packageManager": "pnpm@11.1.1",
+  "type": "module",
+  "description": "Explainer videos for loopboard's Help Center, rendered with Remotion (maintainer tool \u2014 not part of the published package).",
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "render": "node render.mjs",
+    "film": "node render.mjs --film",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@fontsource-variable/inter": "^5.3.0",
+    "@fontsource-variable/jetbrains-mono": "^5.3.0",
+    "@remotion/cli": "4.0.532",
+    "@remotion/renderer": "4.0.532",
+    "@remotion/bundler": "4.0.532",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "remotion": "4.0.532"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.0",
+    "typescript": "^5.8.3"
+  }
+}

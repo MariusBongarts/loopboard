@@ -14,6 +14,7 @@ Repo data lives under `/api/w/:workspace`; everything else is global.
 | Method + path | Body | Effect |
 |---|---|---|
 | `GET /api/health` | — | `{ name: "loopboard", version, pid }` — the CLI uses it to find a running server |
+| `GET /api/harness` | — | The Help Center's upgrade guide: `version`, `packagePath`, `latest` migration, `migrations` (id, title, date) and per workspace its harness level and status |
 | `GET /api/workspaces` | — | Registered workspaces with `available` and `issueCount`, plus `lastUsed` |
 | `POST /api/workspaces` | `{ path }` | Detects the root and registers the repo (201); 422 without a root |
 | `PATCH /api/workspaces/:id` | `{ name }` | Renames |
@@ -46,8 +47,9 @@ logged.
 | [cli.ts](../../server/cli.ts) | `loopboard [path]`: start, or hand the repo to a running server found via `server.json`; a command table later slices extend |
 | [ids.ts](../../server/ids.ts), [renumber.ts](../../server/renumber.ts) | `next-id` / `check` / `renumber`: IDs from the working tree, other worktrees' working copies and every local and remote-tracking branch (`git ls-tree`); duplicates are different names sharing a number; renumber plans every edit before applying ([ADR-0004](decisions/0004-sequential-branch-aware-ids.md)) |
 | [init.ts](../../server/init.ts) | `loopboard init [--upgrade]`: plans every file action (create, update, keep, keep-modified, link, block), then applies it; a manifest of shipped-file hashes in `.agents/.loopboard/manifest.json` tells untouched files from edited ones. Sources: this repo's `.agents/skills`, issue/project READMEs and templates, and [scaffold/](../../scaffold/) |
+| [migrations.ts](../../server/migrations.ts) | Parses `MIGRATIONS.md` and a harness's level (the AGENTS.md marker, none → M000); per workspace: current, behind, unmarked, no AGENTS.md or missing, plus legacy `ai/` roots. `init` takes the latest level from here |
 | [watch.ts](../../server/watch.ts) | One recursive `fs.watch` per root while a client listens; only `.md` paths count; bursts collapse into one event |
-| [serve.ts](../../server/serve.ts), [open.ts](../../server/open.ts) | Production HTTP server with port fall-through; opening the browser |
+| [serve.ts](../../server/serve.ts), [open.ts](../../server/open.ts) | Production HTTP server with port fall-through (static files with `Range` support — Safari plays video only in parts); opening the browser |
 | [issues.ts](../../server/issues.ts) | Status/assignee vocabularies, reading issues and projects. The filename's digits are the canonical ID — YAML 1.1 reads `0070` as octal, so `id:` is never trusted. Malformed files are skipped with a warning; frontmatter goes through [frontmatter.ts](../../server/frontmatter.ts), which bypasses gray-matter's cache so a skipped file can't return as a ghost (#0042). |
 | [wip.ts](../../server/wip.ts) | Project digest: PRD problem/solution, WIP current focus, dated sessions (first entry per date wins). |
 | [activity.ts](../../server/activity.ts), [git.ts](../../server/git.ts) | Issue history from `git log --follow` (status per version via `git show`), cached on HEAD + mtime; `git.ts` is the read-only git plumbing shared with the ID allocator |

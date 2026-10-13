@@ -26,8 +26,8 @@ GIVEN a repo without .agents/
 WHEN I run `npx loopboard init`
 THEN .agents/ gets issues/ and projects/ (README + templates), specs/,
     architecture/, rules/ and design/ (starter READMEs), and the core skills
-    grill-me, grill-with-docs, to-prd, to-issues, implement, triage and
-    upgrade-harness with their CREDITS.md
+    grill-me, grill-with-docs, to-prd, to-issues, implement, triage,
+    issue-grooming and upgrade-harness with their CREDITS.md
 AND .claude/skills links each skill (and .cursor/skills when the repo has
     .cursor/); where links aren't allowed, the skills are copied
 AND AGENTS.md is created with the managed workflow block, the latest

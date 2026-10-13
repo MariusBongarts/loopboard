@@ -108,6 +108,15 @@ Goal: a codified look, dark mode, a reliable release, and the public launch.
 
 ## Activity log
 
+### 2026-10-05 — repo on GitHub (#0001, #0035)
+
+- The maintainer created
+  [MariusBongarts/loopboard](https://github.com/MariusBongarts/loopboard)
+  under their personal account and pushed `main`; it's public from the start
+  (the PRD planned private until #0036). CI and the README demo workflow ran
+  on the first push. `package.json` now has `repository`, `homepage` and
+  `bugs`. Still open in #0001: the npm placeholder.
+
 ### 2026-10-05 — #0036 README demo, #0059
 
 - #0036: the README hero is a scripted recording, not a hand-made GIF.

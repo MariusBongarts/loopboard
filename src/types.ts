@@ -241,3 +241,30 @@ export function searchMatches(issue: Issue, tokens: string[]): boolean {
     .toLowerCase();
   return tokens.every((t) => haystack.includes(t));
 }
+
+// GET /api/harness — mirrors server/migrations.ts (#0062).
+export interface Migration {
+  id: string;
+  title: string;
+  date: string | null;
+}
+
+export type HarnessStatus = 'current' | 'behind' | 'unmarked' | 'no-agents-md' | 'missing';
+
+export interface WorkspaceHarness {
+  id: string;
+  name: string;
+  repoPath: string;
+  status: HarnessStatus;
+  level: string | null;
+  behind: number;
+  legacy: boolean;
+}
+
+export interface HarnessInfo {
+  version: string;
+  packagePath: string;
+  latest: string;
+  migrations: Migration[];
+  workspaces: WorkspaceHarness[];
+}

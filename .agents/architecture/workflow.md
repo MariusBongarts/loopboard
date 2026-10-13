@@ -7,7 +7,7 @@ How this repo is built: the same workflow loopboard ships, used on itself.
 | Piece | Where | Role |
 |---|---|---|
 | Agent instructions | [AGENTS.md](../../AGENTS.md) (CLAUDE.md imports it) | Session loop, general rules, trigger-based rules |
-| Skills | [.agents/skills/](../skills/), linked from `.claude/skills` and `.cursor/skills` | grill-me, grill-with-docs, to-prd, to-issues, implement, triage, upgrade-harness, plus extras ([credits](../../CREDITS.md)) |
+| Skills | [.agents/skills/](../skills/), linked from `.claude/skills` and `.cursor/skills` | grill-me, grill-with-docs, to-prd, to-issues, implement, triage, issue-grooming, upgrade-harness, plus extras ([credits](../../CREDITS.md)) |
 | Migrations | [MIGRATIONS.md](../../MIGRATIONS.md); level marker in AGENTS.md | Numbered workflow changes that running harnesses apply with upgrade-harness |
 | Projects | [.agents/projects/](../projects/) | PRD (contract) + WIP (journal) per multi-decision effort |
 | Issues | [.agents/issues/](../issues/) | One vertical slice each; status + assignee in frontmatter |

@@ -18,7 +18,15 @@ must apply are numbered in [MIGRATIONS.md](MIGRATIONS.md).
   `--upgrade`, `--force`, `--dry-run`.
 - The `upgrade-harness` skill and numbered migrations bring running harnesses
   forward without overwriting customized skills.
+- The `issue-grooming` skill reconciles the board with git and releases:
+  it closes issues that shipped while stuck in review, unblocks and archives,
+  and asks with a recommendation about stale, duplicate or outdated ones.
 - In-app Help, a welcome page and empty states with the copyable setup prompt.
+- A Help Center: an interactive loop diagram; "Working with AI agents", an
+  eight-chapter course with short explainer videos (light and dark, made
+  with Remotion) that credits and links Matt Pocock's skills, videos and
+  writing; the upgrade guide with copyable prompts and every repo's harness
+  level against the latest migration.
 
 ### Work with it
 - Create issues (`C`) and projects; ⌘K command palette; copy a ready-made
@@ -28,8 +36,9 @@ must apply are numbered in [MIGRATIONS.md](MIGRATIONS.md).
   lines keep their bytes. Checklists toggle with one click in the drawer, and
   `#NNNN` mentions open the issue (unknown ids stay plain text).
 - Relations from `parent:`, a projects overview with per-phase progress
-  (backlog ideas don't count), git history per issue, a grouped list view
-  with URL filters and saved views.
+  (backlog ideas don't count) that filters by text and sorts by last active,
+  newest, progress, needs you or name, git history per issue, a grouped list
+  view with URL filters and saved views.
 - `reviewed:` / `deployed:` markers and a review queue; agents close verified
   issues as `done` (migration M002).
 - `loopboard next-id`, `check` and `renumber` keep sequential numbers unique

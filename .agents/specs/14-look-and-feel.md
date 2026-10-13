@@ -12,7 +12,7 @@ Status legend in [`_specs.md`](_specs.md#e2e-coverage).
 |---|---|---|
 | Light, dark or the system's choice | ✅ | [`14-look-and-feel.spec.ts`](../../tests/e2e/14-look-and-feel.spec.ts) |
 | Readable in both themes | 🟡 | `pnpm contrast` (in `pnpm verify`) checks every text, accent, tone and status token pair; screens are compared in [`visual.spec.ts`](../../tests/e2e/visual.spec.ts) (macOS baselines) |
-| Nothing leaves the machine | ✅ | `14-look-and-feel.spec.ts`: no request to another host; fonts are self-hosted |
+| Nothing leaves the machine | ✅ | `14-look-and-feel.spec.ts`: no request to another host on the board, Help and the course; fonts are self-hosted |
 
 ### Scenario: Light, dark or the system's choice
 
@@ -40,6 +40,8 @@ AND the main screens (board, issue panel and page, menus, editor, list, projects
 
 ```
 WHEN I use loopboard
-THEN no request goes to any host but the local server — fonts are bundled,
-    there is no analytics, no CDN
+THEN no request goes to any host but the local server — fonts and the Help
+    Center's videos are bundled, there is no analytics, no CDN
+AND the only exception is one I ask for: pressing play on one of Matt
+    Pocock's videos in the course loads that video from YouTube (§ 9)
 ```

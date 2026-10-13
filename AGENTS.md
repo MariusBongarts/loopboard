@@ -37,8 +37,12 @@ chores → a standalone issue in `.agents/issues/`. Move issues with the
    criterion is met, flip to `done`. If it needs a human check you can't do
    (manual UI, OAuth, judgment), flip to `in-review` + `assignee: human` with
    a `## Review` section. Append a session entry to `wip.md` either way.
-4. The maintainer reviews when they choose (optional `reviewed:` date). On
-   project ship, archive issues to `.agents/issues/_archive/`.
+4. The maintainer reviews when they choose (optional `reviewed:` date).
+   After a release, on project ship, or when `in-review` piles up, groom the
+   board with the [`issue-grooming`](.agents/skills/issue-grooming/SKILL.md)
+   skill: it closes what shipped, archives finished issues to
+   `.agents/issues/_archive/` and asks about stale, duplicate or outdated
+   ones.
 5. Update specs in `.agents/specs/_specs.md` if you touched user-facing logic.
 
 **Load when the task matches:**

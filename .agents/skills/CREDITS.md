@@ -1,7 +1,8 @@
 # Skill credits
 
 These skills ship with [loopboard](https://www.npmjs.com/package/loopboard)
-(MIT). `implement`, `triage` and `upgrade-harness` are loopboard originals;
+(MIT). `implement`, `triage`, `issue-grooming` and `upgrade-harness` are
+loopboard originals;
 the others are copied or adapted from
 [mattpocock/skills](https://github.com/mattpocock/skills) by Matt Pocock (MIT).
 This file travels with the skills when `loopboard init` copies them, so the
@@ -19,6 +20,7 @@ license notices stay with every copy.
 | `write-a-skill` | [mattpocock/skills](https://github.com/mattpocock/skills) `write-a-skill` | Copied |
 | `implement` | Original | — |
 | `triage` | Original | — |
+| `issue-grooming` | Original | — |
 | `upgrade-harness` | Original | — |
 
 ## loopboard license

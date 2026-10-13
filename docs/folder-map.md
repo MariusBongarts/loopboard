@@ -6,7 +6,7 @@ your-repo/
 ├─ CLAUDE.md              imports AGENTS.md for Claude Code
 ├─ .claude/skills/        links to .agents/skills (and .cursor/skills if you use Cursor)
 └─ .agents/
-   ├─ skills/             grill-me, to-prd, to-issues, implement, triage, upgrade-harness, …
+   ├─ skills/             grill-me, to-prd, to-issues, implement, triage, issue-grooming, upgrade-harness, …
    ├─ issues/             NNNN-slug.md — one vertical slice each; _archive/ for closed ones
    ├─ projects/           NN-slug/prd.md + wip.md — work with several decisions
    ├─ specs/              what the product does, with E2E coverage tables

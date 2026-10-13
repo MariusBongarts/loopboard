@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parsePhases, projectProgress } from '../src/projects';
+import { parsePhases, parseProjectSort, projectProgress, sortProjectRows, type ProjectRow } from '../src/projects';
 import type { Issue, Project } from '../src/types';
 
 const wip = `# P — WIP
@@ -75,5 +75,45 @@ describe('projectProgress', () => {
     const progress = projectProgress(project, issues);
     expect(progress).toMatchObject({ closed: 1, total: 2 });
     expect(progress.phases.map((p) => p.name)).toEqual(['Phase 1 — Clean slate']);
+  });
+});
+
+describe('sortProjectRows', () => {
+  const row = (slug: string, title: string, closed: number, total: number, needsYou: number, lastSession?: string): ProjectRow => ({
+    project: { slug, title, lastSession } as Project,
+    progress: { closed, total, needsYou, phases: [] },
+  });
+  const rows = [
+    row('02-b', 'Beta', 1, 4, 0, '2026-10-01'),
+    row('10-c', 'Charlie', 0, 0, 3, '2026-10-05'),
+    row('03-a', 'Alpha', 3, 4, 1),
+    row('01-d', 'Delta', 2, 2, 1, '2026-10-01'),
+  ];
+  const order = (sort: Parameters<typeof sortProjectRows>[1]) => sortProjectRows(rows, sort).map((r) => r.project.title);
+
+  it('puts the most recent session first, projects without one last', () => {
+    expect(order('active')).toEqual(['Charlie', 'Beta', 'Delta', 'Alpha']);
+  });
+
+  it('orders by PRD number, newest first', () => {
+    expect(order('newest')).toEqual(['Charlie', 'Alpha', 'Beta', 'Delta']);
+  });
+
+  it('orders by share closed, with nothing scheduled last', () => {
+    expect(order('progress')).toEqual(['Delta', 'Alpha', 'Beta', 'Charlie']);
+  });
+
+  it('orders by issues that need me, then by last session', () => {
+    expect(order('you')).toEqual(['Charlie', 'Delta', 'Alpha', 'Beta']);
+  });
+
+  it('orders by name', () => {
+    expect(order('name')).toEqual(['Alpha', 'Beta', 'Charlie', 'Delta']);
+  });
+
+  it('falls back to last active for an unknown stored choice', () => {
+    expect(parseProjectSort('progress')).toBe('progress');
+    expect(parseProjectSort('bogus')).toBe('active');
+    expect(parseProjectSort(null)).toBe('active');
   });
 });

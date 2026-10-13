@@ -4,7 +4,8 @@ import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { fetchWorkspaces } from '../api';
 import AddWorkspaceDialog from '../components/AddWorkspaceDialog.vue';
-import SetupPrompt from '../components/SetupPrompt.vue';
+import CopyPrompt from '../components/CopyPrompt.vue';
+import { SETUP_PROMPT } from '../help';
 import type { WorkspaceSummary } from '../types';
 
 // `/` lands on the last-used workspace; with none registered it welcomes
@@ -48,7 +49,7 @@ function onAdded(w: WorkspaceSummary) {
       </p>
       <h2>A new repo</h2>
       <p>Paste this into your agent (Claude Code, Cursor, Codex, …) in that repo:</p>
-      <SetupPrompt />
+      <CopyPrompt :text="SETUP_PROMPT" label="Copy setup prompt" />
       <p class="welcome-foot"><RouterLink to="/help">How the workflow works →</RouterLink></p>
     </div>
     <AddWorkspaceDialog :open="adding" @close="adding = false" @added="onAdded" />

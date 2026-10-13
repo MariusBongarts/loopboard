@@ -10,7 +10,7 @@ const route = useRoute();
 // `?` opens Help from anywhere and remembers where to come back to.
 function onKeydown(e: KeyboardEvent) {
   if (isTyping(e) || hasModifier(e) || !isShortcut(e, 'help')) return;
-  if (route.path === '/help' || document.querySelector('.modal-backdrop')) return;
+  if (route.path.startsWith('/help') || document.querySelector('.modal-backdrop')) return;
   e.preventDefault();
   const ws = typeof route.params.ws === 'string' ? route.params.ws : undefined;
   router.push({ path: '/help', query: ws ? { from: ws } : {} });

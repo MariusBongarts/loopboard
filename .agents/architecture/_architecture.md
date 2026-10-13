@@ -27,6 +27,7 @@ not built yet; each names the issue that implements it.
 | [0003](decisions/0003-dot-agents-root-with-detection.md) | `.agents/` is the default root; `ai/` is detected for legacy repos | #0002, #0007 |
 | [0004](decisions/0004-sequential-branch-aware-ids.md) | Keep sequential IDs; allocate them across all branches and worktrees | #0016–#0018 |
 | [0005](decisions/0005-wysiwyg-with-block-splice.md) | WYSIWYG editing that only re-serializes the blocks you changed | #0025, #0026 |
+| [0006](decisions/0006-remotion-renders-mp4s-ship.md) | Remotion renders the Help Center's videos; only the MP4s ship | #0064, #0065 |
 
 ## How to update these docs
 

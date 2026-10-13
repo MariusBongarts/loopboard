@@ -5,6 +5,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { AddressInfo } from 'node:net';
 import type { Server } from 'node:http';
+import { latestMigration } from '../server/migrations';
+import { packageRoot } from '../server/paths';
 import { createAppServer } from '../server/serve';
 
 let tmp: string;
@@ -14,9 +16,14 @@ let port: number;
 interface Reply {
   status: number;
   body: string;
+  headers: Record<string, string | string[] | undefined>;
 }
 
-function call(method: string, path: string, opts: { host?: string; origin?: string; body?: unknown } = {}): Promise<Reply> {
+function call(
+  method: string,
+  path: string,
+  opts: { host?: string; origin?: string; body?: unknown; headers?: Record<string, string> } = {},
+): Promise<Reply> {
   return new Promise((resolve, reject) => {
     const data = opts.body === undefined ? undefined : JSON.stringify(opts.body);
     const req = request(
@@ -29,12 +36,13 @@ function call(method: string, path: string, opts: { host?: string; origin?: stri
           host: opts.host ?? `localhost:${port}`,
           ...(opts.origin ? { origin: opts.origin } : {}),
           ...(data ? { 'content-type': 'application/json' } : {}),
+          ...opts.headers,
         },
       },
       (res) => {
         let body = '';
         res.on('data', (c) => (body += c));
-        res.on('end', () => resolve({ status: res.statusCode ?? 0, body }));
+        res.on('end', () => resolve({ status: res.statusCode ?? 0, body, headers: res.headers }));
       },
     );
     req.on('error', reject);
@@ -54,6 +62,8 @@ beforeAll(async () => {
   const client = join(tmp, 'client');
   await mkdir(client);
   await writeFile(join(client, 'index.html'), '<!doctype html><title>loopboard</title>');
+  await mkdir(join(client, 'media'));
+  await writeFile(join(client, 'media', 'clip.mp4'), Buffer.from(Array.from({ length: 100 }, (_, i) => i)));
   server = createAppServer({ configDir: join(tmp, 'config'), clientDir: client, port: 0 });
   await new Promise<void>((r) => server.listen(0, '127.0.0.1', r));
   port = (server.address() as AddressInfo).port;
@@ -113,5 +123,25 @@ describe('API over HTTP', () => {
   it('suggests folders, marking ones with a root', async () => {
     const res = await call('GET', `/api/fs/suggest?path=${encodeURIComponent(join(tmp, 'de'))}`);
     expect(JSON.parse(res.body).suggestions).toEqual([{ name: 'demo', path: join(tmp, 'demo'), hasRoot: true }]);
+  });
+
+  it('reports each harness’s migration level for the upgrade guide', async () => {
+    await writeFile(join(tmp, 'demo', 'AGENTS.md'), '# Demo\n\n<!-- loopboard:migration M001 -->\n');
+    const res = await call('GET', '/api/harness');
+    expect(res.status).toBe(200);
+    const info = JSON.parse(res.body);
+    expect(info).toMatchObject({ packagePath: packageRoot(), latest: latestMigration(packageRoot()) });
+    expect(info.migrations[0]).toMatchObject({ id: 'M001', date: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/) });
+    expect(info.workspaces).toEqual([
+      expect.objectContaining({ id: 'demo', level: 'M001', status: 'behind', behind: info.migrations.length - 1, legacy: false }),
+    ]);
+  });
+
+  it('serves media with byte ranges', async () => {
+    const whole = await call('GET', '/media/clip.mp4');
+    expect(whole).toMatchObject({ status: 200, headers: { 'content-type': 'video/mp4', 'accept-ranges': 'bytes', 'content-length': '100' } });
+    const part = await call('GET', '/media/clip.mp4', { headers: { range: 'bytes=10-19' } });
+    expect(part).toMatchObject({ status: 206, headers: { 'content-range': 'bytes 10-19/100', 'content-length': '10' } });
+    expect((await call('GET', '/media/clip.mp4', { headers: { range: 'bytes=200-' } })).status).toBe(416);
   });
 });

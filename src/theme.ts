@@ -13,10 +13,13 @@ function readChoice(): ThemeChoice {
 }
 
 export const themeChoice = ref<ThemeChoice>(readChoice());
+// What's on screen now; the Help Center's videos follow it (#0066).
+export const resolvedTheme = ref<'light' | 'dark'>('light');
 
 function apply() {
   const dark = themeChoice.value === 'dark' || (themeChoice.value === 'system' && media.matches);
-  document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+  resolvedTheme.value = dark ? 'dark' : 'light';
+  document.documentElement.dataset.theme = resolvedTheme.value;
 }
 
 media.addEventListener('change', apply);

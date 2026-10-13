@@ -1,14 +1,21 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { ArrowUpDown, Search, X } from '@lucide/vue';
 import { toneClass } from '../colors';
-import { prdNumber, relativeDay, todayIso } from '../inbox';
-import { projectProgress } from '../projects';
-import type { Issue, Project } from '../types';
+import { prdNumber, relativeDay, searchProjects, todayIso } from '../inbox';
+import { anchorOf, openMenu } from '../menu';
+import { parseProjectSort, percent, PROJECT_SORTS, projectProgress, sortProjectRows, type ProjectSort } from '../projects';
+import { readStored, writeStored } from '../storage';
+import { tokenizeQuery, type Issue, type Project } from '../types';
 
 // Every project at a glance (#0029): progress overall and per phase.
+// Filtered by `?q=` and sorted by a remembered choice (#0069).
 const props = defineProps<{ projects: Project[]; issues: Issue[] }>();
 const emit = defineEmits<{ (e: 'open', slug: string): void }>();
 const today = todayIso();
+const route = useRoute();
+const router = useRouter();
 
 const GROUPS = [
   { key: 'active', label: 'Active' },
@@ -16,31 +23,56 @@ const GROUPS = [
   { key: 'shipped', label: 'Shipped' },
 ] as const;
 
-const rows = computed(() =>
-  props.projects.map((p) => ({ project: p, progress: projectProgress(p, props.issues) })),
-);
+const SORT_KEY = 'loopboard.projects.sort';
+const sort = ref<ProjectSort>(parseProjectSort(readStored(SORT_KEY)));
+const sortLabel = computed(() => PROJECT_SORTS.find((s) => s.value === sort.value)!.label);
+function setSort(s: ProjectSort) {
+  sort.value = s;
+  writeStored(SORT_KEY, s);
+}
+function openSort(e: MouseEvent) {
+  openMenu({
+    label: 'Sort projects',
+    at: anchorOf(e),
+    items: () => PROJECT_SORTS.map((s) => ({ id: s.value, label: s.label, checked: sort.value === s.value, run: () => setSort(s.value) })),
+  });
+}
+
+const q = computed(() => (typeof route.query.q === 'string' ? route.query.q : ''));
+function setQuery(value: string) {
+  void router.replace({ query: value ? { ...route.query, q: value } : { ...route.query, q: undefined } });
+}
+
+const shown = computed(() => searchProjects(props.projects, tokenizeQuery(q.value)));
+const rows = computed(() => sortProjectRows(shown.value.map((p) => ({ project: p, progress: projectProgress(p, props.issues) })), sort.value));
 const groups = computed(() =>
   GROUPS.map((g) => ({
     ...g,
-    rows: rows.value
-      .filter((r) => (g.key === 'active' ? !['paused', 'shipped'].includes(r.project.status) : r.project.status === g.key))
-      .sort((a, b) => (b.project.lastSession ?? '').localeCompare(a.project.lastSession ?? '')),
+    rows: rows.value.filter((r) => (g.key === 'active' ? !['paused', 'shipped'].includes(r.project.status) : r.project.status === g.key)),
   })).filter((g) => g.rows.length),
 );
-
-function pct(closed: number, total: number): number {
-  return total ? Math.round((closed / total) * 100) : 0;
-}
 </script>
 
 <template>
   <section class="projects-view" aria-label="Projects">
     <header class="projects-head">
       <h2>Projects</h2>
-      <span class="projects-count">{{ props.projects.length }}</span>
+      <span class="projects-count">{{ shown.length }}</span>
     </header>
+    <div v-if="props.projects.length" class="view-tools">
+      <label class="view-search">
+        <Search :size="14" aria-hidden="true" />
+        <input :value="q" type="search" placeholder="Filter projects" aria-label="Filter projects" @input="(e) => setQuery((e.target as HTMLInputElement).value)" />
+      </label>
+      <button v-if="q" type="button" class="ghost view-clear" @click="setQuery('')"><X :size="14" aria-hidden="true" />Clear</button>
+      <span class="projects-spacer" />
+      <button type="button" class="view-filter" aria-label="Sort projects" :title="`Sort: ${sortLabel}`" @click="openSort">
+        <ArrowUpDown :size="14" aria-hidden="true" />{{ sortLabel }}
+      </button>
+    </div>
     <div class="projects-scroll">
       <p v-if="!props.projects.length" class="list-empty">No projects yet. Ask your agent to "write a PRD for …", or use + in the rail.</p>
+      <p v-else-if="!shown.length" class="list-empty">No projects match “{{ q }}”.</p>
       <section v-for="g in groups" :key="g.key" class="projects-group">
         <h3 class="projects-group-head">{{ g.label }} <span>{{ g.rows.length }}</span></h3>
         <button
@@ -59,13 +91,13 @@ function pct(closed: number, total: number): number {
             <span v-if="progress.phases.length" class="project-phases">
               <span v-for="ph in progress.phases" :key="ph.name" class="project-phase" :title="`${ph.name}: ${ph.closed}/${ph.total} closed`">
                 <span class="project-phase-name">{{ ph.name }}</span>
-                <span class="bar bar-thin"><span class="bar-fill" :style="{ width: `${pct(ph.closed, ph.total)}%` }" /></span>
+                <span class="bar bar-thin"><span class="bar-fill" :style="{ width: `${percent(ph.closed, ph.total)}%` }" /></span>
               </span>
             </span>
           </span>
           <span class="project-row-progress">
             <span class="bar" :title="`${progress.closed} of ${progress.total} closed`">
-              <span class="bar-fill" :style="{ width: `${pct(progress.closed, progress.total)}%` }" />
+              <span class="bar-fill" :style="{ width: `${percent(progress.closed, progress.total)}%` }" />
             </span>
             <span class="project-row-pct">{{ progress.closed }}/{{ progress.total }}</span>
           </span>
@@ -83,7 +115,8 @@ function pct(closed: number, total: number): number {
 .projects-view { display: flex; flex-direction: column; height: 100%; min-height: 0; }
 .projects-head { display: flex; align-items: center; gap: 8px; height: 52px; padding: 0 20px; border-bottom: 1px solid var(--border-subtle); flex: 0 0 auto; }
 .projects-head h2 { margin: 0; font-size: 15px; font-weight: 600; }
-.projects-count { font-size: 13px; color: var(--text-3); }
+.projects-count { font-size: 13px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+.projects-spacer { flex: 1; }
 .projects-scroll { flex: 1; overflow-y: auto; padding-bottom: 40px; }
 .projects-group-head { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; gap: 8px; height: 36px; margin: 0; padding: 0 20px; border-bottom: 1px solid var(--border-subtle); background: var(--bg-subtle); font-size: 13px; font-weight: 500; }
 .projects-group-head span { color: var(--text-3); font-weight: 400; }

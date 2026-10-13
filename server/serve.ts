@@ -11,6 +11,9 @@ const TYPES: Record<string, string> = {
   ".json": "application/json; charset=utf-8",
   ".svg": "image/svg+xml",
   ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".webp": "image/webp",
+  ".mp4": "video/mp4",
   ".ico": "image/x-icon",
   ".woff2": "font/woff2",
   ".woff": "font/woff",
@@ -22,6 +25,24 @@ export interface ServeOptions {
   clientDir: string;
   port: number;
   host?: string;
+}
+
+// `Range: bytes=a-b` for media (#0064): Safari only plays video that can be
+// fetched in parts. Returns null for a missing or multi-range header, and
+// "unsatisfiable" when the range lies outside the file.
+export function parseRange(header: string | undefined, size: number): { start: number; end: number } | "unsatisfiable" | null {
+  const m = /^bytes=(\d*)-(\d*)$/.exec(header?.trim() ?? "");
+  if (!m || (m[1] === "" && m[2] === "")) return null;
+  let start: number;
+  let end: number;
+  if (m[1] === "") {
+    start = Math.max(0, size - Number(m[2]));
+    end = size - 1;
+  } else {
+    start = Number(m[1]);
+    end = m[2] === "" ? size - 1 : Math.min(Number(m[2]), size - 1);
+  }
+  return start > end || start >= size ? "unsatisfiable" : { start, end };
 }
 
 // Static client + API on loopback only (ADR-0001). Unknown non-API paths get
@@ -45,10 +66,30 @@ export function createAppServer(opts: ServeOptions): Server {
       return;
     }
     if (!existsSync(file) || statSync(file).isDirectory()) file = join(clientDir, "index.html");
-    res.statusCode = 200;
+    const size = statSync(file).size;
     res.setHeader("content-type", TYPES[extname(file)] ?? "application/octet-stream");
+    res.setHeader("accept-ranges", "bytes");
     if (file.includes(`${sep}assets${sep}`)) res.setHeader("cache-control", "public, max-age=31536000, immutable");
-    createReadStream(file).pipe(res);
+    const range = parseRange(req.headers.range, size);
+    if (range === "unsatisfiable") {
+      res.statusCode = 416;
+      res.setHeader("content-range", `bytes */${size}`);
+      res.end();
+      return;
+    }
+    if (range) {
+      res.statusCode = 206;
+      res.setHeader("content-range", `bytes ${range.start}-${range.end}/${size}`);
+      res.setHeader("content-length", range.end - range.start + 1);
+    } else {
+      res.statusCode = 200;
+      res.setHeader("content-length", size);
+    }
+    if (req.method === "HEAD") {
+      res.end();
+      return;
+    }
+    createReadStream(file, range ?? {}).pipe(res);
   });
 }
 

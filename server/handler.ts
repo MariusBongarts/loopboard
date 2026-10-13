@@ -13,7 +13,8 @@ import { issueActivity } from "./activity";
 import { createIssue, createProject } from "./create";
 import { DocError, readDoc, writeDoc } from "./docs";
 import { mutateIssue, type IssuePatch } from "./mutate";
-import { packageVersion } from "./paths";
+import { readMigrations, workspaceHarness } from "./migrations";
+import { packageRoot, packageVersion } from "./paths";
 import { guardRequest } from "./security";
 import { readAllSpecs } from "./specs";
 import { loadViews, saveViews, validViews } from "./views";
@@ -88,6 +89,21 @@ export function route(method: string, pattern: RegExp, run: Route["run"]): void 
 
 route("GET", /^\/api\/health$/, async (_ctx, _req, res) => {
   json(res, 200, { name: "loopboard", version: packageVersion(), pid: process.pid });
+});
+
+// The Help Center's upgrade guide: this package, its migrations and each
+// registered harness's level (#0061, #0062).
+route("GET", /^\/api\/harness$/, async (ctx, _req, res) => {
+  const root = packageRoot();
+  const migrations = readMigrations(root);
+  const registry = await loadRegistry(ctx.configDir);
+  json(res, 200, {
+    version: packageVersion(),
+    packagePath: root,
+    latest: migrations.at(-1)?.id ?? "M000",
+    migrations,
+    workspaces: registry.workspaces.map((w) => workspaceHarness(w, migrations)),
+  });
 });
 
 route("GET", /^\/api\/workspaces$/, async (ctx, _req, res) => {

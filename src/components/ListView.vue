@@ -154,7 +154,7 @@ const GROUP_OPTIONS: { value: GroupBy; label: string }[] = [
         <button type="button" @click="startNaming('new')">Save view</button>
       </template>
     </header>
-    <div class="list-view-tools">
+    <div class="view-tools">
       <Segmented :model-value="filters.group" label="Group by" :options="GROUP_OPTIONS" @update:model-value="(g) => update({ group: g })" />
       <Segmented
         :model-value="filters.who"
@@ -166,17 +166,17 @@ const GROUP_OPTIONS: { value: GroupBy; label: string }[] = [
         ]"
         @update:model-value="(w) => update({ who: w })"
       />
-      <button type="button" class="list-view-filter" :class="{ on: filters.statuses.length }" aria-label="Filter by status" @click="openStatusFilter">
-        <CircleDashed :size="14" aria-hidden="true" />Status<span v-if="filters.statuses.length" class="list-view-filter-n">{{ filters.statuses.length }}</span>
+      <button type="button" class="view-filter" :class="{ on: filters.statuses.length }" aria-label="Filter by status" @click="openStatusFilter">
+        <CircleDashed :size="14" aria-hidden="true" />Status<span v-if="filters.statuses.length" class="view-filter-n">{{ filters.statuses.length }}</span>
       </button>
-      <button type="button" class="list-view-filter" :class="{ on: filters.label, stale: staleLabel }" aria-label="Filter by label" @click="openLabelFilter">
+      <button type="button" class="view-filter" :class="{ on: filters.label, stale: staleLabel }" aria-label="Filter by label" @click="openLabelFilter">
         <Tag :size="14" aria-hidden="true" />{{ filters.label || 'Label' }}
       </button>
-      <label class="list-view-search">
+      <label class="view-search">
         <Search :size="14" aria-hidden="true" />
         <input :value="filters.q" type="search" placeholder="Filter" aria-label="Filter issues" @input="(e) => update({ q: (e.target as HTMLInputElement).value })" />
       </label>
-      <button v-if="filtered" type="button" class="ghost list-view-clear" @click="clearFilters"><X :size="14" aria-hidden="true" />Clear</button>
+      <button v-if="filtered" type="button" class="ghost view-clear" @click="clearFilters"><X :size="14" aria-hidden="true" />Clear</button>
     </div>
     <IssueList :groups="groups" :active-id="activeId" :show-project="filters.group !== 'project'" :group-by="filters.group" @open="(i) => { activeId = i.id; actions.openIssue(i, flat); }" />
     <p class="list-view-foot">{{ workspaceId }} · <kbd>j</kbd>/<kbd>k</kbd> to move, <kbd>Enter</kbd> to open, right-click a row for more</p>
@@ -191,15 +191,6 @@ const GROUP_OPTIONS: { value: GroupBy; label: string }[] = [
 .list-view-head button { padding: 4px 10px; font-size: 12.5px; }
 .list-view-spacer { flex: 1; }
 .list-view-name { width: 220px; height: 30px; }
-.list-view-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 20px; border-bottom: 1px solid var(--border-subtle); flex: 0 0 auto; }
-.list-view-filter { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px; font-size: 12.5px; color: var(--text-2); }
-.list-view-filter.on { background: var(--accent-soft); border-color: color-mix(in oklch, var(--accent) 40%, var(--border)); color: var(--accent-text); }
-.list-view-filter.stale { border-color: var(--amber); color: var(--amber-text); }
-.list-view-filter-n { min-width: 16px; padding: 0 5px; border-radius: 999px; background: var(--accent); color: var(--on-accent); font-size: 11px; line-height: 16px; text-align: center; }
-.list-view-search { position: relative; display: inline-flex; align-items: center; color: var(--text-4); }
-.list-view-search svg { position: absolute; left: 9px; pointer-events: none; }
-.list-view-search input { width: 200px; height: 30px; padding: 0 10px 0 28px; font-size: 12.5px; }
-.list-view-clear { display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; font-size: 12.5px; }
 .list-view > :deep(.issue-list) { flex: 1; min-height: 0; overflow-y: auto; }
 .list-view-foot { flex: 0 0 auto; margin: 0; padding: 8px 20px; border-top: 1px solid var(--border-subtle); font-size: 12px; color: var(--text-4); }
 </style>

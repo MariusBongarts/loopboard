@@ -2,7 +2,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { cp, lstat, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { applyPlan, latestMigration, planInit, refreshBlock, renderBlock, type Action } from '../server/init';
+import { applyPlan, planInit, refreshBlock, renderBlock, type Action } from '../server/init';
+import { latestMigration } from '../server/migrations';
 
 const PKG = resolve(__dirname, '..');
 let repo: string;
@@ -31,6 +32,7 @@ describe('loopboard init', () => {
 
     expect(created).toContain('.agents/skills/implement/SKILL.md');
     expect(created).toContain('.agents/skills/upgrade-harness/SKILL.md');
+    expect(created).toContain('.agents/skills/issue-grooming/SKILL.md');
     expect(created).toContain('.agents/skills/CREDITS.md');
     expect(created).not.toContain('.agents/skills/tdd/SKILL.md');
     expect(created).toEqual(expect.arrayContaining([

@@ -2,7 +2,8 @@
 import { useRouter } from 'vue-router';
 import { removeWorkspace } from '../api';
 import type { WorkspaceSummary } from '../types';
-import SetupPrompt from './SetupPrompt.vue';
+import { SETUP_PROMPT } from '../help';
+import CopyPrompt from './CopyPrompt.vue';
 import WorkspaceSwitcher from './WorkspaceSwitcher.vue';
 
 // A registered workspace whose root is gone (#0015). WorkspaceView keeps
@@ -31,7 +32,7 @@ async function forget() {
       <p><button type="button" @click="forget">Forget this workspace</button></p>
       <h2>Set it up again</h2>
       <p>Run <code>npx loopboard init</code> in <code>{{ props.workspace.repoPath }}</code>, or paste this into your agent there:</p>
-      <SetupPrompt />
+      <CopyPrompt :text="SETUP_PROMPT" label="Copy setup prompt" />
     </div>
   </main>
 </template>

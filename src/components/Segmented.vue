@@ -2,6 +2,7 @@
 // Small single-choice button group used by dialogs and board tools.
 const props = defineProps<{ options: { value: T; label: string }[]; label: string }>();
 const model = defineModel<T>({ required: true });
+defineSlots<{ icon?: (props: { value: T }) => unknown }>();
 </script>
 
 <template>
@@ -15,6 +16,7 @@ const model = defineModel<T>({ required: true });
       :class="{ on: model === o.value }"
       @click="model = o.value"
     >
+      <span v-if="$slots.icon" class="seg-icon" aria-hidden="true"><slot name="icon" :value="o.value" /></span>
       {{ o.label }}
     </button>
   </div>

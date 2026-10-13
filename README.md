@@ -46,8 +46,10 @@ Prefer the terminal? `npx loopboard init`, then ask your agent to follow
    **Needs you**.
 
 More: [the loop](docs/the-loop.md) · [what lives where](docs/folder-map.md) ·
-[statuses and fields](docs/statuses.md). The same pages are in the app under
-**Help** (`?`).
+[statuses and fields](docs/statuses.md) · [working with AI agents](docs/learn/),
+a short course on why this works. The app's **Help Center** (`?`) has all of
+it, with an interactive loop, short videos, the upgrade guide, and links to
+Matt Pocock's videos and writing.
 
 ## The harness
 
@@ -56,7 +58,8 @@ More: [the loop](docs/the-loop.md) · [what lives where](docs/folder-map.md) ·
 - **`AGENTS.md`** — a managed *Workflow* block (the session loop, which docs
   to load when) plus your own project rules and build commands.
 - **`.agents/skills/`** — grill-me, grill-with-docs, to-prd, to-issues,
-  implement, triage and upgrade-harness (linked into `.claude/skills`).
+  implement, triage, issue-grooming and upgrade-harness (linked into
+  `.claude/skills`).
 - **`.agents/`** — issues, projects, specs, architecture, rules and design,
   each with a README that explains its format.
 
@@ -65,7 +68,8 @@ More: [the loop](docs/the-loop.md) · [what lives where](docs/folder-map.md) ·
 Workflow changes ship as numbered [migrations](MIGRATIONS.md). In a repo that
 already uses these conventions (an `.agents/` or older `ai/` folder), ask your
 agent: **"upgrade my loopboard harness"**. If the repo doesn't have that skill
-yet:
+yet (Help → Upgrade a harness fills in the path and shows which of your repos
+are behind):
 
 ```text
 Upgrade this repo's loopboard harness. Read
@@ -100,10 +104,12 @@ BASE_PATH=../other-repo pnpm dev  # register and open another repo
 pnpm verify                       # type-check + Vitest
 pnpm test:e2e                     # Playwright against fixture repos
 pnpm build && pnpm start ../repo  # the production CLI from source
+pnpm videos                       # re-render the Help Center videos (Remotion, see videos/)
 ```
 
 ## Credits and license
 
-MIT — see [LICENSE](LICENSE). Several skills are adapted from
+MIT — see [LICENSE](LICENSE). Several skills, and much of the thinking in the
+course, are adapted from Matt Pocock's
 [mattpocock/skills](https://github.com/mattpocock/skills); details in
 [CREDITS.md](CREDITS.md).

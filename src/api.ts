@@ -1,4 +1,4 @@
-import type { ApiData, Assignee, Status, WorkspaceSummary } from './types';
+import type { ApiData, Assignee, HarnessInfo, Status, WorkspaceSummary } from './types';
 
 async function errorDetail(res: Response): Promise<string> {
   try {
@@ -167,4 +167,9 @@ export async function fetchViews(workspace: string): Promise<SavedView[]> {
 
 export async function storeViews(workspace: string, views: SavedView[]): Promise<SavedView[]> {
   return (await request<{ views: SavedView[] }>('PUT', `${ws(workspace)}/views`, { views })).views;
+}
+
+// The Help Center's upgrade guide (#0061, #0062).
+export function fetchHarness(): Promise<HarnessInfo> {
+  return request('GET', '/api/harness');
 }

@@ -32,6 +32,10 @@
 - **Reviewed / Deployed** — optional `reviewed:` and `deployed:` frontmatter
   dates recorded after `done`. Markers, not statuses; agents never set
   `reviewed:`.
+- **Grooming** — a sweep of every live issue with the issue-grooming skill:
+  it checks each against commits, merged PRs and releases, closes what
+  shipped, archives what's finished and asks the maintainer about stale,
+  duplicate or outdated issues.
 - **Assignee** — who drives an issue now: `agent` (default) or `human`.
   Orthogonal to status.
 - **Needs you** — every live (not archived), open (not `done`/`wontfix`)
@@ -52,3 +56,15 @@
 - **Scenario** — one GIVEN/WHEN/THEN block under a `### Scenario:` heading.
 - **E2E coverage** — the per-scenario Playwright status recorded in a spec's
   `## E2E coverage` table: ✅ covered, 🟡 partial, ⏳ fixme, ❌ not yet.
+- **Harness** — what makes an agent follow the workflow in a repo: the
+  managed block in `AGENTS.md`, the skills in `.agents/skills/` and the
+  conventions in the root's READMEs and templates.
+- **Skill** — a folder with a `SKILL.md` (name, one-line description,
+  instructions) that an agent loads when a request matches its description.
+- **Migration** — a numbered workflow change (`MNNN`) in `MIGRATIONS.md` that
+  existing harnesses apply with the upgrade-harness skill.
+- **Harness level** — the last migration a harness applied: the
+  `<!-- loopboard:migration MNNN -->` marker in its `AGENTS.md`; no marker
+  means M000.
+- **Help Center** — `/help` and its pages: Overview, Working with AI agents
+  (the **course**), Set up a repo, Upgrade a harness, Reference.

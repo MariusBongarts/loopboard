@@ -14,6 +14,12 @@
     "codex"
   ],
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MariusBongarts/loopboard.git"
+  },
+  "homepage": "https://github.com/MariusBongarts/loopboard#readme",
+  "bugs": "https://github.com/MariusBongarts/loopboard/issues",
   "type": "module",
   "bin": {
     "loopboard": "bin/loopboard.js"
@@ -48,6 +54,9 @@
     "contrast": "node scripts/contrast.mjs",
     "smoke": "node scripts/smoke.mjs",
     "demo": "node scripts/demo/record.mjs",
+    "videos": "pnpm --dir videos install && pnpm --dir videos render",
+    "videos:studio": "pnpm --dir videos install && pnpm --dir videos studio",
+    "videos:film": "pnpm --dir videos install && pnpm --dir videos film",
     "prepublishOnly": "pnpm build && pnpm verify",
     "build:app": "vite build && vite build --ssr server/cli.ts --outDir build/server"
   },

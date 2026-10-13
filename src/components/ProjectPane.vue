@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Crosshair, TerminalSquare } from '@lucide/vue';
 import { computed, nextTick, ref, watch } from 'vue';
+import Avatar from './Avatar.vue';
 import BadgePopover from './BadgePopover.vue';
 import Column from './Column.vue';
 import IssueRefText from './IssueRefText.vue';
@@ -222,7 +223,9 @@ const title = computed(() => props.project?.title ?? 'Standalone issues');
             { value: 'human', label: mineCount ? `You · ${mineCount}` : 'You' },
             { value: 'agent', label: 'Agent' },
           ]"
-        />
+        >
+          <template #icon="{ value }"><Avatar v-if="value !== 'all'" :assignee="value" :size="16" /></template>
+        </Segmented>
         <input v-model="query" type="search" class="pane-search" placeholder="Filter this board" aria-label="Filter this board" />
         <button
           v-if="waitingCount || hideWaiting"

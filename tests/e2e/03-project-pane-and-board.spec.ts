@@ -51,6 +51,31 @@ test("see every project's progress", async ({ page }) => {
   await expect(page.locator('.pane-title')).toHaveText('Demo Project');
 });
 
+test('filter and sort the projects', async ({ page }) => {
+  await page.goto('/w/demo-repo/projects');
+  const filter = page.getByRole('searchbox', { name: 'Filter projects' });
+  await filter.fill('nothing like it');
+  await expect(page.locator('.project-row')).toHaveCount(0);
+  await expect(page.locator('.projects-scroll')).toContainText('No projects match “nothing like it”.');
+  await expect(page.locator('.projects-count')).toHaveText('0');
+
+  await filter.fill('demo');
+  await expect(page).toHaveURL(/\/projects\?q=demo$/);
+  await page.locator('.project-row', { hasText: 'Demo Project' }).click();
+  await expect(page).toHaveURL(/\/w\/demo-repo$/);
+  await page.goBack();
+  await expect(filter).toHaveValue('demo');
+  await expect(page.locator('.project-row')).toHaveCount(1);
+
+  const sort = page.getByRole('button', { name: 'Sort projects' });
+  await expect(sort).toHaveText('Last active');
+  await sort.click();
+  await page.locator('.menu-item', { hasText: 'Progress' }).click();
+  await expect(sort).toHaveText('Progress');
+  await page.goto('/w/demo-repo/projects');
+  await expect(sort).toHaveText('Progress');
+});
+
 test('empty columns shrink, and the feed can make room for the board', async ({ page }) => {
   await page.goto('/w/demo-repo');
   await page.locator('.pane-board-tools').getByRole('radio', { name: 'Agent' }).click();

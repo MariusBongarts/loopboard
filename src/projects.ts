@@ -1,4 +1,4 @@
-import { needsYou } from './inbox';
+import { needsYou, prdNumber } from './inbox';
 import { isClosed, type Issue, type Project } from './types';
 
 // Project progress for the projects overview (#0029).
@@ -52,4 +52,45 @@ export function projectProgress(project: Project, issues: Issue[]): ProjectProgr
       .filter((p) => p.total > 0),
     needsYou: own.filter(needsYou).length,
   };
+}
+
+export function percent(closed: number, total: number): number {
+  return total ? Math.round((closed / total) * 100) : 0;
+}
+
+// Ordering inside each Active / Paused / Shipped group (#0069).
+export type ProjectSort = 'active' | 'newest' | 'progress' | 'you' | 'name';
+
+export const PROJECT_SORTS: { value: ProjectSort; label: string }[] = [
+  { value: 'active', label: 'Last active' },
+  { value: 'newest', label: 'Newest' },
+  { value: 'progress', label: 'Progress' },
+  { value: 'you', label: 'Needs you' },
+  { value: 'name', label: 'Name' },
+];
+
+export function parseProjectSort(value: string | null): ProjectSort {
+  return PROJECT_SORTS.find((s) => s.value === value)?.value ?? 'active';
+}
+
+export interface ProjectRow {
+  project: Project;
+  progress: ProjectProgress;
+}
+
+const byLastActive = (a: ProjectRow, b: ProjectRow) => (b.project.lastSession ?? '').localeCompare(a.project.lastSession ?? '');
+const byName = (a: ProjectRow, b: ProjectRow) => a.project.title.localeCompare(b.project.title);
+// Projects with nothing scheduled have no progress to rank, so they go last.
+const ratio = ({ progress: p }: ProjectRow) => (p.total ? p.closed / p.total : -1);
+
+const COMPARE: Record<ProjectSort, (a: ProjectRow, b: ProjectRow) => number> = {
+  active: (a, b) => byLastActive(a, b) || byName(a, b),
+  newest: (a, b) => Number(prdNumber(b.project.slug) || -1) - Number(prdNumber(a.project.slug) || -1) || byName(a, b),
+  progress: (a, b) => ratio(b) - ratio(a) || byLastActive(a, b),
+  you: (a, b) => b.progress.needsYou - a.progress.needsYou || byLastActive(a, b),
+  name: byName,
+};
+
+export function sortProjectRows(rows: ProjectRow[], sort: ProjectSort): ProjectRow[] {
+  return [...rows].sort(COMPARE[sort]);
 }

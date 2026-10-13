@@ -62,7 +62,9 @@ Set `wip.md` status to `shipped` only when:
 - [ ] Glossary additions migrated to
       [`../specs/00-conventions-and-glossary.md`](../specs/00-conventions-and-glossary.md)
       (no glossary stays in `wip.md`).
-- [ ] Closed issues moved to [`../issues/_archive/`](../issues/_archive/).
+- [ ] Closed issues moved to [`../issues/_archive/`](../issues/_archive/)
+      — an [`issue-grooming`](../skills/issue-grooming/SKILL.md) run does it
+      and catches issues stuck in review.
 - [ ] Audit pass: `wip.md` and `prd.md` carry no architecture / glossary
       content.
 

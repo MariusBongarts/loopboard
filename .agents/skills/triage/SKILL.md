@@ -80,6 +80,10 @@ The maintainer typically invokes this skill in natural language:
 Interpret the request and act. Confirm before any destructive action (close,
 move to archive, override an in-progress flow).
 
+A sweep of the whole board against git and releases — shipped work stuck in
+review, stale, duplicate or outdated issues — is the
+[`issue-grooming`](../issue-grooming/SKILL.md) skill's job.
+
 ## Show what needs attention
 
 Query `.agents/issues/*.md` and present two buckets, oldest first by `created:`:

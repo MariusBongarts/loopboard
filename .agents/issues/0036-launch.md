@@ -47,8 +47,8 @@ The PRD's launch gate: go public only after every phase ships.
   For that PR the repo needs "Allow GitHub Actions to create pull requests"
   (Settings → Actions → General); otherwise the branch is pushed and you open
   it by hand. The workflow hasn't run yet (no remote).
-- On npmjs.com the README's relative GIF paths only resolve once
-  `package.json` has `repository` (#0001/#0035).
+- The repo is public since the first push (2026-10-05, personal account);
+  `package.json` has `repository`, so npm resolves the README's GIF paths.
 - Launch gate on 2026-10-05: still open — #0001 (todo), #0006, #0013, #0035,
   #0041 (in-review, you), project 02's UX overhaul (in progress), and the
   backlog ideas #0037/#0038 need moving out of the project or `wontfix` for

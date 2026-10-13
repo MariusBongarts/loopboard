@@ -34,7 +34,9 @@ test('nothing is loaded from outside this machine', async ({ page }) => {
   await page.goto('/w/demo-repo');
   await expect(page.locator('.feed-row').first()).toBeVisible();
   await page.goto('/help');
-  await expect(page.getByRole('heading', { name: 'Help' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Build with agents, steer from the board');
+  await page.goto('/help/learn#sources');
+  await expect(page.locator('.source-video')).toHaveCount(6);
   expect(await page.evaluate(() => document.fonts.check('16px "Inter Variable"'))).toBe(true);
   expect(external).toEqual([]);
 });

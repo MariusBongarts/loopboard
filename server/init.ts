@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { cpSync, existsSync, readFileSync, readdirSync, statSync, symlinkSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, relative } from "node:path";
+import { latestMigration, MIGRATION_RE } from "./migrations";
 import { detectRoot } from "./workspaces";
 
 // `loopboard init` / `init --upgrade` (#0011, #0012). Everything is planned
@@ -14,13 +15,13 @@ export const CORE_SKILLS = [
   "to-issues",
   "implement",
   "triage",
+  "issue-grooming",
   "upgrade-harness",
 ] as const;
 export const EXTRA_SKILLS = ["tdd", "diagnose", "improve-codebase-architecture", "write-a-skill"] as const;
 
 const BLOCK_START = "<!-- loopboard:start";
 const BLOCK_END = "<!-- loopboard:end -->";
-const MIGRATION_RE = /<!-- loopboard:migration (M\d{3}) -->/;
 const MANIFEST = ".agents/.loopboard/manifest.json";
 
 export type ActionKind =
@@ -63,12 +64,6 @@ function listFiles(dir: string): string[] {
     else out.push(full);
   }
   return out;
-}
-
-export function latestMigration(packageRoot: string): string {
-  const text = readFileSync(join(packageRoot, "MIGRATIONS.md"), "utf8");
-  const ids = [...text.matchAll(/^## (M\d{3})\b/gm)].map((m) => m[1]).sort();
-  return ids.at(-1) ?? "M000";
 }
 
 export function renderBlock(packageRoot: string, migration: string): string {

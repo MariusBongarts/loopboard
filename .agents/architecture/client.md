@@ -3,8 +3,9 @@
 A Vue 3 app with `vue-router` ([router.ts](../../src/router.ts)): `/` redirects
 to the last-used workspace, `/w/:ws` is the feed and `/w/:ws/specs` the Specs
 view, `/w/:ws/issues` the list (filters in the query string, `&view=` for a
-saved view), `/w/:ws/projects` the overview, `/help` the Help page and
-`/needs-you` the cross-workspace queue. No store: [WorkspaceView.vue](../../src/views/WorkspaceView.vue) owns a
+saved view), `/w/:ws/projects` the overview, `/help` the Help Center (child
+routes `learn`, `setup`, `upgrade`, `reference`) and `/needs-you` the
+cross-workspace queue. No store: [WorkspaceView.vue](../../src/views/WorkspaceView.vue) owns a
 workspace's data and every write and provides the workspace context
 ([workspace.ts](../../src/workspace.ts)) to the components below it;
 [InboxView.vue](../../src/components/InboxView.vue) owns navigation inside it.
@@ -16,8 +17,11 @@ follows the workspace's event stream and triggers a debounced refetch.
 | Component | Role |
 |---|---|
 | [WorkspaceView.vue](../../src/views/WorkspaceView.vue) | Loads `/api/w/:ws/data`; optimistic status/assignee/priority writes, reload on failure; hosts drawers and the wontfix modal |
-| [HomeView.vue](../../src/views/HomeView.vue), [HelpView.vue](../../src/views/HelpView.vue), [WorkspaceMissing.vue](../../src/components/WorkspaceMissing.vue) | Redirect or welcome; Help rendered from [docs/](../../docs/) (`?raw` imports); the missing-root page, which WorkspaceView keeps polling |
-| [SetupPrompt.vue](../../src/components/SetupPrompt.vue) | The one copyable setup prompt (`docs/setup-prompt.md`) |
+| [HomeView.vue](../../src/views/HomeView.vue), [WorkspaceMissing.vue](../../src/components/WorkspaceMissing.vue) | Redirect or welcome; the missing-root page, which WorkspaceView keeps polling |
+| [HelpView.vue](../../src/views/HelpView.vue), [views/help/](../../src/views/help/) | The Help Center layout (sidebar, section scroll-spy, hash and top scrolling — `#app` is the scroller, so the router's `scrollBehavior` can't do it) and its pages. Content: [help.ts](../../src/help.ts) (pages, prompts, `helpLink` keeps `?from=`) and [course.ts](../../src/course.ts) (loop steps, chapters from [docs/learn/](../../docs/learn/), videos, Matt Pocock's videos and articles); docs come in as `?raw` imports |
+| [CopyPrompt.vue](../../src/components/CopyPrompt.vue) | A prompt with a copy button: setup, upgrade request and prompt, empty states |
+| [LoopDiagram.vue](../../src/components/LoopDiagram.vue) | The overview's loop: steps as tabs around an SVG ring, arrow keys, accent progress arc |
+| [HelpVideo.vue](../../src/components/HelpVideo.vue), [SourceVideo.vue](../../src/components/SourceVideo.vue) | A course video: theme-matched file (`resolvedTheme` in [theme.ts](../../src/theme.ts)), plays while half on screen, never under reduced motion. A YouTube card that loads its `youtube-nocookie.com` embed only on click |
 | [CommandPalette.vue](../../src/components/CommandPalette.vue) | ⌘K; WorkspaceView builds the command list, [commands.ts](../../src/commands.ts) ranks it |
 | [CreateIssueDialog.vue](../../src/components/CreateIssueDialog.vue), [CreateProjectDialog.vue](../../src/components/CreateProjectDialog.vue) | Quick capture; WorkspaceView opens the result once live data has it |
 | [DocEditor.vue](../../src/components/DocEditor.vue), [RichEditor.vue](../../src/components/RichEditor.vue) | Editing (issues in the drawer, PRD/WIP tabs, specs): Rich mode = fields form + TipTap (`@tiptap/markdown`), Source mode = the raw file; hash-checked saves with conflict resolution |
@@ -93,3 +97,4 @@ pre-workspace `tracker.<key>` once, so old state carries over.
 | `loopboard.railWidth`, `loopboard.feedWidth`, `loopboard.panelWidth` | Pane widths in px |
 | `loopboard.railCollapsed`, `loopboard.feedHidden` | Rail collapsed to icons; feed hidden |
 | `loopboard.theme`, `loopboard.editor` | Settings: theme and editor for "Open in …" |
+| `loopboard.projects.sort` | Projects view ordering (`active`, `newest`, `progress`, `you`, `name`) |

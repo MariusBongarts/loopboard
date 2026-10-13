@@ -26,8 +26,8 @@ codebase and docs.
 ## Acceptance criteria
 
 - [ ] `npm view loopboard` shows the maintainer as owner
-- [ ] GitHub home for the repo is decided and created (private)
-- [ ] Decision noted in the project's `wip.md` activity log
+- [x] GitHub home for the repo is decided and created — [MariusBongarts/loopboard](https://github.com/MariusBongarts/loopboard), public from the first push
+- [x] Decision noted in the project's `wip.md` activity log
 
 ## Out of scope
 
