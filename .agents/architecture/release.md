@@ -12,4 +12,6 @@
 The CLI is a Vite SSR build of [server/cli.ts](../../server/cli.ts) into
 `build/server/cli.js`, started by [bin/loopboard.js](../../bin/loopboard.js);
 the client builds into `build/client/`. `prepublishOnly` rebuilds and
-verifies, so a local `npm publish` can't ship a stale build.
+verifies, so a local `npm publish` can't ship a stale build. A clone linked
+with `npm link` runs the same `build/`; without it the binary names
+`pnpm build` instead of failing on the import.

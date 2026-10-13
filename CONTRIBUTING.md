@@ -45,6 +45,20 @@ Conventions: [`AGENTS.md`](AGENTS.md) (coding rules, session loop),
 [`.agents/issues/README.md`](.agents/issues/README.md) (issue format and
 statuses), [`.agents/projects/README.md`](.agents/projects/README.md) (PRDs).
 
+### Run your clone as `loopboard`
+
+`npx loopboard` needs the published package, so it never runs your changes. To
+get your clone on the PATH, build it and link it globally:
+
+```bash
+pnpm build           # the CLI runs build/, not the sources
+npm link             # puts `loopboard` on your PATH
+loopboard --version  # works from any folder
+```
+
+The link runs `build/`: build again after pulling or changing code (without
+`build/` the command says so). `npm uninstall -g loopboard` removes the link.
+
 ## License
 
 By contributing, you agree that your contributions are licensed under the

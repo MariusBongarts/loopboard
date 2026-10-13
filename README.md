@@ -87,7 +87,19 @@ change, and ask before any bulk edits.
 | `npx loopboard init --upgrade` | Refreshes shipped files you haven't edited. `--force` overwrites edited ones, `--dry-run` only reports. |
 
 Requires Node 20 or newer. The server binds to `127.0.0.1` and refuses
-requests from other sites.
+requests from other sites. Every command takes the repo as a path, so it runs
+from any folder, and a flag it doesn't know stops it before anything is
+written.
+
+`npx loopboard` needs the published package. To run a clone of this repo
+instead, build it and link it globally — `loopboard` is then on your PATH in
+every folder:
+
+```bash
+pnpm install && pnpm build  # the CLI runs build/, not the sources
+npm link                    # puts `loopboard` on your PATH
+loopboard --version         # from any folder; build again after pulling
+```
 
 ## Contributing
 
@@ -104,6 +116,7 @@ BASE_PATH=../other-repo pnpm dev  # register and open another repo
 pnpm verify                       # type-check + Vitest
 pnpm test:e2e                     # Playwright against fixture repos
 pnpm build && pnpm start ../repo  # the production CLI from source
+pnpm build && npm link            # the same CLI as `loopboard`, in any folder
 pnpm videos                       # re-render the Help Center videos (Remotion, see videos/)
 ```
 

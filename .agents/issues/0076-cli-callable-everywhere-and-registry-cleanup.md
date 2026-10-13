@@ -2,8 +2,8 @@
 id: 0076
 title: Make the CLI callable everywhere
 category: task
-status: todo
-assignee: agent
+status: in-review
+assignee: human
 labels: [cli]
 created: 2026-10-13
 ---
@@ -43,12 +43,12 @@ the package — the maintainer's step, part of the launch (#0001, #0035,
 
 ## Acceptance criteria
 
-- [ ] Run without `build/`, the binary prints one sentence naming the build command and exits 1 — no stack trace
-- [ ] The README and CONTRIBUTING say how to get `loopboard` on the PATH from a clone (build, then link globally), and that `npx loopboard` needs the published package
-- [ ] An unknown flag exits 1 with one sentence that names it, and nothing is written; each command declares in one place which of its flags take a value
-- [ ] Tests: `init --kind docs` creates nothing (#0078 makes the flag valid and takes that test over), and `renumber <old> --path <repo>` works without a new number
-- [ ] A test runs every command that takes a target (`init`, `next-id`, `check`, `renumber`, opening the board) from a foreign working directory
-- [ ] `--help` and spec § 1 cover running from a linked clone and the answer to an unknown flag; tests use their own config directory
+- [x] Run without `build/`, the binary prints one sentence naming the build command and exits 1 — no stack trace
+- [x] The README and CONTRIBUTING say how to get `loopboard` on the PATH from a clone (build, then link globally), and that `npx loopboard` needs the published package
+- [x] An unknown flag exits 1 with one sentence that names it, and nothing is written; each command declares in one place which of its flags take a value
+- [x] Tests: `init --kind docs` creates nothing (#0078 makes the flag valid and takes that test over), and `renumber <old> --path <repo>` works without a new number
+- [x] A test runs every command that takes a target (`init`, `next-id`, `check`, `renumber`, opening the board) from a foreign working directory
+- [x] `--help` and spec § 1 cover running from a linked clone and the answer to an unknown flag; tests use their own config directory
 
 ## Out of scope
 
@@ -56,13 +56,31 @@ the package — the maintainer's step, part of the launch (#0001, #0035,
 - Listing and cleaning the workspace registry — #0099
 - Changing `npx loopboard` in docs, skills and the scaffold — it is the right command once the package is published
 
+## Outcome
+
+- `bin/loopboard.js` looks for `build/server/cli.js` before importing it and
+  otherwise prints "loopboard isn't built yet: run `pnpm build` in <clone>,
+  then try again." (exit 1).
+- Every entry of the command table declares its `usage` line and its `flags`
+  (`switch` or `value`), and so does opening the board. `server/args.ts`
+  parses against that declaration before the command runs: an unknown flag or
+  a missing value is one sentence and exit 1. `--flag=value` works, and
+  `--help` after a command prints the help instead of running it.
+- `renumber <old> --path <repo>` no longer takes the path for the new number.
+- Linking is `pnpm build && npm link`: pnpm 11's `link` has no global mode.
+  Tried against a temporary npm prefix — the link resolves to the clone's
+  `build/`, and `npm uninstall -g loopboard` removes it again.
+- Left as it is: a value the CLI can't use (`--port abc`) still fails inside
+  the command, after the repo was registered.
+
 ## Review
 
-The agent builds the slice above and hands over as `in-review`,
-`assignee: human`. Two checks only work on the maintainer's machine:
+Verify is green and every criterion above is met. What is left only works on
+the maintainer's machine or in the full e2e run:
 
-- [ ] Commit and push the pending work, so a linked clone and a later release run the same code
-- [ ] Link the clone, then run `loopboard --version` from another folder
+- [ ] Merge and push this slice, so a linked clone and a later release run the same code
+- [ ] Link the clone (`pnpm build && npm link`), then run `loopboard --version` from another folder
+- [ ] `pnpm test:e2e` passes with the three new scenarios in `cli.spec.ts` — they were not run through Playwright in this session; their bodies passed against the built binary
 
 ## Notes
 

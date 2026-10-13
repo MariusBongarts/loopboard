@@ -2,7 +2,8 @@
 
 > `npx loopboard` starts a local server for the repo you're in
 > ([ADR-0001](../architecture/decisions/0001-npx-cli-with-a-local-server.md)).
-> Contributors run the same app from a clone with `pnpm dev`.
+> Contributors run the same app from a clone with `pnpm dev`, or link the
+> built CLI and call `loopboard` from any folder.
 
 ## E2E coverage
 
@@ -17,6 +18,9 @@ Status legend in [`_specs.md`](_specs.md#e2e-coverage).
 | Start the board from a clone | 🟡 | every e2e run starts this way (`pnpm exec vite`, BASE_PATH = the demo repo) |
 | Point the board at another repo's root | 🟡 | the e2e server is pointed at a temp repo via BASE_PATH |
 | Start a second board while the first is running | ✅ | [`cli.spec.ts`](../../tests/e2e/cli.spec.ts): `--port` taken → the next one (same port finder as `pnpm dev`) |
+| Run the CLI from a linked clone, in any folder | 🟡 | [`cli.spec.ts`](../../tests/e2e/cli.spec.ts): every command with the repo as a path, from another folder. `npm link` itself isn't run; `tests/cli.test.ts` starts the binary through a symlink |
+| A clone that isn't built says what to run | ✅ | [`cli.spec.ts`](../../tests/e2e/cli.spec.ts): a copy of the binary without `build/` |
+| A flag the command doesn't know stops it | ✅ | [`cli.spec.ts`](../../tests/e2e/cli.spec.ts): `init --kind docs` and the board write nothing, `renumber <old> --path`, a missing value. Parsing in `tests/args.test.ts` |
 | A malformed issue file does not break the board | ✅ | [`01-running-loopboard.spec.ts`](../../tests/e2e/01-running-loopboard.spec.ts): skipped on two consecutive loads (#0042) |
 
 ### Scenario: Open the board for the repo I'm in
@@ -85,6 +89,45 @@ GIVEN a board is already running on port 5180
 WHEN I run `pnpm dev` again
 THEN the new server takes the next free port (5181, then 5182, …)
 AND prints its URL
+```
+
+### Scenario: Run the CLI from a linked clone, in any folder
+
+```
+GIVEN a clone of the loopboard repo, built with `pnpm build` and linked with
+    `npm link`
+WHEN I run `loopboard` in any other folder
+THEN it runs the clone's build/ (not the sources: I build again after pulling)
+AND every command takes the repo as a path, so the folder I'm in doesn't
+    matter: `loopboard <path>`, `init <path>`, `next-id <issue|project> <path>`,
+    `check <path>` and `renumber <old> [new] --path <path>`
+AND nothing is written to the folder I'm in
+AND `--help` names the two steps and says that `npx loopboard` needs the
+    published package
+```
+
+### Scenario: A clone that isn't built says what to run
+
+```
+GIVEN a clone without build/
+WHEN I run `loopboard` with any arguments
+THEN it prints "loopboard isn't built yet: run `pnpm build` in <clone>, then
+    try again." and exits with 1 — no stack trace
+```
+
+### Scenario: A flag the command doesn't know stops it
+
+```
+GIVEN any command, or opening the board
+WHEN I pass a flag it doesn't take, like `loopboard init --kind docs`
+THEN it exits with 1 and one sentence: "Unknown flag --kind: `loopboard init`
+    takes --with-extras, --upgrade, --force, --dry-run."
+AND nothing is written, registered or started
+AND a flag with a value takes the next word or `--flag=value`, never a
+    positional's place: `renumber 0042 --path ../repo` moves 0042 to the next
+    free number
+AND without its value it stops the same way: "Flag --path needs a value."
+AND `--help` after a command prints the help instead of running it
 ```
 
 ### Scenario: A malformed issue file does not break the board
