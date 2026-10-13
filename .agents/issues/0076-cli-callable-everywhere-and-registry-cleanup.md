@@ -70,8 +70,10 @@ the package — the maintainer's step, part of the launch (#0001, #0035,
 - Linking is `pnpm build && npm link`: pnpm 11's `link` has no global mode.
   Tried against a temporary npm prefix — the link resolves to the clone's
   `build/`, and `npm uninstall -g loopboard` removes it again.
-- Left as it is: a value the CLI can't use (`--port abc`) still fails inside
-  the command, after the repo was registered.
+- Review round: a port the CLI can't use (`--port abc`, `70000`) is refused
+  like an unknown flag, before the repo is registered. A first argument that
+  every object has as a property (`toString`, `constructor`) is read as a
+  path, not looked up as a command.
 
 ## Review
 

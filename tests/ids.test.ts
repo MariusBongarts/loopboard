@@ -84,6 +84,27 @@ describe('near-miss names', () => {
     await writeFile(join(root, 'issues', '0001_first.md'), '---\nid: 0001\ntitle: First\n---\n');
     expect(checkRoot(root, false).duplicates.map((d) => d.id)).toEqual(['0001']);
   });
+
+  it('count for a dotted project folder, never for a stray file in projects/', async () => {
+    await mkdir(join(root, 'projects', '03-offline-v1.2'));
+    await writeFile(join(root, 'projects', '07-notes.txt'), 'notes');
+    expect(nextId(root, 'project')).toBe('04');
+
+    // The same on a branch, where only the tree says what is a folder.
+    await writeFile(join(root, 'projects', '03-offline-v1.2', 'wip.md'), '# Offline — WIP\n');
+    await writeFile(join(root, 'projects', '01-launch', 'wip.md'), '# Launch — WIP\n');
+    git(repo, 'init', '-q', '-b', 'main');
+    git(repo, 'add', '.');
+    git(repo, 'commit', '-qm', 'base');
+    git(repo, 'checkout', '-qb', 'feat');
+    await mkdir(join(root, 'projects', '05-on a branch'));
+    await writeFile(join(root, 'projects', '05-on a branch', 'wip.md'), '# Branch — WIP\n');
+    await writeFile(join(root, 'projects', '09-notes.txt'), 'notes');
+    git(repo, 'add', '.');
+    git(repo, 'commit', '-qm', 'feat');
+    git(repo, 'checkout', '-q', 'main');
+    expect(nextId(root, 'project')).toBe('06');
+  });
 });
 
 describe('check', () => {
@@ -173,6 +194,41 @@ describe('renumber', () => {
     expect(plan.ambiguous).toEqual(['issues/0002-mentions.md']);
     applyRenumber(root, plan);
     expect(await readFile(join(root, 'issues', '0002-mentions.md'), 'utf8')).toContain('See #0001.');
+  });
+
+  // `check` counts a near miss as holding its number, so `renumber` has to
+  // find it too, and may never move another file instead (#0071).
+  it('moves the file --file names, also a near miss, and refuses a name that has not the number', async () => {
+    await writeFile(join(root, 'issues', '0001_First copy.md'), '---\nid: 0001\ntitle: Copy\n---\n');
+    await issue(join(root, 'issues'), '0002', 'mentions', 'parent: 0001\n', 'See #0001.');
+
+    expect(() => planRenumber({ root, oldId: '0001', file: '0002-mentions.md' })).toThrow(/--file 0002-mentions\.md names no issue numbered 0001/);
+    expect(() => planRenumber({ root, oldId: '0001', file: 'first.md' })).toThrow(/names no issue numbered 0001/);
+    expect(() => planRenumber({ root, oldId: '0003', file: '0001-first.md' })).toThrow(/names no issue numbered 0003/);
+
+    const plan = planRenumber({ root, oldId: '0001', file: '0001_First copy.md' });
+    expect(plan).toMatchObject({ from: 'issues/0001_First copy.md', to: 'issues/0004_First copy.md', ambiguous: ['issues/0002-mentions.md'] });
+    applyRenumber(root, plan);
+
+    expect(existsSync(join(root, 'issues', '0001-first.md'))).toBe(true);
+    expect(await readFile(join(root, 'issues', '0004_First copy.md'), 'utf8')).toContain('id: 0004');
+    const child = await readFile(join(root, 'issues', '0002-mentions.md'), 'utf8');
+    expect(child).toContain('parent: 0001');
+    expect(child).toContain('See #0001.');
+  });
+
+  it('moves a near-miss project folder and keeps the rest of its name', async () => {
+    await mkdir(join(root, 'projects', '01_Beta (old)'));
+    await issue(join(root, 'issues'), '0002', 'in-beta', 'project: 01_Beta (old)\n', 'See ../projects/01_Beta (old)/prd.md');
+
+    const plan = planRenumber({ root, oldId: '01', file: '01_Beta (old)' });
+    expect(plan).toMatchObject({ from: 'projects/01_Beta (old)', to: 'projects/02_Beta (old)' });
+    applyRenumber(root, plan);
+
+    expect(existsSync(join(root, 'projects', '01-launch'))).toBe(true);
+    const text = await readFile(join(root, 'issues', '0002-in-beta.md'), 'utf8');
+    expect(text).toContain('project: 02_Beta (old)');
+    expect(text).toContain('projects/02_Beta (old)/prd.md');
   });
 
   it('moves a project and rewrites project: fields and links', async () => {

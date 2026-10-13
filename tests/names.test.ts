@@ -12,16 +12,24 @@ describe('matchName', () => {
     for (const name of ['0002-Tax-Return.md', '0002_tax_return.md', '0002-tax-return 2.md', '0002-tax-return.MD', '0002.md']) {
       expect(matchName('issue', name), name).toEqual({ valid: false, id: '0002' });
     }
-    for (const name of ['03-Offline-Mode', '03_offline_mode', '03 offline mode']) {
+    // A dotted folder keeps its number; whoever lists projects/ leaves files out.
+    for (const name of ['03-Offline-Mode', '03_offline_mode', '03 offline mode', '03-offline-v1.2', '03-notes.txt']) {
       expect(matchName('project', name), name).toEqual({ valid: false, id: '03' });
     }
+  });
+
+  it('flags a name with a line break in it', () => {
+    for (const name of ['0002-tax\nreturn.md', '0002-tax\rreturn.md', '0002-tax\u2028return.md']) {
+      expect(matchName('issue', name), JSON.stringify(name)).toEqual({ valid: false, id: '0002' });
+    }
+    expect(matchName('project', '03-offline\nmode')).toEqual({ valid: false, id: '03' });
   });
 
   it('flags a near miss without a number of the right width', () => {
     for (const name of ['2-tax-return.md', '00021-tax-return.md']) {
       expect(matchName('issue', name), name).toEqual({ valid: false, id: null });
     }
-    for (const name of ['offline-mode', '3-offline-mode', '003-offline-mode', '03-offline-v1.2', '03-notes.txt']) {
+    for (const name of ['offline-mode', '3-offline-mode', '003-offline-mode']) {
       expect(matchName('project', name), name).toEqual({ valid: false, id: null });
     }
   });

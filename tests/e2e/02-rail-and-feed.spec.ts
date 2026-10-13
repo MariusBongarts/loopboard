@@ -76,7 +76,7 @@ test('see which files the board skipped', async ({ page, context }) => {
     await expect(dialog.locator('.skipped-reason')).toHaveText([/^invalid frontmatter: /, /NNNN-slug\.md/, /^can't be read/, /NN-slug/]);
     await dialog.getByRole('button', { name: 'Copy agent prompt' }).click();
     const prompt = await page.evaluate(() => navigator.clipboard.readText());
-    expect(prompt).toContain('- .agents/issues/0011-Tax-Return.md — name must be NNNN-slug.md');
+    expect(prompt).toContain('- ".agents/issues/0011-Tax-Return.md" — name must be NNNN-slug.md');
     expect(prompt).toContain('`npx loopboard check`');
 
     // The agent fixes them; the list and the feed follow without a reload.

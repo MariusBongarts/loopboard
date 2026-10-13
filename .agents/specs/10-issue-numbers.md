@@ -14,9 +14,9 @@ against temp git repos; edge cases in `tests/ids.test.ts`. Status legend in [`_s
 | Numbers taken on other branches and worktrees count | 🟡 | [`cli.spec.ts`](../../tests/e2e/cli.spec.ts): unmerged branch. Worktrees and remote refs in `tests/ids.test.ts` |
 | Find duplicate numbers | ✅ | [`cli.spec.ts`](../../tests/e2e/cli.spec.ts): working tree and `--branches` |
 | Find dangling references | ✅ | [`cli.spec.ts`](../../tests/e2e/cli.spec.ts): warning, `--strict` fails. Code is skipped (`tests/ids.test.ts`) |
-| Find files the board skips | ✅ | [`cli.spec.ts`](../../tests/e2e/cli.spec.ts): warning per file, `--strict` fails, a mis-named file keeps its number. Unreadable files in `tests/cli.test.ts` |
+| Find files the board skips | ✅ | [`cli.spec.ts`](../../tests/e2e/cli.spec.ts): warning per file, `--strict` fails, a mis-named file and folder keep their number. Unreadable files, a mis-named twin and escaped names in `tests/cli.test.ts`; stray files in `projects/` in `tests/ids.test.ts` |
 | Renumber an issue | 🟡 | [`cli.spec.ts`](../../tests/e2e/cli.spec.ts): file, `id:`, next free number, `--path`. Reference rewriting and `--dry-run` in `tests/ids.test.ts` |
-| Renumber one of two twins | ✅ | [`cli.spec.ts`](../../tests/e2e/cli.spec.ts): refuses without `--file`, moves only the named file |
+| Renumber one of two twins | ✅ | [`cli.spec.ts`](../../tests/e2e/cli.spec.ts): refuses without `--file`, moves only the named file. A mis-named twin and a `--file` without the number in `tests/cli.test.ts` and `tests/ids.test.ts` |
 | Renumber a project | ✅ | [`cli.spec.ts`](../../tests/e2e/cli.spec.ts): folder, `project:` and links; `--dry-run` writes nothing |
 
 ### Scenario: Get the next number
@@ -70,8 +70,16 @@ WHEN I run `loopboard check`
 THEN each is listed as a warning with the same path and reason as on the
     board, and the exit code stays 0
 AND with --strict they fail the check
-AND a mis-named file still takes its number for `next-id`, so renaming it
-    can't collide with a newer issue
+AND a mis-named file or folder still takes its number for `next-id`, so
+    renaming it can't collide with a newer issue; a file in projects/ takes
+    none
+GIVEN a mis-named file that shares its number with another file, as a sync
+    conflict copy (`0001-first 2.md`) does
+WHEN I run `loopboard check`
+THEN it is a duplicate as well: both files are listed, the exit code is 1,
+    and the fix command names the mis-named file, quoted for the shell
+AND a control character in a name is printed escaped (`\n`, `\u001b`),
+    never sent to the terminal
 ```
 
 ### Scenario: Renumber an issue
@@ -94,6 +102,10 @@ THEN it refuses and lists both files
 WHEN I add `--file 0001-twin.md`
 THEN only that file moves; links naming it are updated, and #0001 mentions
     elsewhere are listed as ambiguous and left alone
+AND a mis-named twin (`0001_first.md`) moves the same way and keeps the rest
+    of its name (`0004_first.md`)
+WHEN --file names a file that doesn't have that number
+THEN nothing moves, and the files that do are listed
 ```
 
 ### Scenario: Renumber a project

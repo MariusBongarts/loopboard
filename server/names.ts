@@ -15,17 +15,18 @@ const PATTERN: Record<IdKind, RegExp> = {
 
 // Near misses (capitals, spaces, a sync conflict copy, a wrong digit count):
 // a markdown file that starts with a digit, or anything in projects/ that
-// isn't hidden, a `_templates`-style folder or a markdown file.
+// isn't hidden, a `_templates`-style folder or a markdown file. A name may
+// hold a line break, hence the `s` flag.
 const NEAR_MISS: Record<IdKind, RegExp> = {
-  issue: /^\d.*\.md$/i,
-  project: /^[^._](?!.*\.md$)/i,
+  issue: /^\d.*\.md$/is,
+  project: /^[^._](?!.*\.md$)/is,
 };
 
-// A dotted name in projects/ may be a stray file (`01-notes.txt`): the
-// allocator sees names only, so it claims no number.
+// In projects/ only a folder takes its number: whoever lists the directory
+// leaves out stray files such as `01-notes.txt`.
 const NUMBER: Record<IdKind, RegExp> = {
   issue: /^(\d{4})(?!\d)/,
-  project: /^(\d{2})(?!\d)[^.]*$/,
+  project: /^(\d{2})(?!\d)/,
 };
 
 export const NAME_HINT: Record<IdKind, string> = {

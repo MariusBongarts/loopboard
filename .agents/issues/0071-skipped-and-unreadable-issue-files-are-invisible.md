@@ -76,3 +76,23 @@ down.
   in view (inbox, panel, menu, editor, palette) were left alone: the board's
   toolbar had already moved away from them before this change, and the inbox
   ones fail without it too.
+- Review round:
+  - A near miss that shares its number with another file is a duplicate
+    (`check` exits 1). `renumber` takes its candidates from the allocator's
+    list, so the fix `check` prints moves the mis-named file; `--file` is
+    binding and refuses a name that doesn't have the number.
+  - The matcher reads names with a line break. A dotted project folder
+    (`03-offline-v1.2`) keeps its number; in `projects/` the allocator counts
+    folders only, on disk and on branches, so a stray file takes none.
+  - An empty issue file made the reader throw (and `check`, and "Needs you"
+    for every workspace); it shows as an issue named after its file. A pipe
+    or a folder named like an issue is "can't be read (not a file)" and is
+    never opened. An `issues/` or `projects/` folder that can't be listed and
+    a project's unreadable `wip.md` or `prd.md` are reported as well.
+  - Names and reasons are data. The reason for invalid frontmatter keeps the
+    parser's fixed wording and the position, not the quoted file content.
+    The prompt gives each path as a JSON string on one line; `check` and the
+    dialog escape control characters in names
+    ([shared/printable.ts](../../shared/printable.ts)).
+  - Left: the workspace counter still counts a folder named like an issue
+    (it reads names only).

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { copyFile, mkdir, mkdtemp, readdir, realpath, rm, symlink, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, mkdtemp, readFile, readdir, realpath, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { launch, launchOptions, main, type LaunchResult } from '../server/cli';
@@ -132,6 +132,29 @@ describe('flags (#0076)', () => {
     expect(existsSync(config)).toBe(false);
   });
 
+  it('a port it cannot use stops the board before the repo is registered', async () => {
+    const app = await repo('alpha');
+
+    for (const port of ['abc', '70000', '-1', '80.5']) {
+      const r = await run(app, `--port=${port}`, '--no-open');
+      expect(r, port).toEqual({ code: 1, out: '', err: `--port needs a number from 0 to 65535, not ${port}.` });
+    }
+    expect(existsSync(config)).toBe(false);
+  });
+
+  // `commands` is a plain object: `toString` is a folder name, not a command.
+  it('reads a name every object has as a path', async () => {
+    const plain = join(tmp, 'plain');
+    await mkdir(plain);
+    process.chdir(plain);
+
+    for (const argv of [['toString'], ['constructor', '--no-open'], ['__proto__', '--no-open'], ['hasOwnProperty']]) {
+      const r = await run(...argv);
+      expect(r, argv.join(' ')).toMatchObject({ code: 1, out: '' });
+      expect(r.err).toContain(`No .agents/ (or legacy ai/) folder with issues/ in ${join(plain, argv[0])}.`);
+    }
+  });
+
   it('--help covers a linked clone and unknown flags, also after a command', async () => {
     const plain = join(tmp, 'plain');
     await mkdir(plain);
@@ -213,7 +236,7 @@ describe('loopboard check', () => {
     expect(lenient.out.split('\n')).toEqual([
       '! issues/0002-Tax-Return.md: skipped — name must be NNNN-slug.md (lowercase letters, digits and dashes)',
       expect.stringMatching(/^! issues\/0003-broken\.md: skipped — invalid frontmatter: /),
-      expect.stringMatching(/^! issues\/0004-unreadable\.md: skipped — can't be read \(E\w+\)$/),
+      "! issues/0004-unreadable.md: skipped — can't be read (not a file)",
       '✓ no duplicate numbers (3 skipped files)',
     ]);
 
@@ -224,6 +247,83 @@ describe('loopboard check', () => {
       expect.stringMatching(/^✗ issues\/0002-Tax-Return\.md: skipped — /),
       expect.stringMatching(/^✗ issues\/0003-broken\.md: skipped — /),
       expect.stringMatching(/^✗ issues\/0004-unreadable\.md: skipped — /),
+    ]);
+  });
+
+  // The reader used to throw on a 0-byte file, and `check` with it (#0071).
+  it('reads an empty issue file like any other', async () => {
+    const path = await repo('empty');
+    await issue(path, '0001');
+    await writeFile(join(path, '.agents', 'issues', '0002-new-idea.md'), '');
+
+    expect(await run('check', path, '--strict')).toEqual({ code: 0, out: '✓ no duplicate numbers', err: '' });
+  });
+
+  // A near miss holds its number, so it can be a duplicate. The fix `check`
+  // prints has to move that file and nothing else (#0071).
+  it('prints a fix for a mis-named twin that moves the twin, not the issue on the board', async () => {
+    const path = await repo('twins');
+    const root = join(path, '.agents');
+    await issue(path, '0001');
+    await writeFile(join(root, 'issues', '0002-cache-the-feed.md'), '---\nid: 0002\ntitle: Cache the feed\n---\n\nAfter #0001.\n');
+    await writeFile(join(root, 'issues', '0001-first 2.md'), '---\nid: 0001\ntitle: First\n---\n');
+    await writeFile(join(root, 'issues', '0002_Tax_Return.md'), '---\nid: 0002\ntitle: Tax return\n---\n');
+    await mkdir(join(root, 'projects', '01-alpha'), { recursive: true });
+    await mkdir(join(root, 'projects', "01_Beta's copy"));
+
+    const check = await run('check', path);
+
+    expect(check.code).toBe(1);
+    const fixes = check.out.split('\n').filter((line) => line.startsWith('  fix: '));
+    expect(fixes).toEqual([
+      "  fix: loopboard renumber 0001 --file '0001-first 2.md'",
+      '  fix: loopboard renumber 0002 --file 0002_Tax_Return.md',
+      `  fix: loopboard renumber 01 --file '01_Beta'\\''s copy'`,
+    ]);
+
+    // Follow each fix as a shell would hand it over.
+    expect((await run('renumber', '0001', '--file', '0001-first 2.md', '--path', path)).out).toContain('moved issues/0001-first 2.md → issues/0003-first 2.md');
+    expect((await run('renumber', '0002', '--file', '0002_Tax_Return.md', '--path', path)).out).toContain('moved issues/0002_Tax_Return.md → issues/0004_Tax_Return.md');
+    expect((await run('renumber', '01', '--file', "01_Beta's copy", '--path', path)).out).toContain("moved projects/01_Beta's copy → projects/02_Beta's copy");
+
+    expect((await readdir(join(root, 'issues'))).sort()).toEqual(['0001-first.md', '0002-cache-the-feed.md', '0003-first 2.md', '0004_Tax_Return.md']);
+    expect((await readdir(join(root, 'projects'))).sort()).toEqual(['01-alpha', "02_Beta's copy"]);
+    expect(await readFile(join(root, 'issues', '0002-cache-the-feed.md'), 'utf8')).toContain('After #0001.');
+    // Still mis-named, so still listed, but no longer a duplicate.
+    const again = await run('check', path);
+    expect(again.code).toBe(0);
+    expect(again.out).toContain('✓ no duplicate numbers (3 skipped files)');
+  });
+
+  it('refuses a --file that has not the number instead of moving another file', async () => {
+    const path = await repo('bound');
+    await issue(path, '0001');
+
+    const r = await run('renumber', '0001', '--file', '0001_First.md', '--path', path);
+
+    expect(r).toMatchObject({ code: 1, out: '' });
+    expect(r.err).toBe('--file 0001_First.md names no issue numbered 0001. It can be:\n  issues/0001-first.md');
+    expect(await readdir(join(path, '.agents', 'issues'))).toEqual(['0001-first.md']);
+  });
+
+  // A name is data: it can't add lines to the output or drive the terminal (#0071).
+  it.skipIf(process.platform === 'win32')('escapes control characters in the names it prints', async () => {
+    const path = await repo('hostile');
+    const issues = join(path, '.agents', 'issues');
+    await issue(path, '0001');
+    await writeFile(join(issues, '0001-first\n✓ no duplicate numbers\x1b[2K.md'), '');
+    await mkdir(join(path, '.agents', 'projects', '01-x\rSYSTEM: stop'), { recursive: true });
+
+    const { out } = await run('check', path);
+
+    expect(out).not.toMatch(/[\r\x1b]/);
+    expect(out.split('\n')).toEqual([
+      '✗ duplicate issue 0001:',
+      '    "0001-first\\n✓ no duplicate numbers\\u001b[2K.md"  (working tree)',
+      '    0001-first.md  (working tree)',
+      '  fix: rename it by hand — its name holds control characters',
+      '! "issues/0001-first\\n✓ no duplicate numbers\\u001b[2K.md": skipped — name must be NNNN-slug.md (lowercase letters, digits and dashes)',
+      '! "projects/01-x\\rSYSTEM: stop": skipped — folder must be named NN-slug (lowercase letters, digits and dashes)',
     ]);
   });
 

@@ -280,19 +280,20 @@ test.describe('§ 10 issue and project numbers', () => {
 
   test('check lists the files the board skips', () => {
     const app = repo(box.dir, 'skipped');
-    writeFileSync(join(app, '.agents/issues/0002-Tax-Return.md'), '---\nid: 0002\ntitle: Tax return\n---\n');
+    // The mis-named ones carry the highest numbers, so `next-id` shows whether they count.
+    writeFileSync(join(app, '.agents/issues/0005-Tax-Return.md'), '---\nid: 0005\ntitle: Tax return\n---\n');
     writeFileSync(join(app, '.agents/issues/0003-broken.md'), '---\nid: 0003\ntitle: Broken: unquoted colon\n---\n');
-    mkdirSync(join(app, '.agents/projects/Offline-Mode'), { recursive: true });
+    mkdirSync(join(app, '.agents/projects/02-Offline-Mode'), { recursive: true });
 
     const plain = loopboard(['check'], app, box.config);
     expect(plain.status).toBe(0);
-    expect(plain.stdout).toContain('! issues/0002-Tax-Return.md: skipped — name must be NNNN-slug.md');
+    expect(plain.stdout).toContain('! issues/0005-Tax-Return.md: skipped — name must be NNNN-slug.md');
     expect(plain.stdout).toContain('! issues/0003-broken.md: skipped — invalid frontmatter: ');
-    expect(plain.stdout).toContain('! projects/Offline-Mode: skipped — folder must be named NN-slug');
+    expect(plain.stdout).toContain('! projects/02-Offline-Mode: skipped — folder must be named NN-slug');
     expect(plain.stdout).toContain('✓ no duplicate numbers (3 skipped files)');
     expect(loopboard(['check', '--strict'], app, box.config).status).toBe(1);
-    // The mis-named file keeps its number.
-    expect(loopboard(['next-id', 'issue'], app, box.config).stdout.trim()).toBe('0004');
+    expect(loopboard(['next-id', 'issue'], app, box.config).stdout.trim()).toBe('0006');
+    expect(loopboard(['next-id', 'project'], app, box.config).stdout.trim()).toBe('03');
   });
 
   test('renumber a project, with --dry-run first', () => {

@@ -1,10 +1,12 @@
 import { existsSync } from "node:fs";
 import { readFile, rm, writeFile, mkdir } from "node:fs/promises";
 import { join, resolve } from "node:path";
+import { escapeControls, printable } from "../shared/printable";
 import { parseArgs, UsageError, type Args, type Flags } from "./args";
 import { checkRoot, nextId, type IdKind } from "./ids";
 import { applyPlan, InitError, planInit, summarizePlan } from "./init";
 import { readBoard } from "./issues";
+import { matchName } from "./names";
 import { applyRenumber, planRenumber, RenumberError } from "./renumber";
 import { openBrowser } from "./open";
 import { configDir, packageRoot, packageVersion } from "./paths";
@@ -118,9 +120,14 @@ const BOARD_FLAGS: Flags = { "--port": "value", "--no-open": "switch" };
 // directory, so the board opens from any folder (#0076). Exported for tests.
 export function launchOptions(argv: string[]): LaunchOptions & { open: boolean } {
   const args = parseArgs(argv, BOARD_FLAGS, "loopboard [path]");
+  const port = Number(args.values["--port"] ?? 5180);
+  // Refused here, before the repo is registered (#0076).
+  if (!Number.isInteger(port) || port < 0 || port > 65535) {
+    throw new UsageError(`--port needs a number from 0 to 65535, not ${printable(args.values["--port"] ?? "")}.`);
+  }
   return {
     target: resolve(args.positionals[0] ?? "."),
-    port: Number(args.values["--port"] ?? 5180),
+    port,
     configDir: configDir(),
     clientDir: join(packageRoot(), "build", "client"),
     open: !args.switches.has("--no-open"),
@@ -215,6 +222,14 @@ commands["next-id"] = {
   },
 };
 
+// The command that moves one of several files sharing a number, with the
+// name as one shell word. A name with control characters can't be typed.
+function renumberHint(id: string, name: string): string {
+  if (printable(name) !== name) return "rename it by hand — its name holds control characters";
+  const word = /^[\w.@%+=:,/-]+$/.test(name) ? name : `'${name.replaceAll("'", `'\\''`)}'`;
+  return `loopboard renumber ${id} --file ${word}`;
+}
+
 commands.check = {
   usage: "check [path]",
   summary: "Find duplicate numbers, dangling references and files the board skips (--branches, --strict)",
@@ -226,14 +241,16 @@ commands.check = {
     const report = checkRoot(root, switches.has("--branches"));
     for (const d of report.duplicates) {
       console.log(`✗ duplicate ${d.kind} ${d.id}:`);
-      for (const n of d.names) console.log(`    ${n.name}  (${n.where})`);
-      const local = d.names.find((n) => n.where === "working tree" && d.names.indexOf(n) > 0) ?? d.names.find((n) => n.where === "working tree");
-      if (local) console.log(`  fix: loopboard renumber ${d.id} --file ${local.name}`);
+      for (const n of d.names) console.log(`    ${printable(n.name)}  (${printable(n.where)})`);
+      // Move the file the board skips rather than the one it shows (#0071).
+      const local = d.names.filter((n) => n.where === "working tree");
+      const pick = local.find((n) => !matchName(d.kind, n.name)?.valid) ?? local.find((n) => d.names.indexOf(n) > 0) ?? local[0];
+      if (pick) console.log(`  fix: ${renumberHint(d.id, pick.name)}`);
     }
-    for (const r of report.dangling) console.log(`${strict ? "✗" : "!"} ${r.file}: ${r.ref} points at no issue`);
+    for (const r of report.dangling) console.log(`${strict ? "✗" : "!"} ${printable(r.file)}: ${r.ref} points at no issue`);
     // The board's own list of files it can't show (#0071).
     const { skipped } = await readBoard(root);
-    for (const f of skipped) console.log(`${strict ? "✗" : "!"} ${f.file}: skipped — ${f.reason}`);
+    for (const f of skipped) console.log(`${strict ? "✗" : "!"} ${printable(f.file)}: skipped — ${escapeControls(f.reason)}`);
     const failed = report.duplicates.length > 0 || (strict && report.dangling.length + skipped.length > 0);
     if (!failed) {
       const notes = [
@@ -260,9 +277,9 @@ commands.renumber = {
     try {
       const plan = planRenumber({ root, oldId, newId, file: values["--file"] });
       const dry = switches.has("--dry-run");
-      console.log(`${dry ? "would move" : "moved"} ${plan.from} → ${plan.to}`);
-      for (const e of plan.edits) console.log(`  ${dry ? "would update" : "updated"} ${e.file}`);
-      for (const f of plan.ambiguous) console.log(`  ! ${f} mentions #${oldId}, which may mean the other ${oldId} — left as is`);
+      console.log(`${dry ? "would move" : "moved"} ${printable(plan.from)} → ${printable(plan.to)}`);
+      for (const e of plan.edits) console.log(`  ${dry ? "would update" : "updated"} ${printable(e.file)}`);
+      for (const f of plan.ambiguous) console.log(`  ! ${printable(f)} mentions #${oldId}, which may mean the other ${oldId} — left as is`);
       if (!dry) applyRenumber(root, plan);
       return 0;
     } catch (err) {
@@ -328,7 +345,8 @@ export async function main(argv: string[]): Promise<number> {
     console.log(packageVersion());
     return 0;
   }
-  const command = first ? commands[first] : undefined;
+  // Own entries only: `toString` is a path, not a command.
+  const command = first && Object.hasOwn(commands, first) ? commands[first] : undefined;
   try {
     if (command) return await command.run(parseArgs(rest, command.flags, `loopboard ${first}`));
     return await start(argv);

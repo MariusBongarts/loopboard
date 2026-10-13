@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { issueRefs } from "../shared/refs";
 import { git, gitLocate } from "./git";
@@ -29,21 +29,36 @@ function idDirs(kind: IdKind): string[] {
   return kind === "issue" ? ["issues", "issues/_archive"] : ["projects"];
 }
 
-// A near-miss name still takes its number: the board reports the file as
-// skipped, and renaming it must not collide with a newer issue (#0071).
-function match(kind: IdKind, name: string): string | null {
-  return matchName(kind, name)?.id ?? null;
+function isFolder(path: string): boolean {
+  try {
+    return statSync(path).isDirectory();
+  } catch {
+    return false;
+  }
 }
 
-function fromDisk(root: string, kind: IdKind, where: string): IdSighting[] {
-  const out: IdSighting[] = [];
+export interface NumberedName {
+  id: string;
+  name: string;
+  dir: string; // relative to root, e.g. issues/_archive
+}
+
+// Every name under the root that takes a number. A near-miss name does too:
+// the board reports the file as skipped, and renaming it must not collide
+// with a newer issue (#0071). In projects/ only folders count.
+export function numberedNames(root: string, kind: IdKind): NumberedName[] {
+  const out: NumberedName[] = [];
   for (const dir of idDirs(kind)) {
     for (const name of namesIn(join(root, dir))) {
-      const id = match(kind, name);
-      if (id) out.push({ id, name, where });
+      const id = matchName(kind, name)?.id;
+      if (id && (kind === "issue" || isFolder(join(root, dir, name)))) out.push({ id, name, dir });
     }
   }
   return out;
+}
+
+function fromDisk(root: string, kind: IdKind, where: string): IdSighting[] {
+  return numberedNames(root, kind).map(({ id, name }) => ({ id, name, where }));
 }
 
 // Every place an ID can already be taken: this working tree, other worktrees'
@@ -73,11 +88,14 @@ export function collectIds(root: string, kind: IdKind, opts: { git?: boolean } =
     .filter((r) => r && !r.endsWith("/HEAD"));
   for (const ref of refs) {
     for (const dir of idDirs(kind)) {
-      const listing = git(top, ["ls-tree", "--name-only", ref, `${rootRel ? `${rootRel}/` : ""}${dir}/`]);
-      for (const path of (listing ?? "").split("\n")) {
-        const name = path.split("/").pop() ?? "";
-        const id = match(kind, name);
-        if (id) sightings.push({ id, name, where: `branch ${ref}` });
+      // `-z`: one `<mode> <type> <object>\t<path>` per entry, names unquoted.
+      const listing = git(top, ["ls-tree", "-z", ref, `${rootRel ? `${rootRel}/` : ""}${dir}/`]);
+      for (const entry of (listing ?? "").split("\0")) {
+        const tab = entry.indexOf("\t");
+        const name = entry.slice(tab + 1).split("/").pop() ?? "";
+        const id = matchName(kind, name)?.id;
+        const counts = kind === "issue" || entry.slice(0, tab).split(" ")[1] === "tree";
+        if (id && counts) sightings.push({ id, name, where: `branch ${ref}` });
       }
     }
   }
@@ -147,7 +165,8 @@ export function findDangling(root: string): DanglingRef[] {
       try {
         text = readFileSync(file, "utf8");
       } catch {
-        // Unreadable: `check` lists it with the board's skipped files (#0071).
+        // Unreadable, so nothing to check. The board's skipped list names
+        // issue files and a project's wip.md and prd.md (#0071).
         continue;
       }
       const rel = relative(root, file).split("\\").join("/");

@@ -373,7 +373,9 @@ const feedOn = (key: InboxFilter) => props.view === 'feed' && props.filter === k
 .collapsed .rail-head { flex-direction: column; gap: 6px; }
 .collapsed .rail-head :deep(.ws-name), .collapsed .rail-head :deep(.ws-chevron) { display: none; }
 .collapsed .rail-head :deep(.ws-current) { justify-content: center; padding: 4px; }
-.collapsed .live-badge { width: 10px; height: 10px; padding: 0; background: var(--amber); font-size: 0; }
+.collapsed .live-badge { position: relative; width: 10px; height: 10px; padding: 0; background: var(--amber); font-size: 0; }
+/* A 24px target: the refresh button matters most when the board isn't live. */
+.collapsed .live-badge::after { content: ""; position: absolute; inset: -7px; }
 .collapsed .rail-nav { justify-content: center; padding: 0; }
 .collapsed .rail-name, .collapsed .rail-count, .collapsed .prd-num, .collapsed .rail-pin, .collapsed kbd { display: none; }
 .collapsed .rail-count.hot { display: block; position: absolute; margin: -14px 0 0 18px; min-width: 8px; height: 8px; padding: 0; font-size: 0; line-height: 0; }

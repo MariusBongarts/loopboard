@@ -104,9 +104,64 @@ function normalizeId(value: string | undefined): string | undefined {
   return value ? value.padStart(4, "0") : undefined;
 }
 
+function errorCode(err: unknown): string {
+  return err instanceof Error && "code" in err ? String(err.code) : "";
+}
+
 function unreadable(err: unknown): string {
-  const code = err instanceof Error && "code" in err ? String(err.code) : "";
+  const code = errorCode(err);
   return code ? `can't be read (${code})` : "can't be read";
+}
+
+// The parser's message quotes the file, and the reason ends up in a terminal
+// and in a prompt for an agent: only its fixed part and the position are
+// passed on (#0071).
+function frontmatterReason(err: unknown): string {
+  const { reason, message, mark } = (err ?? {}) as { reason?: unknown; message?: unknown; mark?: { line?: unknown; column?: unknown } };
+  const text = typeof reason === "string" ? reason : typeof message === "string" ? message.split("\n")[0] : "";
+  const what = text.split(/[:"!<]/)[0].replace(/[^\w ,;()'-]/g, "").trim().slice(0, 100);
+  const at = typeof mark?.line === "number" && typeof mark.column === "number" ? ` at line ${mark.line + 1}, column ${mark.column + 1}` : "";
+  return `invalid frontmatter${what ? `: ${what}` : ""}${at}`;
+}
+
+// Throws what `parseFrontmatter` throws; the caller reports the file as skipped.
+function toIssue(entry: string, id: string, archived: boolean, raw: string): Issue {
+  const parsed = parseFrontmatter(raw);
+  const fm = parsed.data as Record<string, unknown>;
+  const status = String(fm.status ?? "todo") as Status;
+  const rawAssignee =
+    fm.assignee !== undefined ? String(fm.assignee) : "agent";
+  const assignee: Assignee = (ASSIGNEES as readonly string[]).includes(
+    rawAssignee
+  )
+    ? (rawAssignee as Assignee)
+    : "agent";
+  const priority =
+    typeof fm.priority === "number" &&
+    Number.isFinite(fm.priority) &&
+    fm.priority >= 1
+      ? Math.floor(fm.priority)
+      : undefined;
+  return {
+    // Filename is canonical for IDs; frontmatter `id:` is unreliable.
+    id,
+    filename: entry,
+    archived,
+    title: String(fm.title ?? entry),
+    category: String(fm.category ?? "task"),
+    status,
+    assignee,
+    project: fm.project ? String(fm.project) : undefined,
+    phase: typeof fm.phase === "number" ? fm.phase : undefined,
+    // An empty file has no frontmatter block at all.
+    parent: normalizeId(readField(parsed.matter ?? "", "parent")),
+    labels: Array.isArray(fm.labels) ? fm.labels.map(String) : [],
+    created: normalizeCreated(fm.created),
+    reviewed: normalizeCreated(fm.reviewed),
+    deployed: normalizeCreated(fm.deployed),
+    priority,
+    body: parsed.content,
+  };
 }
 
 async function readIssuesFromDir(
@@ -115,74 +170,43 @@ async function readIssuesFromDir(
 ): Promise<{ issues: Issue[]; skipped: SkippedFile[] }> {
   const issues: Issue[] = [];
   const skipped: SkippedFile[] = [];
+  const folder = `issues${archived ? "/_archive" : ""}`;
   let entries: string[];
   try {
     entries = await readdir(dir);
-  } catch {
+  } catch (err) {
+    // A missing folder is empty; one that can't be listed hides issues (#0071).
+    if (errorCode(err) !== "ENOENT") skipped.push({ file: folder, reason: unreadable(err) });
     return { issues, skipped };
   }
   for (const entry of entries) {
     const match = matchName("issue", entry);
     if (!match) continue;
     // One bad file (a near-miss name, a placeholder that won't hydrate, an
-    // unquoted colon in `title:`) must neither 500 `/api/w/:id/data` nor
-    // vanish (#0042, #0071).
-    const skip = (reason: string) =>
-      skipped.push({ file: `issues/${archived ? "_archive/" : ""}${entry}`, reason });
+    // unquoted colon in `title:`, an empty file) must neither 500
+    // `/api/w/:id/data` nor vanish (#0042, #0071).
+    const skip = (reason: string) => skipped.push({ file: `${folder}/${entry}`, reason });
     if (!match.valid) {
       skip(NAME_HINT.issue);
       continue;
     }
     let raw: string;
     try {
+      // Reading a pipe never returns; a folder isn't an issue either.
+      if (!(await stat(join(dir, entry))).isFile()) {
+        skip("can't be read (not a file)");
+        continue;
+      }
       raw = await readFile(join(dir, entry), "utf8");
     } catch (err) {
       skip(unreadable(err));
       continue;
     }
-    let parsed: ReturnType<typeof parseFrontmatter>;
     try {
-      parsed = parseFrontmatter(raw);
+      issues.push(toIssue(entry, match.id, archived, raw));
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      skip(`invalid frontmatter: ${msg.split("\n")[0].replace(/:$/, "")}`);
-      continue;
+      skip(frontmatterReason(err));
     }
-    const fm = parsed.data as Record<string, unknown>;
-    // Filename is canonical for IDs; frontmatter `id:` is unreliable.
-    const id = match.id;
-    const status = String(fm.status ?? "todo") as Status;
-    const rawAssignee =
-      fm.assignee !== undefined ? String(fm.assignee) : "agent";
-    const assignee: Assignee = (ASSIGNEES as readonly string[]).includes(
-      rawAssignee
-    )
-      ? (rawAssignee as Assignee)
-      : "agent";
-    const priority =
-      typeof fm.priority === "number" &&
-      Number.isFinite(fm.priority) &&
-      fm.priority >= 1
-        ? Math.floor(fm.priority)
-        : undefined;
-    issues.push({
-      id,
-      filename: entry,
-      archived,
-      title: String(fm.title ?? entry),
-      category: String(fm.category ?? "task"),
-      status,
-      assignee,
-      project: fm.project ? String(fm.project) : undefined,
-      phase: typeof fm.phase === "number" ? fm.phase : undefined,
-      parent: normalizeId(readField(parsed.matter, "parent")),
-      labels: Array.isArray(fm.labels) ? fm.labels.map(String) : [],
-      created: normalizeCreated(fm.created),
-      reviewed: normalizeCreated(fm.reviewed),
-      deployed: normalizeCreated(fm.deployed),
-      priority,
-      body: parsed.content,
-    });
   }
   return { issues, skipped };
 }
@@ -209,7 +233,8 @@ async function scanProjects(basePath: string): Promise<{ projects: Project[]; sk
   let entries: string[];
   try {
     entries = await readdir(projectsDir);
-  } catch {
+  } catch (err) {
+    if (errorCode(err) !== "ENOENT") skipped.push({ file: "projects", reason: unreadable(err) });
     return { projects, skipped };
   }
   for (const entry of entries) {
@@ -234,10 +259,13 @@ async function scanProjects(basePath: string): Promise<{ projects: Project[]; sk
     let title = entry;
     let wipBody = "";
     let prdBody = "";
-    const [wipResult, prdResult] = await Promise.all([
-      readFile(wipPath, "utf8").catch(() => ""),
-      readFile(prdPath, "utf8").catch(() => ""),
-    ]);
+    // A missing file is empty; one that can't be read is reported (#0071).
+    const read = (path: string, name: string) =>
+      readFile(path, "utf8").catch((err: unknown) => {
+        if (errorCode(err) !== "ENOENT") skipped.push({ file: `projects/${entry}/${name}`, reason: unreadable(err) });
+        return "";
+      });
+    const [wipResult, prdResult] = await Promise.all([read(wipPath, "wip.md"), read(prdPath, "prd.md")]);
     wipBody = wipResult;
     prdBody = prdResult;
     if (wipBody) {

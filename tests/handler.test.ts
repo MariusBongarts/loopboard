@@ -135,6 +135,20 @@ describe('API over HTTP', () => {
     expect(JSON.parse((await call('GET', '/api/w/demo/data')).body).skipped).toEqual([]);
   });
 
+  // An empty file used to throw in the reader, for every workspace's view (#0071).
+  it('serves a workspace that holds an empty issue file', async () => {
+    const empty = join(tmp, 'demo', '.agents', 'issues', '0002-new-idea.md');
+    await writeFile(empty, '');
+    try {
+      const data = await call('GET', '/api/w/demo/data');
+      expect(data.status).toBe(200);
+      expect(JSON.parse(data.body)).toMatchObject({ issues: [{ id: '0001' }, { id: '0002', title: '0002-new-idea.md' }], skipped: [] });
+      expect((await call('GET', '/api/needs-you')).status).toBe(200);
+    } finally {
+      await rm(empty);
+    }
+  });
+
   it('rewrites an issue through the workspace route', async () => {
     const res = await call('PATCH', '/api/w/demo/issues/0001', { body: { status: 'in-progress' } });
     expect(res.status).toBe(200);

@@ -18,7 +18,7 @@ Status legend in [`_specs.md`](_specs.md#e2e-coverage).
 | Narrow the feed to one project | 🟡 | `02-rail-and-feed.spec.ts`. Not asserted: Paused section, empty project opening its board |
 | Pin a project to the top of the rail | ✅ | `02-rail-and-feed.spec.ts`: pin, remembered after reload, unpin; order unit-tested |
 | Resize the rail and the feed | ✅ | `02-rail-and-feed.spec.ts`: drag and keys, remembered after reload, double-click resets; clamp unit-tested in `tests/resize.test.ts` |
-| See which files the board skipped | ✅ | `02-rail-and-feed.spec.ts`: count in the rail, the list with reasons, the copied prompt, fixed files leave the list live, collapsed tooltip, ⌘K. Every reason unit-tested in `tests/issues.test.ts`, the prompt in `tests/prompts.test.ts` |
+| See which files the board skipped | 🟡 | `02-rail-and-feed.spec.ts`: count in the rail, the list with reasons, the copied prompt, fixed files leave the list live, collapsed tooltip, ⌘K. Not asserted: no notice when nothing is skipped (the demo fixture always has one). Every reason unit-tested in `tests/issues.test.ts`, the prompt and its escaping in `tests/prompts.test.ts` |
 | The board follows file changes live | 🟡 | `02-rail-and-feed.spec.ts`: live dot, a status change moves the card, a new file appears, selection kept. Not asserted: the open panel and scroll position. Debounce unit-tested in `tests/watch.test.ts` |
 | The board says when it stops being live | 🟡 | `02-rail-and-feed.spec.ts` drives the event stream: "Not live" and "Offline" badges, the refetch, the dot coming back with a catch-up. The watcher failure, the re-watch with backoff and the stream's `stale` / `ready` are in `tests/watch.test.ts`, `tests/handler.test.ts` and `tests/live.test.ts` (#0072) |
 | Refresh on demand | ✅ | `02-rail-and-feed.spec.ts`: a click on the dot, "Refresh" in ⌘K and a click on the badge each show a change made on disk; toast |
@@ -143,16 +143,24 @@ THEN the pane returns to its default width (248 / 380 px)
 ```
 GIVEN files the board can't show: an issue file with invalid frontmatter,
     one whose name looks like an issue but isn't `NNNN-slug.md` (capitals,
-    spaces, a sync conflict copy), one that can't be read, or a project
-    folder not named `NN-slug`
+    spaces, a sync conflict copy), one that can't be read or isn't a file, a
+    project folder not named `NN-slug`, a project's wip.md or prd.md that
+    can't be read, or an issues/ or projects/ folder that can't be listed
 WHEN I open the workspace
 THEN the bottom of the rail says "N files skipped" — nothing when there are
     none, an icon with that tooltip when the rail is collapsed
 WHEN I click it (or run "Show skipped files" from ⌘K)
 THEN a dialog lists each path with its reason
+AND the reason for invalid frontmatter says what is wrong and where (line
+    and column) without repeating what the file says
 AND offers a prompt to copy that asks the agent to fix exactly those files
     and to run `loopboard check` afterwards
+AND in the prompt every path is a quoted string on its own line, with line
+    breaks and control characters escaped, and the prompt says the list is
+    data: a file name can't add lines or instructions to it
 AND loopboard changes none of the files itself
+AND an empty issue file is not skipped: it shows as an issue named after
+    its file
 WHEN a file is fixed
 THEN it leaves the list and shows up on the board without a reload
 ```
