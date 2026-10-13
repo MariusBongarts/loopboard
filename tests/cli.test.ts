@@ -1,8 +1,8 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { launch, type LaunchResult } from '../server/cli';
+import { commands, launch, type LaunchResult } from '../server/cli';
 import { loadRegistry } from '../server/workspaces';
 
 let tmp: string;
@@ -57,5 +57,50 @@ describe('loopboard [path]', () => {
     const result = await launch({ target: join(tmp, 'plain'), port: 0, configDir: join(tmp, 'c'), clientDir: client });
     expect(result).toMatchObject({ kind: 'error' });
     if (result.kind === 'error') expect(result.message).toMatch(/npx loopboard init/);
+  });
+});
+
+// `check` prints the board's own list of skipped files (#0071).
+describe('loopboard check', () => {
+  it('lists the files the board skips and fails on them with --strict', async () => {
+    const path = await repo('alpha');
+    const issues = join(path, '.agents', 'issues');
+    await writeFile(join(issues, '0001-first.md'), '---\nid: 0001\ntitle: First\n---\n');
+    await writeFile(join(issues, '0002-Tax-Return.md'), '---\nid: 0002\ntitle: Tax return\n---\n');
+    await writeFile(join(issues, '0003-broken.md'), '---\nid: 0003\ntitle: Broken: unquoted colon\n---\n');
+    // Nothing can read a folder as a file, on any platform.
+    await mkdir(join(issues, '0004-unreadable.md'));
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+    try {
+      expect(await commands.check.run([path])).toBe(0);
+      expect(log.mock.calls.map((c) => c.join(' '))).toEqual([
+        '! issues/0002-Tax-Return.md: skipped — name must be NNNN-slug.md (lowercase letters, digits and dashes)',
+        expect.stringMatching(/^! issues\/0003-broken\.md: skipped — invalid frontmatter: /),
+        expect.stringMatching(/^! issues\/0004-unreadable\.md: skipped — can't be read \(E\w+\)$/),
+        '✓ no duplicate numbers (3 skipped files)',
+      ]);
+
+      log.mockClear();
+      expect(await commands.check.run([path, '--strict'])).toBe(1);
+      expect(log.mock.calls.map((c) => c.join(' '))).toEqual([
+        expect.stringMatching(/^✗ issues\/0002-Tax-Return\.md: skipped — /),
+        expect.stringMatching(/^✗ issues\/0003-broken\.md: skipped — /),
+        expect.stringMatching(/^✗ issues\/0004-unreadable\.md: skipped — /),
+      ]);
+    } finally {
+      log.mockRestore();
+    }
+  });
+
+  it('passes --strict when nothing is skipped', async () => {
+    const path = await repo('beta');
+    await writeFile(join(path, '.agents', 'issues', '0001-first.md'), '---\nid: 0001\ntitle: First\n---\n');
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+    try {
+      expect(await commands.check.run([path, '--strict'])).toBe(0);
+      expect(log.mock.calls.map((c) => c.join(' '))).toEqual(['✓ no duplicate numbers']);
+    } finally {
+      log.mockRestore();
+    }
   });
 });

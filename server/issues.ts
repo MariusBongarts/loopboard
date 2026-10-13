@@ -3,6 +3,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { readField } from "../shared/frontmatter";
 import { parseFrontmatter } from "./frontmatter";
+import { matchName, NAME_HINT } from "./names";
 import { parseProjectDigest, type ProjectDigest } from "./wip";
 
 const MODULE_DIR = dirname(fileURLToPath(import.meta.url));
@@ -80,6 +81,13 @@ export interface Project extends ProjectDigest {
   wipBody: string;
 }
 
+// A file or folder the reader can't show, relative to the root. Reported to
+// the board and `loopboard check`, never dropped (#0071).
+export interface SkippedFile {
+  file: string;
+  reason: string;
+}
+
 // js-yaml parses an unquoted `created: 2026-09-16` into a Date; keep the
 // ISO day so the client can sort and group without timezone drift.
 export function normalizeCreated(value: unknown): string | undefined {
@@ -89,8 +97,6 @@ export function normalizeCreated(value: unknown): string | undefined {
   return String(value);
 }
 
-const FILENAME_RE = /^(\d{4})-[a-z0-9-]+\.md$/;
-
 // 4-digit zero-padded ID from a raw frontmatter line. Never from the parsed
 // YAML: js-yaml (YAML 1.1) types an unquoted 0070 as octal (56), corrupting
 // every ID whose digits are all 0–7 (#0059). `id` comes from the filename.
@@ -98,39 +104,53 @@ function normalizeId(value: string | undefined): string | undefined {
   return value ? value.padStart(4, "0") : undefined;
 }
 
+function unreadable(err: unknown): string {
+  const code = err instanceof Error && "code" in err ? String(err.code) : "";
+  return code ? `can't be read (${code})` : "can't be read";
+}
+
 async function readIssuesFromDir(
   dir: string,
   archived: boolean
-): Promise<Issue[]> {
+): Promise<{ issues: Issue[]; skipped: SkippedFile[] }> {
+  const issues: Issue[] = [];
+  const skipped: SkippedFile[] = [];
   let entries: string[];
   try {
     entries = await readdir(dir);
   } catch {
-    return [];
+    return { issues, skipped };
   }
-  const issues: Issue[] = [];
   for (const entry of entries) {
-    const fileMatch = entry.match(FILENAME_RE);
-    if (!fileMatch) continue;
-    const filenameId = fileMatch[1];
-    const full = join(dir, entry);
-    const s = await stat(full);
-    if (!s.isFile()) continue;
-    const raw = await readFile(full, "utf8");
-    // A single malformed issue file (e.g. an unquoted colon in `title:`)
-    // must not 500 the whole `/api/data` response. PRD §"Testing decisions"
-    // mandates "malformed files skipped". See #0095.
+    const match = matchName("issue", entry);
+    if (!match) continue;
+    // One bad file (a near-miss name, a placeholder that won't hydrate, an
+    // unquoted colon in `title:`) must neither 500 `/api/w/:id/data` nor
+    // vanish (#0042, #0071).
+    const skip = (reason: string) =>
+      skipped.push({ file: `issues/${archived ? "_archive/" : ""}${entry}`, reason });
+    if (!match.valid) {
+      skip(NAME_HINT.issue);
+      continue;
+    }
+    let raw: string;
+    try {
+      raw = await readFile(join(dir, entry), "utf8");
+    } catch (err) {
+      skip(unreadable(err));
+      continue;
+    }
     let parsed: ReturnType<typeof parseFrontmatter>;
     try {
       parsed = parseFrontmatter(raw);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      console.warn(`[loopboard] skipping ${entry}: ${msg}`);
+      skip(`invalid frontmatter: ${msg.split("\n")[0].replace(/:$/, "")}`);
       continue;
     }
     const fm = parsed.data as Record<string, unknown>;
     // Filename is canonical for IDs; frontmatter `id:` is unreliable.
-    const id = filenameId;
+    const id = match.id;
     const status = String(fm.status ?? "todo") as Status;
     const rawAssignee =
       fm.assignee !== undefined ? String(fm.assignee) : "agent";
@@ -164,33 +184,50 @@ async function readIssuesFromDir(
       body: parsed.content,
     });
   }
-  return issues;
+  return { issues, skipped };
+}
+
+async function scanIssues(basePath: string): Promise<{ issues: Issue[]; skipped: SkippedFile[] }> {
+  const [active, archived] = await Promise.all([
+    readIssuesFromDir(getIssuesDir(basePath), false),
+    readIssuesFromDir(getArchiveDir(basePath), true),
+  ]);
+  return {
+    issues: [...active.issues, ...archived.issues].sort((a, b) => a.id.localeCompare(b.id)),
+    skipped: [...active.skipped, ...archived.skipped],
+  };
 }
 
 export async function readAllIssues(basePath = DEFAULT_BASE_PATH): Promise<Issue[]> {
-  const issuesDir = getIssuesDir(basePath);
-  const archiveDir = getArchiveDir(basePath);
-  const [active, archived] = await Promise.all([
-    readIssuesFromDir(issuesDir, false),
-    readIssuesFromDir(archiveDir, true),
-  ]);
-  return [...active, ...archived].sort((a, b) => a.id.localeCompare(b.id));
+  return (await scanIssues(basePath)).issues;
 }
 
-export async function readAllProjects(basePath = DEFAULT_BASE_PATH): Promise<Project[]> {
+async function scanProjects(basePath: string): Promise<{ projects: Project[]; skipped: SkippedFile[] }> {
   const projectsDir = getProjectsDir(basePath);
+  const projects: Project[] = [];
+  const skipped: SkippedFile[] = [];
   let entries: string[];
   try {
     entries = await readdir(projectsDir);
   } catch {
-    return [];
+    return { projects, skipped };
   }
-  const projects: Project[] = [];
   for (const entry of entries) {
-    if (!/^\d{2}-[a-z0-9-]+$/.test(entry)) continue;
+    const match = matchName("project", entry);
+    if (!match) continue;
     const folder = join(projectsDir, entry);
-    const s = await stat(folder);
-    if (!s.isDirectory()) continue;
+    let isFolder: boolean;
+    try {
+      isFolder = (await stat(folder)).isDirectory();
+    } catch (err) {
+      skipped.push({ file: `projects/${entry}`, reason: unreadable(err) });
+      continue;
+    }
+    if (!isFolder) continue;
+    if (!match.valid) {
+      skipped.push({ file: `projects/${entry}`, reason: NAME_HINT.project });
+      continue;
+    }
     const wipPath = join(folder, "wip.md");
     const prdPath = join(folder, "prd.md");
     let status: Project["status"] = "unknown";
@@ -230,7 +267,24 @@ export async function readAllProjects(basePath = DEFAULT_BASE_PATH): Promise<Pro
       ...parseProjectDigest(wipBody, prdBody),
     });
   }
-  return projects.sort((a, b) => a.slug.localeCompare(b.slug));
+  return { projects: projects.sort((a, b) => a.slug.localeCompare(b.slug)), skipped };
+}
+
+export async function readAllProjects(basePath = DEFAULT_BASE_PATH): Promise<Project[]> {
+  return (await scanProjects(basePath)).projects;
+}
+
+// What the board shows for a root, plus what it had to skip (#0071).
+export async function readBoard(
+  basePath = DEFAULT_BASE_PATH
+): Promise<{ issues: Issue[]; projects: Project[]; skipped: SkippedFile[] }> {
+  const [issues, projects] = await Promise.all([scanIssues(basePath), scanProjects(basePath)]);
+  return {
+    issues: issues.issues,
+    projects: projects.projects,
+    // Plain code-unit order: the same list on every platform and locale.
+    skipped: [...issues.skipped, ...projects.skipped].sort((a, b) => (a.file < b.file ? -1 : a.file > b.file ? 1 : 0)),
+  };
 }
 
 export function findIssueFile(
@@ -251,8 +305,10 @@ function _findIssueFileSync(dir: string, id: string): string | null {
   } catch {
     return null;
   }
-  const match = entries.find(
-    (e) => e.startsWith(`${id}-`) && e.endsWith(".md")
-  );
+  // The same matcher as the reader, so a write can't land in a skipped twin.
+  const match = entries.find((e) => {
+    const m = matchName("issue", e);
+    return m?.valid && m.id === id;
+  });
   return match ? join(dir, match) : null;
 }

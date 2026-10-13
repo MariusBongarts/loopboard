@@ -14,6 +14,7 @@ against temp git repos; edge cases in `tests/ids.test.ts`. Status legend in [`_s
 | Numbers taken on other branches and worktrees count | 🟡 | [`cli.spec.ts`](../../tests/e2e/cli.spec.ts): unmerged branch. Worktrees and remote refs in `tests/ids.test.ts` |
 | Find duplicate numbers | ✅ | [`cli.spec.ts`](../../tests/e2e/cli.spec.ts): working tree and `--branches` |
 | Find dangling references | ✅ | [`cli.spec.ts`](../../tests/e2e/cli.spec.ts): warning, `--strict` fails. Code is skipped (`tests/ids.test.ts`) |
+| Find files the board skips | ✅ | [`cli.spec.ts`](../../tests/e2e/cli.spec.ts): warning per file, `--strict` fails, a mis-named file keeps its number. Unreadable files in `tests/cli.test.ts` |
 | Renumber an issue | 🟡 | [`cli.spec.ts`](../../tests/e2e/cli.spec.ts): file, `id:`, next free number. Reference rewriting and `--dry-run` in `tests/ids.test.ts` |
 | Renumber one of two twins | ✅ | [`cli.spec.ts`](../../tests/e2e/cli.spec.ts): refuses without `--file`, moves only the named file |
 | Renumber a project | ✅ | [`cli.spec.ts`](../../tests/e2e/cli.spec.ts): folder, `project:` and links; `--dry-run` writes nothing |
@@ -57,6 +58,20 @@ THEN each is listed as a warning and the exit code stays 0
 AND with --strict they fail the check
 AND mentions inside code (fenced blocks or `inline`) are examples, not
     references
+```
+
+### Scenario: Find files the board skips
+
+```
+GIVEN files the board reports as skipped (§ 2): invalid frontmatter, a name
+    that isn't `NNNN-slug.md`, an unreadable file, a project folder not
+    named `NN-slug`
+WHEN I run `loopboard check`
+THEN each is listed as a warning with the same path and reason as on the
+    board, and the exit code stays 0
+AND with --strict they fail the check
+AND a mis-named file still takes its number for `next-id`, so renaming it
+    can't collide with a newer issue
 ```
 
 ### Scenario: Renumber an issue

@@ -1,20 +1,18 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { git, gitLocate } from "./git";
+import { matchName, type IdKind } from "./names";
 
 // Sequential, branch-aware IDs (ADR-0004, #0016–#0018). Issues are 4-digit
 // (`NNNN-slug.md`), projects 2-digit (`NN-slug/`).
 
-export type IdKind = "issue" | "project";
+export type { IdKind };
 
 export interface IdSighting {
   id: string;
   name: string; // file or folder name, e.g. 0091-crash-on-empty-wip.md
   where: string; // "working tree", "worktree <path>", "branch <ref>"
 }
-
-const ISSUE_RE = /^(\d{4})-.+\.md$/;
-const PROJECT_RE = /^(\d{2})-[a-z0-9-]+$/;
 
 export const ID_WIDTH: Record<IdKind, number> = { issue: 4, project: 2 };
 
@@ -30,9 +28,10 @@ function idDirs(kind: IdKind): string[] {
   return kind === "issue" ? ["issues", "issues/_archive"] : ["projects"];
 }
 
+// A near-miss name still takes its number: the board reports the file as
+// skipped, and renaming it must not collide with a newer issue (#0071).
 function match(kind: IdKind, name: string): string | null {
-  const m = name.match(kind === "issue" ? ISSUE_RE : PROJECT_RE);
-  return m ? m[1] : null;
+  return matchName(kind, name)?.id ?? null;
 }
 
 function fromDisk(root: string, kind: IdKind, where: string): IdSighting[] {
@@ -144,7 +143,13 @@ export function findDangling(root: string): DanglingRef[] {
   const out: DanglingRef[] = [];
   for (const area of ["issues", "projects", "specs"]) {
     for (const file of markdownFiles(join(root, area))) {
-      const text = readFileSync(file, "utf8");
+      let text: string;
+      try {
+        text = readFileSync(file, "utf8");
+      } catch {
+        // Unreadable: `check` lists it with the board's skipped files (#0071).
+        continue;
+      }
       const rel = relative(root, file).split("\\").join("/");
       const parent = text.match(PARENT_RE)?.[1]?.padStart(4, "0");
       if (parent && !known.has(parent)) out.push({ file: rel, ref: `parent: ${parent}` });

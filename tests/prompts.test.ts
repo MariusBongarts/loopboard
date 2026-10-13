@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { issuePrompt, projectPrompt } from '../src/prompts';
+import { issuePrompt, projectPrompt, skippedPrompt } from '../src/prompts';
 import type { Issue, Project } from '../src/types';
 
 const issue = (over: Partial<Issue> = {}): Issue => ({
@@ -55,5 +55,20 @@ describe('projectPrompt', () => {
   });
   it('continues a project with issues', () => {
     expect(projectPrompt(project(), [issue({ project: '03-export' })])).toMatch(/^Continue project 03-export/);
+  });
+});
+
+describe('skippedPrompt', () => {
+  it('lists every skipped file with its reason, as the repo sees it', () => {
+    const prompt = skippedPrompt(
+      [
+        { file: 'issues/0002-Tax-Return.md', reason: 'name must be NNNN-slug.md' },
+        { file: 'projects/Offline-Mode', reason: 'folder must be named NN-slug' },
+      ],
+      'ai',
+    );
+    expect(prompt).toMatch(/^loopboard can't show these files\. Fix each one/);
+    expect(prompt).toContain('`npx loopboard check`');
+    expect(prompt).toContain('\n\n- ai/issues/0002-Tax-Return.md — name must be NNNN-slug.md\n- ai/projects/Offline-Mode — folder must be named NN-slug');
   });
 });

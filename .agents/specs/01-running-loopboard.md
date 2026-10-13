@@ -17,7 +17,8 @@ Status legend in [`_specs.md`](_specs.md#e2e-coverage).
 | Start the board from a clone | 🟡 | every e2e run starts this way (`pnpm exec vite`, BASE_PATH = the demo repo) |
 | Point the board at another repo's root | 🟡 | the e2e server is pointed at a temp repo via BASE_PATH |
 | Start a second board while the first is running | ✅ | [`cli.spec.ts`](../../tests/e2e/cli.spec.ts): `--port` taken → the next one (same port finder as `pnpm dev`) |
-| A malformed issue file does not break the board | ✅ | [`01-running-loopboard.spec.ts`](../../tests/e2e/01-running-loopboard.spec.ts): skipped on two consecutive loads (#0042) |
+| A malformed issue file does not break the board | ✅ | [`01-running-loopboard.spec.ts`](../../tests/e2e/01-running-loopboard.spec.ts): skipped on two consecutive loads (#0042) and counted in the rail (#0071) |
+| A file that can't be read does not take the workspace down | 🟡 | [`02-rail-and-feed.spec.ts`](../../tests/e2e/02-rail-and-feed.spec.ts): a folder named like an issue stands in for the unreadable file. Permission errors and links that point nowhere in `tests/issues.test.ts`; the 200 response in `tests/handler.test.ts` |
 
 ### Scenario: Open the board for the repo I'm in
 
@@ -93,6 +94,17 @@ AND prints its URL
 GIVEN one issue file has invalid YAML frontmatter
 WHEN the board loads
 THEN every other issue still shows
-AND the server logs "[loopboard] skipping <file>: <reason>"
+AND the file is counted as skipped in the rail, with the parser's reason
+    (§ 2)
 AND the file stays out on every later load, not only the first
+```
+
+### Scenario: A file that can't be read does not take the workspace down
+
+```
+GIVEN an issue file the server can't read — no permission, a link that
+    points nowhere, or a cloud placeholder that fails to download
+WHEN the board loads
+THEN the workspace opens with every other issue
+AND the file is counted as skipped, with "can't be read (<error code>)"
 ```

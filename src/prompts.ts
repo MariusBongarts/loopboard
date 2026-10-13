@@ -1,5 +1,5 @@
 import { toast } from './toast';
-import type { Issue, Project } from './types';
+import type { Issue, Project, SkippedFile } from './types';
 
 // "Copy agent prompt" (#0022): the right skill invocation for an issue or
 // project, so handing work to an agent is one paste.
@@ -34,6 +34,12 @@ export function projectPrompt(project: Project, issues: Issue[]): string {
     return `Run the to-issues skill on project ${project.slug}.`;
   }
   return `Continue project ${project.slug}: read wip.md "Current focus" and implement the next todo issue.`;
+}
+
+// Hands the files the board had to skip to the agent (#0071).
+export function skippedPrompt(skipped: SkippedFile[], rootName: string): string {
+  const list = skipped.map((s) => `- ${rootName}/${s.file} — ${s.reason}`).join('\n');
+  return `loopboard can't show these files. Fix each one without changing what it says: rename it to the pattern (and update links to it), quote frontmatter values that contain a colon, and tell me about any you can't read. Then run \`npx loopboard check\` until it lists none.\n\n${list}`;
 }
 
 export async function copyText(text: string): Promise<boolean> {

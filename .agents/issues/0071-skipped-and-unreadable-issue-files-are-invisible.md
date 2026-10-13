@@ -2,7 +2,7 @@
 id: 0071
 title: Skipped and unreadable issue files vanish without a trace
 category: bug
-status: todo
+status: done
 assignee: agent
 labels: [server, data]
 created: 2026-10-13
@@ -37,19 +37,19 @@ down.
 
 ## Acceptance criteria (verification)
 
-- [ ] `/api/w/:id/data` returns `skipped: [{ file, reason }]` covering
+- [x] `/api/w/:id/data` returns `skipped: [{ file, reason }]` covering
   malformed frontmatter, filenames that look like issues but fail the
   pattern, and files that can't be read
-- [ ] An unreadable file is skipped and reported instead of failing the
+- [x] An unreadable file is skipped and reported instead of failing the
   request
-- [ ] The rail shows "N files skipped"; opening it lists each file with its
+- [x] The rail shows "N files skipped"; opening it lists each file with its
   reason and a copyable prompt asking the agent to fix them
-- [ ] Project folders with an invalid name (`NN-slug` pattern) are reported
+- [x] Project folders with an invalid name (`NN-slug` pattern) are reported
   the same way
-- [ ] Reader, counters and the ID allocator share one filename matcher
-- [ ] `loopboard check` prints the same list; `--strict` exits 1 when it's
+- [x] Reader, counters and the ID allocator share one filename matcher
+- [x] `loopboard check` prints the same list; `--strict` exits 1 when it's
   not empty
-- [ ] Regression tests cover the three skip reasons and the unreadable file
+- [x] Regression tests cover the three skip reasons and the unreadable file
 
 ## Out of scope
 
@@ -60,3 +60,16 @@ down.
 
 - Matters most for workspaces on synced folders (OneDrive, iCloud), where
   conflict copies and offline placeholders are normal.
+- "Looks like an issue" is a markdown file in `issues/` that starts with a
+  digit; in `projects/` every folder counts unless its name starts with `_`
+  or `.`. A near-miss name keeps the number it claims, so `next-id` never
+  hands it out again ([server/names.ts](../../server/names.ts)).
+- `findIssueFile` uses the same matcher: with `0002-Tax-Return.md` next to
+  `0002-cache-the-feed.md`, a board write could land in the hidden twin.
+- `loopboard check` used to crash on an unreadable file while looking for
+  dangling references; it lists the file as skipped now.
+- Renaming a project folder alone emits no `.md` event (the watcher ignores
+  directory events), so the count follows on the next file change or reload.
+- The e2e demo workspace keeps its malformed `0009`, so its rail shows
+  "1 file skipped" on every screen. The visual baselines were not refreshed
+  with this change.

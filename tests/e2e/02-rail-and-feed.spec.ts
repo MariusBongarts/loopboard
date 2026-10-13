@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { rm } from 'node:fs/promises';
+import { mkdir, rename, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { readIssueFile, workspaceRoot, writeIssueFile } from './workspace';
 
@@ -44,6 +44,63 @@ test('the board follows file changes live', async ({ page }) => {
   } finally {
     await writeIssueFile('0002-cache-the-feed.md', original);
     await rm(join(workspaceRoot(), 'issues', '0010-live-arrival.md'), { force: true });
+  }
+});
+
+test('see which files the board skipped', async ({ page, context }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  await page.goto('/w/demo-repo');
+  await expect(page.locator('.live-dot.live')).toBeVisible();
+  const rail = page.getByRole('navigation', { name: 'Inbox navigation' });
+  // The fixture's 0009 has invalid YAML.
+  await expect(rail.getByRole('button', { name: '1 file skipped' })).toBeVisible();
+
+  const issues = join(workspaceRoot(), 'issues');
+  const folder = join(workspaceRoot(), 'projects', 'Offline-Mode');
+  try {
+    // An agent files an issue and a project under names the board can't use,
+    // and one file can't be read (a folder stands in for it on every OS).
+    await writeFile(join(issues, '0011-Tax-Return.md'), '---\nid: 0011\ntitle: Tax return\nstatus: todo\ncreated: 2026-09-15\n---\n\nBody.\n');
+    await mkdir(join(issues, '0012-offline.md'));
+    await mkdir(folder);
+    await writeFile(join(folder, 'wip.md'), '# Offline mode — WIP\n');
+    await rail.getByRole('button', { name: '4 files skipped' }).click();
+
+    const dialog = page.getByRole('dialog', { name: 'Skipped files' });
+    await expect(dialog.locator('.skipped-file')).toHaveText([
+      '.agents/issues/0009-broken-frontmatter.md',
+      '.agents/issues/0011-Tax-Return.md',
+      '.agents/issues/0012-offline.md',
+      '.agents/projects/Offline-Mode',
+    ]);
+    await expect(dialog.locator('.skipped-reason')).toHaveText([/^invalid frontmatter: /, /NNNN-slug\.md/, /^can't be read/, /NN-slug/]);
+    await dialog.getByRole('button', { name: 'Copy agent prompt' }).click();
+    const prompt = await page.evaluate(() => navigator.clipboard.readText());
+    expect(prompt).toContain('- .agents/issues/0011-Tax-Return.md — name must be NNNN-slug.md');
+    expect(prompt).toContain('`npx loopboard check`');
+
+    // The agent fixes them; the list and the feed follow without a reload.
+    await rename(join(issues, '0011-Tax-Return.md'), join(issues, '0011-tax-return.md'));
+    await rm(join(issues, '0012-offline.md'), { recursive: true });
+    await rm(folder, { recursive: true });
+    await expect(dialog.locator('.skipped-file')).toHaveText(['.agents/issues/0009-broken-frontmatter.md']);
+    await dialog.getByRole('button', { name: 'Done' }).click();
+    await expect(rail.getByRole('button', { name: '1 file skipped' })).toBeVisible();
+    await expect(page.locator('.feed-title', { hasText: 'Tax return' })).toBeVisible();
+
+    // Collapsed, the notice is an icon with the count as its tooltip; ⌘K opens the same list.
+    await page.keyboard.press('[');
+    await expect(rail.locator('.rail-skipped')).toHaveAttribute('title', '1 file skipped');
+    await expect(rail.locator('.rail-skipped .rail-name')).toBeHidden();
+    await page.keyboard.press('ControlOrMeta+k');
+    await page.getByRole('combobox').fill('skipped');
+    await page.keyboard.press('Enter');
+    await expect(dialog.locator('.skipped-file')).toHaveText(['.agents/issues/0009-broken-frontmatter.md']);
+  } finally {
+    await rm(join(issues, '0011-Tax-Return.md'), { force: true });
+    await rm(join(issues, '0011-tax-return.md'), { force: true });
+    await rm(join(issues, '0012-offline.md'), { recursive: true, force: true });
+    await rm(folder, { recursive: true, force: true });
   }
 });
 
