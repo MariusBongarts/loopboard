@@ -42,9 +42,7 @@ export async function withFileLock<T>(path: string, run: () => Promise<T>): Prom
         const age = await stat(lock).then((s) => Date.now() - s.mtimeMs, () => 0);
         if (age > LOCK_STALE_MS) await rm(lock, { force: true });
         else await new Promise((r) => setTimeout(r, LOCK_RETRY_MS));
-      } else if (code === "ENOENT") {
-        await mkdir(dirname(lock), { recursive: true });
-      } else {
+      } else if (code !== "ENOENT" || !(await mkdir(dirname(lock), { recursive: true }).then(() => true, () => false))) {
         // A folder that takes no lock file (read-only): as without one.
         return run();
       }

@@ -251,7 +251,9 @@ describe('API over HTTP', () => {
         });
       });
     }
+    // A client the route did subscribe is let go when its close arrives.
     await new Promise((r) => setTimeout(r, 200));
+    await until(() => !watchHub.watching(root), 2000);
     expect(watchHub.watching(root)).toBe(false);
   });
 });

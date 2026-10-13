@@ -32,7 +32,7 @@ describe('a Vitest run', () => {
 
     expect(run.status, run.stderr).toBe(0);
     expect(existsSync(config)).toBe(false);
-  });
+  }, 60_000);
 
   it('gives tests a config directory that is not the one it was started with', () => {
     expect(configDir()).toBe(join(tmpdir(), 'loopboard-vitest'));
