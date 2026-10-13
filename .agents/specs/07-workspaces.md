@@ -13,7 +13,7 @@ Status legend in [`_specs.md`](_specs.md#e2e-coverage).
 | Open the last-used workspace | ✅ | [`07-workspaces.spec.ts`](../../tests/e2e/07-workspaces.spec.ts) |
 | Switch workspace from the top-left | 🟡 | `07-workspaces.spec.ts`: menu, counts, current, switching. Not asserted: per-workspace pins/selection |
 | A legacy ai/ root works like .agents/ | ✅ | `07-workspaces.spec.ts`; detection unit-tested in `tests/workspaces.test.ts` |
-| Add a workspace by path | ✅ | `07-workspaces.spec.ts`: suggestions, keyboard pick, add + open |
+| Add a workspace by path | ✅ | `07-workspaces.spec.ts`: suggestions, keyboard pick, add + open. Ids for folder names with umlauts in `tests/workspaces.test.ts` |
 | Adding a folder without a root explains what to do | ✅ | `07-workspaces.spec.ts` |
 | Rename and remove workspaces | ✅ | `07-workspaces.spec.ts`; files untouched asserted |
 | See what needs me across all workspaces | 🟡 | `07-workspaces.spec.ts`: totals, groups, deep link with selection. Not asserted: skipped list, refresh on focus |
@@ -63,8 +63,11 @@ AND as I type, folders under the typed path are suggested, marked
     "has .agents" when they hold a root
 AND ↑/↓ move through suggestions, Tab or Enter takes one
 WHEN I press Enter (or "Add workspace") on a repo path
-THEN the repo is registered and opens
-AND adding a repo that is already registered just opens it
+THEN the repo is registered and opens at /w/<workspace>, its id being the
+    folder name as a slug (§ 0): "Büro" opens at /w/buero, however the name
+    is composed on disk
+AND adding a repo that is already registered just opens it, under the id it
+    already has
 ```
 
 ### Scenario: Adding a folder without a root explains what to do

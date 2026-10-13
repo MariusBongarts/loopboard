@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { cp, mkdtemp, readFile, rm } from 'node:fs/promises';
+import { cp, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createIssue, createProject, skeletonBody } from '../server/create';
@@ -42,6 +42,29 @@ describe('createIssue', () => {
     expect(issue).toMatchObject({ title: 'Someday: dark mode #2', status: 'backlog' });
   });
 
+  it('writes umlauts out in the file name (#0077)', async () => {
+    const { filename } = await createIssue(root, { title: 'Größe der Übersicht ändern', category: 'task' });
+    expect(filename).toBe('0001-groesse-der-uebersicht-aendern.md');
+    expect((await readAllIssues(root))[0]).toMatchObject({ id: '0001', title: 'Größe der Übersicht ändern' });
+  });
+
+  it('cuts the slug at 60 characters after writing umlauts out, never on a dash (#0077)', async () => {
+    const title = 'Schriftgrößen für Menüs, Knöpfe und Fußzeilen überall ändern';
+    expect(title).toHaveLength(60);
+    const { filename } = await createIssue(root, { title, category: 'task' });
+    expect(filename).toBe('0001-schriftgroessen-fuer-menues-knoepfe-und-fusszeilen-ueberall.md');
+    const { slug } = await createProject(root, title);
+    expect(slug).toBe('01-schriftgroessen-fuer-menues-knoepfe-und-fusszeilen-ueberall');
+  });
+
+  it('leaves files that carry an older slug alone (#0077)', async () => {
+    const old = '0001-gr-e-der-bersicht-ndern.md';
+    await writeFile(join(root, 'issues', old), '---\nid: 0001\ntitle: Größe der Übersicht ändern\nstatus: todo\n---\n');
+    const { filename } = await createIssue(root, { title: 'Größe der Übersicht ändern', category: 'task' });
+    expect(filename).toBe('0002-groesse-der-uebersicht-aendern.md');
+    expect((await readdir(join(root, 'issues'))).filter((f) => f.endsWith('.md')).sort()).toEqual([old, filename]);
+  });
+
   it('rejects an unknown project and an empty title', async () => {
     await expect(createIssue(root, { title: 'x', category: 'task', project: '09-nope' })).rejects.toThrow(/unknown project/);
     await expect(createIssue(root, { title: '  ', category: 'task' })).rejects.toThrow(/title is required/);
@@ -61,5 +84,11 @@ describe('createProject', () => {
 
     const issue = await createIssue(root, { title: 'First slice', category: 'task', project: slug });
     expect((await readAllIssues(root)).find((i) => i.id === issue.id)?.project).toBe(slug);
+  });
+
+  it('writes umlauts out in the folder name (#0077)', async () => {
+    const { slug } = await createProject(root, 'Größe der Übersicht ändern');
+    expect(slug).toBe('01-groesse-der-uebersicht-aendern');
+    expect((await readAllProjects(root))[0]).toMatchObject({ slug, title: 'Größe der Übersicht ändern' });
   });
 });

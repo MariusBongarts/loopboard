@@ -47,9 +47,22 @@ export function detectRoot(path: string): { repoPath: string; root: string } | n
   return null;
 }
 
+// Written out before accents are stripped (#0077): a plain strip would leave
+// "u" for "ü", and the letters in the second row carry no accent to strip.
+const WRITTEN_OUT: Record<string, string> = {
+  ä: "ae", ö: "oe", ü: "ue", ß: "ss",
+  æ: "ae", œ: "oe", ø: "o", ł: "l", đ: "d", ð: "d", þ: "th", ı: "i",
+};
+const WRITTEN_OUT_RE = new RegExp(`[${Object.keys(WRITTEN_OUT).join("")}]`, "g");
+
+// The one slug behind issue file names, project folders and workspace ids.
 export function slugify(name: string): string {
   const slug = name
+    .normalize("NFC")
     .toLowerCase()
+    .replace(WRITTEN_OUT_RE, (letter) => WRITTEN_OUT[letter])
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
   return slug || "workspace";
