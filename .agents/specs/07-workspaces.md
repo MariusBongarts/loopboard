@@ -18,6 +18,8 @@ Status legend in [`_specs.md`](_specs.md#e2e-coverage).
 | Rename and remove workspaces | ✅ | `07-workspaces.spec.ts`; files untouched asserted |
 | See what needs me across all workspaces | 🟡 | `07-workspaces.spec.ts`: totals, groups, deep link with selection. Not asserted: skipped list, refresh on focus |
 | A workspace whose folder disappeared | 🟡 | `07-workspaces.spec.ts`: "folder missing" in the menu. Not asserted: opening it |
+| List workspaces from the terminal | ✅ | [`cli.spec.ts`](../../tests/e2e/cli.spec.ts) runs the built binary from a folder without a root or git, no board running: table, `--json`, empty registry. Same in `tests/workspaces.test.ts` |
+| Forget workspaces from the terminal | ✅ | [`cli.spec.ts`](../../tests/e2e/cli.spec.ts): unknown id forgets nothing, files and saved views stay, the running board's switcher drops the entry on reload. Several ids at once in `tests/workspaces.test.ts` |
 
 ### Scenario: Open the last-used workspace
 
@@ -106,4 +108,29 @@ AND workspaces with a missing folder are named as skipped
 WHEN I click an issue
 THEN its workspace opens with that issue selected
 AND the list refreshes when I come back to the browser tab
+```
+
+### Scenario: List workspaces from the terminal
+
+```
+GIVEN several registered repos, one of them moved or deleted
+WHEN I run `loopboard workspaces` in any folder — no board running, no git
+    needed
+THEN every workspace is listed with its id, its name, "exists" or "missing"
+    for its folder, and the path of its root
+AND `--json` prints the same as a list of { id, name, path, exists }
+AND with nothing registered it says so (`--json`: an empty list)
+```
+
+### Scenario: Forget workspaces from the terminal
+
+```
+GIVEN registered workspaces I no longer want listed
+WHEN I run `loopboard workspaces forget <id>…`
+THEN those entries leave the registry and each is printed with its path
+AND no file in any repo changes; a forgotten workspace's saved views stay in
+    the config folder, and the output names the file
+AND a running board no longer lists them on its next load
+WHEN one of the ids is not registered
+THEN it exits with 1, names that id and forgets nothing
 ```

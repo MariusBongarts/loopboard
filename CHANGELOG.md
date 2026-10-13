@@ -10,6 +10,9 @@ must apply are numbered in [MIGRATIONS.md](MIGRATIONS.md).
   (or legacy `ai/`) folder; a second repo joins the running server.
 - One server for every repo: a workspace switcher in the top-left, workspaces
   remembered in `~/.config/loopboard`, folder suggestions when adding one.
+- `loopboard workspaces` lists the registered workspaces (`--json` for
+  agents); `workspaces forget <id>…` removes entries without a running board
+  and never touches a repo's files.
 - Live updates: the board follows file changes as agents work.
 
 ### Set up and upgrade

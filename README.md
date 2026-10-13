@@ -85,6 +85,7 @@ change, and ask before any bulk edits.
 | `npx loopboard [path]` | Opens the board for the repo (default: here) at `http://127.0.0.1:5180`. A running board adds the repo instead of starting another. `--port <n>`, `--no-open`. |
 | `npx loopboard init [path]` | Sets up the workflow. `--with-extras` adds tdd, diagnose, improve-codebase-architecture and write-a-skill. |
 | `npx loopboard init --upgrade` | Refreshes shipped files you haven't edited. `--force` overwrites edited ones, `--dry-run` only reports. |
+| `npx loopboard workspaces` | Lists the registered workspaces: id, name, path and whether the folder still exists. `--json` prints them as data. `workspaces forget <id>…` removes entries from the list, never a repo's files. |
 
 Requires Node 20 or newer. The server binds to `127.0.0.1` and refuses
 requests from other sites.

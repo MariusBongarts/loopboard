@@ -10,7 +10,7 @@ export interface SavedView {
   query: Record<string, string>;
 }
 
-function viewsFile(configDir: string, workspace: string): string {
+export function viewsFile(configDir: string, workspace: string): string {
   return join(configDir, "views", `${workspace}.json`);
 }
 

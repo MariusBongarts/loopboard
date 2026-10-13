@@ -7,7 +7,8 @@ import { applyRenumber, planRenumber, RenumberError } from "./renumber";
 import { openBrowser } from "./open";
 import { configDir, packageRoot, packageVersion } from "./paths";
 import { createAppServer, listen } from "./serve";
-import { detectRoot, registerWorkspace } from "./workspaces";
+import { viewsFile } from "./views";
+import { detectRoot, loadRegistry, registerWorkspace, removeWorkspaces, summarize } from "./workspaces";
 
 export type Command = (args: string[]) => Promise<number>;
 
@@ -250,6 +251,44 @@ commands.renumber = {
       }
       throw err;
     }
+  },
+};
+
+// The registry without a running board (#0099). The path is the root, as in
+// "Manage workspaces": a moved root and its new twin share one repo path.
+commands.workspaces = {
+  summary: "List registered workspaces (--json); `workspaces forget <id>…` removes entries, never files",
+  async run(args) {
+    const [sub, ...ids] = positionals(args);
+    const dir = configDir();
+    if (sub === "forget" && ids.length) {
+      const { removed, unknown } = await removeWorkspaces(dir, ids);
+      if (unknown.length) {
+        console.error(`unknown workspace: ${unknown.join(", ")} — nothing was forgotten. \`loopboard workspaces\` lists the ids.`);
+        return 1;
+      }
+      for (const w of removed) {
+        console.log(`forgot ${w.id}  (${w.root})`);
+        if (existsSync(viewsFile(dir, w.id))) console.log(`  its saved views stay in ${viewsFile(dir, w.id)}`);
+      }
+      console.log("Only the registry changed — no file in a harness was touched.");
+      return 0;
+    }
+    if (sub !== undefined) {
+      console.error("Usage: loopboard workspaces [--json] | loopboard workspaces forget <id>…");
+      return 1;
+    }
+    const entries = (await loadRegistry(dir)).workspaces
+      .map(summarize)
+      .map((w) => ({ id: w.id, name: w.name, path: w.root, exists: w.available }));
+    if (flag(args, "--json")) console.log(JSON.stringify(entries, null, 2));
+    else if (!entries.length) console.log("No workspaces registered. `loopboard [path]` opens a repo and registers it.");
+    else {
+      const rows = [["ID", "NAME", "FOLDER", "PATH"], ...entries.map((e) => [e.id, e.name, e.exists ? "exists" : "missing", e.path])];
+      const widths = rows[0].map((_, i) => Math.max(...rows.map((r) => r[i].length)) + 2);
+      for (const r of rows) console.log(r.map((cell, i) => cell.padEnd(widths[i])).join("").trimEnd());
+    }
+    return 0;
   },
 };
 
