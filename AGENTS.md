@@ -83,6 +83,9 @@ chores → a standalone issue in `.agents/issues/`. Move issues with the
    skills, READMEs or `scaffold/` need no migration: upgrade-harness merges
    them. The managed block above must stay identical to
    [`scaffold/AGENTS.block.md`](scaffold/AGENTS.block.md) (a test checks it).
+   A harness without code has its own block and READMEs in
+   [`scaffold/docs/`](scaffold/docs/): give them the same change where it
+   applies.
 
 ## Build & test
 

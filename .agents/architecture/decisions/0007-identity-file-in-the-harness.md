@@ -1,6 +1,6 @@
 # A harness carries its identity in `.agents/harness.md`
 
-- **Status**: accepted, except the two points under "Still assumed" (#0101, questions 5 and 6) — not built yet: #0078, #0079, #0080, #0103
+- **Status**: accepted, except the two points under "Still assumed" (#0101, questions 5 and 6) — `init --kind docs` writes the file (#0078); not built yet: #0079, #0080, #0103
 - **Date**: 2026-10-13
 
 A workspace's id and name live only in the per-user registry

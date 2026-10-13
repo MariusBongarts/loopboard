@@ -26,6 +26,10 @@ must apply are numbered in [MIGRATIONS.md](MIGRATIONS.md).
 - `loopboard init` scaffolds the workflow (skills, templates, specs,
   architecture, rules, design, AGENTS.md block); `--with-extras`,
   `--upgrade`, `--force`, `--dry-run`.
+- `loopboard init --kind docs` sets up a folder without code: issues and
+  projects with READMEs and templates worded for it, an identity file
+  (`.agents/harness.md`) with a checked id, no specs, skills or links. It
+  works without git.
 - The `upgrade-harness` skill and numbered migrations bring running harnesses
   forward without overwriting customized skills.
 - The `issue-grooming` skill reconciles the board with git and releases:

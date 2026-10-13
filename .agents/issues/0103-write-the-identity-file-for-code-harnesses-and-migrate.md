@@ -47,3 +47,6 @@ harness can be recognised after a move and nothing I bookmarked changes**.
 - An id written into a public repository is public; keep it generic. A
   registered id with a `-2` suffix is a sign the folder slug wasn't unique
   on this machine — ask instead of writing it into a shared file.
+- #0078 left two places for this issue in `server/init.ts`: `--id`,
+  `--name` and `--parent` are refused without `--kind docs`, and the "Next:"
+  line takes a plan that holds the identity file for the docs scaffold.

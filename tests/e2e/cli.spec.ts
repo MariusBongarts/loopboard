@@ -91,11 +91,10 @@ test.describe('§ 1 running loopboard', () => {
   });
 
   test('a flag the command does not know stops it', () => {
-    // #0078 makes --kind valid and takes this case over.
     const plain = repo(box.dir, 'plain', null);
-    const r = loopboard(['init', '--kind', 'docs'], plain, box.config);
+    const r = loopboard(['init', '--dry'], plain, box.config);
     expect(r.status).toBe(1);
-    expect(r.stderr).toBe('Unknown flag --kind: `loopboard init` takes --with-extras, --upgrade, --force, --dry-run.\n');
+    expect(r.stderr).toBe('Unknown flag --dry: `loopboard init` takes --with-extras, --upgrade, --force, --dry-run, --kind, --id, --name, --parent.\n');
     expect(loopboard(['init', '--help'], plain, box.config).stdout).toContain('Usage');
     expect(readdirSync(plain)).toEqual([]);
 
@@ -212,6 +211,66 @@ test.describe('§ 8 setup and upgrades', () => {
     const r = loopboard(['init'], repo(box.dir, 'legacy', 'ai'), box.config);
     expect(r.status).toBe(1);
     expect(r.stderr).toContain('upgrade my loopboard harness');
+  });
+
+  // #0078. The sandbox is no git repository.
+  test('set up a folder without code, then open its board', async ({ page }) => {
+    const office = repo(box.dir, 'Büro Unterlagen', null);
+    writeFileSync(join(office, 'lease.txt'), 'Signed 2026-10-01.\n');
+
+    const r = loopboard(['init', '--kind', 'docs'], office, box.config);
+    expect(r.status).toBe(0);
+    expect(r.stdout).toContain('created (11):');
+    expect(r.stdout).toContain('Next: say what this folder is for in .agents/harness.md and AGENTS.md, then run `loopboard`.');
+    expect(readdirSync(office).sort()).toEqual(['.agents', 'AGENTS.md', 'CLAUDE.md', 'lease.txt']);
+    expect(readdirSync(join(office, '.agents')).sort()).toEqual(['.loopboard', 'harness.md', 'issues', 'projects']);
+    expect(readFileSync(join(office, '.agents/harness.md'), 'utf8')).toMatch(
+      /^---\nschema: 1\nid: buero-unterlagen\nname: Büro Unterlagen\nkind: harness\ntype: docs\nparent: null\ncreated: \d{4}-\d{2}-\d{2}\n---\n/,
+    );
+    const agents = readFileSync(join(office, 'AGENTS.md'), 'utf8');
+    expect(agents).toMatch(/<!-- loopboard:migration M\d{3} -->/);
+    expect(agents).not.toContain('Build & test');
+    expect(existsSync(box.config)).toBe(false);
+    expect(loopboard(['init'], office, box.config).stdout).toContain('Nothing to do — the workflow is already set up.');
+
+    expect(loopboard(['next-id', 'issue'], office, box.config).stdout.trim()).toBe('0001');
+    expect(loopboard(['check', '--strict'], office, box.config).stdout).toBe('✓ no duplicate numbers\n');
+
+    const server = await serve(['--port', '0'], office, box.config);
+    try {
+      expect(server.url).toMatch(/\/w\/buero-unterlagen$/);
+      await page.goto(server.url);
+      await expect(page).toHaveTitle('Büro Unterlagen · loopboard');
+      const created = await page.request.post(`http://127.0.0.1:${server.port}/api/w/buero-unterlagen/issues`, {
+        data: { title: 'File the lease', category: 'task' },
+      });
+      expect(created.status()).toBe(201);
+      await page.reload();
+      await expect(page.locator('.feed-row', { hasText: 'File the lease' })).toBeVisible();
+      expect(readFileSync(join(office, '.agents/issues/0001-file-the-lease.md'), 'utf8')).toContain('## What needs to be done\n');
+    } finally {
+      server.proc.kill();
+    }
+  });
+
+  test('init --kind docs asks for an id it cannot derive and never mixes with a code harness', () => {
+    const taxes = repo(box.dir, '2026-taxes', null);
+    const refused = loopboard(['init', '--kind', 'docs'], taxes, box.config);
+    expect(refused.status).toBe(1);
+    expect(refused.stderr).toMatch(/^"2026-taxes", this folder's slug, starts with a digit — pass --id with lowercase letters, [^\n]+\.\n$/);
+    const dry = loopboard(['init', '--kind', 'docs', '--id', 'taxes', '--dry-run'], taxes, box.config);
+    expect(dry.stdout).toContain('would be created (11):\n  .agents/harness.md\n');
+    expect(readdirSync(taxes)).toEqual([]);
+    expect(loopboard(['init', '--kind', 'docs', '--id', 'taxes'], taxes, box.config).status).toBe(0);
+    expect(readFileSync(join(taxes, '.agents/harness.md'), 'utf8')).toContain('\nid: taxes\nname: "2026-taxes"\n');
+    expect(existsSync(join(taxes, '.claude'))).toBe(false);
+
+    const app = repo(box.dir, 'app', null);
+    expect(loopboard(['init'], app, box.config).status).toBe(0);
+    const mixed = loopboard(['init', '--kind', 'docs'], app, box.config);
+    expect(mixed.status).toBe(1);
+    expect(mixed.stderr).toBe('This folder already holds a code harness (no "type: docs" in .agents/harness.md), and --kind docs would mix the two — nothing was written.\n');
+    expect(existsSync(join(app, '.agents/harness.md'))).toBe(false);
   });
 
   test('upgrade updates untouched files and skips edited ones', () => {

@@ -58,3 +58,8 @@ same name can be told apart, and harnesses can form a tree**.
   understood, with a warning; it must never fail a request.
 - Dates in YAML arrive as `Date` objects; normalise `created` the way issue
   dates are normalised.
+- Since #0078, `server/identity.ts` holds the id pattern, the reserved
+  words, the file's writer and a raw-line reader for `id`, `name`, `type`,
+  `parent` and `aliases`; `init` is its only caller. A docs harness set up
+  with an `--id` other than its folder's slug is registered under the slug
+  until this issue reads the file.

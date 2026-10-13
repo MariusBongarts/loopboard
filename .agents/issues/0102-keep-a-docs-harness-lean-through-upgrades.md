@@ -45,3 +45,6 @@ up**.
   the identity migration in #0103: a docs harness already has the file, but
   its marker still has to move.
 - Skill and Help wording is shipped text — no migration entry.
+- Since #0078 the docs variants — the workflow block, the AGENTS.md
+  skeleton, both READMEs and all five templates — are in `scaffold/docs/`.
+  `init --upgrade` in a docs harness already refreshes from there.

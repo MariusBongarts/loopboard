@@ -86,21 +86,124 @@ describe('loopboard [path]', () => {
   });
 });
 
-describe('flags (#0076)', () => {
-  // #0078 makes --kind valid and takes this test over.
-  it('init --kind docs creates nothing', async () => {
+// Taken over from #0076, where the flag was refused; before that `docs` was
+// read as the target and a code harness landed in a new docs/ folder.
+describe('init --kind docs (#0078)', () => {
+  const identity = (path: string) => readFile(join(path, '.agents', 'harness.md'), 'utf8');
+
+  it('sets up the current folder, not a docs/ folder', async () => {
     const plain = join(tmp, 'plain');
     await mkdir(plain);
     process.chdir(plain);
 
-    expect(await run('init', '--kind', 'docs')).toEqual({
-      code: 1,
-      out: '',
-      err: 'Unknown flag --kind: `loopboard init` takes --with-extras, --upgrade, --force, --dry-run.',
-    });
+    const r = await run('init', '--kind', 'docs');
+
+    expect(r).toMatchObject({ code: 0, err: '' });
+    expect(r.out).toContain('created (11):\n  .agents/harness.md\n');
+    expect(r.out).toContain('Next: say what this folder is for in .agents/harness.md and AGENTS.md, then run `loopboard`.');
+    expect((await readdir(plain)).sort()).toEqual(['.agents', 'AGENTS.md', 'CLAUDE.md']);
+    expect((await readdir(join(plain, '.agents'))).sort()).toEqual(['.loopboard', 'harness.md', 'issues', 'projects']);
+    expect(await identity(plain)).toContain('\nid: plain\nname: plain\nkind: harness\ntype: docs\nparent: null\n');
+    // Setting up registers nothing.
+    expect(existsSync(config)).toBe(false);
+
+    expect((await run('init')).out).toBe('11 file(s) already in place.\nNothing to do — the workflow is already set up.');
+  });
+
+  it('takes a value for --kind, --id, --name and --parent', async () => {
+    const taxes = join(tmp, '2026 taxes');
+
+    expect((await run('init', taxes, '--kind=docs', '--id', 'taxes', '--name=Taxes: 2026 #1', '--parent', 'private')).code).toBe(0);
+    expect(await identity(taxes)).toContain('\nid: taxes\nname: "Taxes: 2026 #1"\nkind: harness\ntype: docs\nparent: private\n');
+
+    const other = join(tmp, 'other');
+    for (const flag of ['--kind', '--id', '--name', '--parent']) {
+      expect(await run('init', other, flag), flag).toEqual({ code: 1, out: '', err: `Flag ${flag} needs a value.` });
+    }
+    expect(existsSync(other)).toBe(false);
+  });
+
+  // The docs scaffold has no SETUP.md to say it.
+  it('names a CLAUDE.md from before that does not import AGENTS.md', async () => {
+    const papers = join(tmp, 'papers');
+    await mkdir(papers);
+    await writeFile(join(papers, 'CLAUDE.md'), 'Be brief.\n');
+
+    const r = await run('init', papers, '--kind', 'docs');
+
+    expect(r.out).toContain('created (10):');
+    expect(r.out).toContain('Next: say what this folder is for in .agents/harness.md and AGENTS.md, add the line `@AGENTS.md` to your CLAUDE.md, then run `loopboard`.');
+    expect(await readFile(join(papers, 'CLAUDE.md'), 'utf8')).toBe('Be brief.\n');
+  });
+
+  it('--dry-run only lists', async () => {
+    const plain = join(tmp, 'plain');
+    await mkdir(plain);
+
+    const r = await run('init', plain, '--kind', 'docs', '--dry-run');
+
+    expect(r).toMatchObject({ code: 0, err: '' });
+    expect(r.out.split('\n')).toEqual([
+      'would be created (11):',
+      '  .agents/harness.md',
+      '  .agents/issues/README.md',
+      '  .agents/issues/_templates/bug.md',
+      '  .agents/issues/_templates/task.md',
+      '  .agents/issues/_templates/user-story.md',
+      '  .agents/projects/README.md',
+      '  .agents/projects/_templates/prd.md',
+      '  .agents/projects/_templates/wip.md',
+      '  .agents/issues/_archive/.gitkeep',
+      '  CLAUDE.md',
+      '  AGENTS.md',
+    ]);
     expect(await readdir(plain)).toEqual([]);
   });
 
+  it('stops with one sentence, before it writes, when the id or the kind is not usable', async () => {
+    const taxes = join(tmp, '2026-taxes');
+    await mkdir(taxes);
+
+    const r = await run('init', taxes, '--kind', 'docs');
+
+    expect(r).toMatchObject({ code: 1, out: '' });
+    expect(r.err).toBe(
+      '"2026-taxes", this folder\'s slug, starts with a digit — pass --id with lowercase letters, digits and hyphens, 2 to 32 characters, starting with a letter and ending with a letter or digit.',
+    );
+    expect(await run('init', taxes, '--kind', 'index')).toEqual({ code: 1, out: '', err: '--kind takes code or docs, not "index".' });
+    expect(await readdir(taxes)).toEqual([]);
+  });
+
+  it('next-id, check and the board work in a folder with a space and an umlaut in its name', async () => {
+    const office = join(tmp, 'Büro Unterlagen');
+    expect((await run('init', office, '--kind', 'docs')).code).toBe(0);
+
+    expect(await run('next-id', 'issue', office)).toEqual({ code: 0, out: '0001', err: '' });
+    expect(await run('next-id', 'project', office)).toEqual({ code: 0, out: '01', err: '' });
+    expect(await run('check', office, '--strict')).toEqual({ code: 0, out: '✓ no duplicate numbers', err: '' });
+
+    const board = await launch({ target: office, port: 0, configDir: config, clientDir: client });
+    started.push(board);
+    expect(board).toMatchObject({ kind: 'started', workspaceRoot: join(office, '.agents') });
+    if (board.kind !== 'started') return;
+    expect(board.url).toMatch(/\/w\/buero-unterlagen$/);
+    const api = board.url.replace('/w/', '/api/w/');
+    const created = await fetch(`${api}/issues`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ title: 'Mietvertrag ablegen', category: 'task' }),
+    });
+    expect(created.status).toBe(201);
+    const data = (await (await fetch(`${api}/data`)).json()) as { issues: { id: string; title: string }[]; skipped: unknown[] };
+    expect(data.issues).toMatchObject([{ id: '0001', title: 'Mietvertrag ablegen' }]);
+    expect(data.skipped).toEqual([]);
+    // The docs template gave the issue its headings.
+    expect(await readFile(join(office, '.agents', 'issues', '0001-mietvertrag-ablegen.md'), 'utf8')).toContain('## What needs to be done\n');
+    expect(await run('next-id', 'issue', office)).toEqual({ code: 0, out: '0002', err: '' });
+  });
+});
+
+describe('flags (#0076)', () => {
   it('renumber <old> --path <repo> works without a new number', async () => {
     const app = await repo('alpha');
     await issue(app, '0042');

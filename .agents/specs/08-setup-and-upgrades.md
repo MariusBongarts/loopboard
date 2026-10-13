@@ -1,9 +1,12 @@
 # 8. Setup and upgrades
 
 > `loopboard init` puts the workflow into a repo; agents finish it from
-> `.agents/SETUP.md`. Running harnesses take later workflow changes through
-> `init --upgrade` (untouched files) and the upgrade-harness skill (merges
-> and migrations, [MIGRATIONS.md](../../MIGRATIONS.md)).
+> `.agents/SETUP.md`. `init --kind docs` sets up a folder without code —
+> issues and projects only, no git needed
+> ([ADR-0007](../architecture/decisions/0007-identity-file-in-the-harness.md)).
+> Running harnesses take later workflow changes through `init --upgrade`
+> (untouched files) and the upgrade-harness skill (merges and migrations,
+> [MIGRATIONS.md](../../MIGRATIONS.md)).
 
 ## E2E coverage
 
@@ -18,6 +21,9 @@ against temp repos; edge cases in `tests/init.test.ts`. Status legend in [`_spec
 | Run init again | ✅ | [`cli.spec.ts`](../../tests/e2e/cli.spec.ts) |
 | A legacy ai/ harness is sent to upgrade-harness | ✅ | [`cli.spec.ts`](../../tests/e2e/cli.spec.ts) |
 | Upgrade untouched files | ✅ | [`cli.spec.ts`](../../tests/e2e/cli.spec.ts): updated vs skipped (edited locally), `--dry-run` writes nothing. Block refresh and `--force` in `tests/init.test.ts` |
+| Set up a folder without code | ✅ | [`cli.spec.ts`](../../tests/e2e/cli.spec.ts): a folder outside git with a space and an umlaut in its name — the files, the identity file, `next-id`, `check`, the board and an issue created in it. The exact file list, `--name`, `--parent`, a name with `:` and `#` and the link walk in `tests/init.test.ts` |
+| A docs harness needs an id that can be one | 🟡 | [`cli.spec.ts`](../../tests/e2e/cli.spec.ts): a slug that starts with a digit, `--dry-run`, `--id`. The other rules, the registry's id and an id or alias taken at another path in `tests/init.test.ts` |
+| Run init in a docs harness | 🟡 | [`cli.spec.ts`](../../tests/e2e/cli.spec.ts): a second run, and `--kind docs` on a code harness. `--upgrade`, `--kind code` on a docs harness and a flag that disagrees with the identity file in `tests/init.test.ts` |
 
 ### Scenario: Set up an empty repo
 
@@ -89,4 +95,66 @@ AND issues, projects, specs and architecture content are never touched
 AND it points me to upgrade-harness to merge the skipped files and apply
     pending migrations
 AND --dry-run prints the same report without writing
+```
+
+### Scenario: Set up a folder without code
+
+```
+GIVEN a folder that holds no harness — it needn't be a git repository, and
+    its name may have spaces or letters outside ASCII
+WHEN I run `loopboard init --kind docs` there (or with the folder as a path)
+THEN it gets .agents/harness.md, .agents/issues/ with its README, its three
+    templates and _archive/, .agents/projects/ with its README and two
+    templates, AGENTS.md and CLAUDE.md — and nothing else: no specs,
+    architecture, rules, design or SETUP.md, no skills, and no links under
+    .claude/ or .cursor/
+AND the identity file says `schema: 1`, the id (the folder's slug), the name
+    (the folder's name, quoted where YAML needs it), `kind: harness`,
+    `type: docs`, `parent: null` and today's date, above a placeholder for
+    one paragraph on what the folder is for; `--id`, `--name` and `--parent`
+    set those three
+AND AGENTS.md has no "Build & test" section, and its workflow block has the
+    same markers and migration marker as a code harness's but no verify
+    command, specs or skills: an issue is done when every acceptance
+    criterion is ticked and the evidence is written in the issue
+AND the READMEs and templates are worded for work that isn't code, write
+    commands as `loopboard …`, and link to nothing the folder doesn't have
+AND files that were already there are left alone; an AGENTS.md from before
+    gets the block appended, and for a CLAUDE.md from before the command
+    says to add the line `@AGENTS.md`
+AND `loopboard next-id`, `loopboard check` and the board work there
+AND nothing is registered: the folder becomes a workspace when I open it
+```
+
+### Scenario: A docs harness needs an id that can be one
+
+```
+GIVEN a folder I set up with `loopboard init --kind docs`
+WHEN its id is settled — the workspace id if the folder is registered, else
+    the folder's slug, else what I pass as `--id`
+THEN an id that breaks the pattern stops the command with one sentence that
+    asks for `--id`: one that starts with a digit ("2026-taxes"), is one
+    character or longer than 32, is a reserved word, or a folder name that
+    leaves no slug
+AND so does an id that is the id or an alias of a workspace registered at
+    another path; the sentence names that path
+AND an `--id` or `--parent` that breaks the pattern is refused the same way
+AND in every case nothing was written
+```
+
+### Scenario: Run init in a docs harness
+
+```
+GIVEN a folder whose .agents/harness.md says `type: docs`
+WHEN I run `loopboard init` or `loopboard init --upgrade` there, with or
+    without `--kind docs`
+THEN missing pieces come from the docs scaffold, and with --upgrade the
+    workflow block and the READMEs and templates I never edited are
+    refreshed from it
+AND no specs, skills, links or other parts of a code harness are added
+AND the identity file is never overwritten: a flag that disagrees with it
+    stops the command
+AND `--kind code` there, or `--kind docs` in a folder that holds a code
+    harness, stops with one sentence instead of mixing the two
+AND `--dry-run` lists what would happen and writes nothing
 ```

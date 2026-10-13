@@ -4,7 +4,7 @@ import { join, resolve } from "node:path";
 import { escapeControls, printable } from "../shared/printable";
 import { parseArgs, UsageError, type Args, type Flags } from "./args";
 import { checkRoot, nextId, type IdKind } from "./ids";
-import { applyPlan, InitError, planInit, summarizePlan } from "./init";
+import { applyPlan, InitError, nextStep, planInit, summarizePlan } from "./init";
 import { readBoard } from "./issues";
 import { matchName } from "./names";
 import { applyRenumber, planRenumber, RenumberError } from "./renumber";
@@ -159,9 +159,18 @@ async function start(argv: string[]): Promise<number> {
 
 commands.init = {
   usage: "init [path]",
-  summary: "Set up the workflow in a repo (--with-extras, --upgrade, --force, --dry-run)",
-  flags: { "--with-extras": "switch", "--upgrade": "switch", "--force": "switch", "--dry-run": "switch" },
-  async run({ positionals, switches }) {
+  summary: "Set up the workflow in a repo (--with-extras, --upgrade, --force, --dry-run), or with --kind docs in a folder without code (--id, --name, --parent)",
+  flags: {
+    "--with-extras": "switch",
+    "--upgrade": "switch",
+    "--force": "switch",
+    "--dry-run": "switch",
+    "--kind": "value",
+    "--id": "value",
+    "--name": "value",
+    "--parent": "value",
+  },
+  async run({ positionals, switches, values }) {
     const repoPath = resolve(positionals[0] ?? ".");
     const upgrade = switches.has("--upgrade");
     const dryRun = switches.has("--dry-run");
@@ -172,6 +181,11 @@ commands.init = {
         withExtras: switches.has("--with-extras"),
         upgrade,
         force: switches.has("--force"),
+        kind: values["--kind"],
+        id: values["--id"],
+        name: values["--name"],
+        parent: values["--parent"],
+        configDir: configDir(),
       });
       if (!dryRun) await applyPlan(repoPath, actions, packageVersion());
       console.log(summarizePlan(actions, dryRun));
@@ -185,7 +199,7 @@ commands.init = {
           console.log('\nEdited files were left alone. To merge them and apply workflow migrations, ask your agent: "upgrade my loopboard harness".');
         }
       } else {
-        console.log(`\nNext: ask your agent to follow .agents/SETUP.md, then run \`npx loopboard\`.`);
+        console.log(`\nNext: ${nextStep(repoPath, actions)}`);
       }
       return 0;
     } catch (err) {

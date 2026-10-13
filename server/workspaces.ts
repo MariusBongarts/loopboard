@@ -120,7 +120,7 @@ export class RootNotFoundError extends Error {
 
 // One folder reached through a composed and a decomposed spelling of its
 // name (macOS hands out both) is one root (#0077).
-function sameRoot(a: string, b: string): boolean {
+export function sameRoot(a: string, b: string): boolean {
   if (a === b) return true;
   if (a.normalize("NFC") !== b.normalize("NFC")) return false;
   try {

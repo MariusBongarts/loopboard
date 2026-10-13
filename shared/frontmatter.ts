@@ -65,9 +65,9 @@ export function readField(fmInner: string, key: string): string | undefined {
   return raw;
 }
 
-// `labels: [a, b]` (flow style) → ["a", "b"]; null when not flow style.
-export function readLabels(fmInner: string): string[] | null {
-  const raw = readField(fmInner, 'labels');
+// `key: [a, b]` (flow style) → ["a", "b"]; null when not flow style.
+export function readList(fmInner: string, key: string): string[] | null {
+  const raw = readField(fmInner, key);
   if (raw === undefined || raw === '') return [];
   if (!raw.startsWith('[') || !raw.endsWith(']')) return null;
   return raw
@@ -75,6 +75,10 @@ export function readLabels(fmInner: string): string[] | null {
     .split(',')
     .map((l) => l.trim().replace(/^["']|["']$/g, ''))
     .filter(Boolean);
+}
+
+export function readLabels(fmInner: string): string[] | null {
+  return readList(fmInner, 'labels');
 }
 
 export function formatLabels(labels: string[]): string {

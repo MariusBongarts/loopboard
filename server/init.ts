@@ -1,12 +1,19 @@
 import { createHash } from "node:crypto";
 import { cpSync, existsSync, readFileSync, readdirSync, statSync, symlinkSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { dirname, join, relative } from "node:path";
+import { basename, dirname, join, relative, resolve } from "node:path";
+import { printable, quoted } from "../shared/printable";
+import { todayIso } from "./files";
+import { ID_RULE, IDENTITY_FILE, idProblem, readIdentity, renderIdentity } from "./identity";
 import { latestMigration, MIGRATION_RE } from "./migrations";
-import { detectRoot } from "./workspaces";
+import { detectRoot, loadRegistry, sameRoot, slugify, type Workspace } from "./workspaces";
 
 // `loopboard init` / `init --upgrade` (#0011, #0012). Everything is planned
 // first, so --dry-run and tests see exactly what a real run would do.
+
+// What `--kind` names (ADR-0007). `docs` is a harness without code (#0078).
+export const SCAFFOLDS = ["code", "docs"] as const;
+export type Scaffold = (typeof SCAFFOLDS)[number];
 
 export const CORE_SKILLS = [
   "grill-me",
@@ -48,6 +55,14 @@ export interface InitOptions {
   withExtras?: boolean;
   upgrade?: boolean;
   force?: boolean;
+  kind?: string; // --kind as typed
+  // The identity file's fields (#0078); the registry in `configDir` is read
+  // before an id is settled.
+  id?: string;
+  name?: string;
+  parent?: string;
+  configDir?: string;
+  today?: string;
 }
 
 export class InitError extends Error {}
@@ -66,8 +81,13 @@ function listFiles(dir: string): string[] {
   return out;
 }
 
-export function renderBlock(packageRoot: string, migration: string): string {
-  return readFileSync(join(packageRoot, "scaffold", "AGENTS.block.md"), "utf8").replace("{{MIGRATION}}", migration);
+// The docs scaffold's own sources sit in scaffold/docs (#0078).
+function scaffoldDir(packageRoot: string, scaffold: Scaffold): string {
+  return scaffold === "docs" ? join(packageRoot, "scaffold", "docs") : join(packageRoot, "scaffold");
+}
+
+export function renderBlock(packageRoot: string, migration: string, scaffold: Scaffold = "code"): string {
+  return readFileSync(join(scaffoldDir(packageRoot, scaffold), "AGENTS.block.md"), "utf8").replace("{{MIGRATION}}", migration);
 }
 
 // Replaces the managed block but keeps the harness's migration level:
@@ -121,6 +141,26 @@ function seedFiles(opts: InitOptions): Shipped[] {
   return seeds;
 }
 
+// A docs harness gets its own READMEs and templates: the code ones link to
+// skills and specs it doesn't have (#0078).
+function docsFiles(opts: InitOptions): Shipped[] {
+  const files: Shipped[] = [];
+  for (const area of ["issues", "projects"]) {
+    const dir = join(scaffoldDir(opts.packageRoot, "docs"), area);
+    for (const f of listFiles(dir)) {
+      files.push({ path: join(".agents", area, relative(dir, f)).split("\\").join("/"), content: readFileSync(f, "utf8") });
+    }
+  }
+  return files;
+}
+
+function docsSeeds(opts: InitOptions): Shipped[] {
+  return [
+    { path: ".agents/issues/_archive/.gitkeep", content: "" },
+    { path: "CLAUDE.md", content: readFileSync(join(opts.packageRoot, "scaffold", "CLAUDE.md"), "utf8") },
+  ];
+}
+
 async function readManifest(repo: string): Promise<Record<string, string>> {
   try {
     return (JSON.parse(await readFile(join(repo, MANIFEST), "utf8")) as { files?: Record<string, string> }).files ?? {};
@@ -137,6 +177,93 @@ function readLocal(repo: string, path: string): string | null {
   }
 }
 
+// What the folder holds already. The identity file says it; a harness
+// without one is a code harness (ADR-0007).
+function existingScaffold(repo: string): Scaffold | null {
+  const identity = readIdentity(repo);
+  if (identity) return identity.type === "docs" ? "docs" : "code";
+  const marks = [MANIFEST, ".agents/specs", ".agents/architecture", ".agents/SETUP.md"];
+  if (marks.some((mark) => existsSync(join(repo, mark)))) return "code";
+  return readLocal(repo, "AGENTS.md")?.includes(BLOCK_START) ? "code" : null;
+}
+
+// `--kind` picks the scaffold for a new harness; an existing one keeps the
+// kind it has, with or without the flag (#0078).
+function pickScaffold(opts: InitOptions): Scaffold {
+  const asked = SCAFFOLDS.find((kind) => kind === opts.kind);
+  if (opts.kind !== undefined && !asked) throw new InitError(`--kind takes code or docs, not ${quoted(opts.kind)}.`);
+  const existing = existingScaffold(opts.repoPath);
+  if (asked && existing && asked !== existing) {
+    const found = existing === "docs" ? "a docs harness" : `a code harness (no "type: docs" in ${IDENTITY_FILE})`;
+    throw new InitError(`This folder already holds ${found}, and --kind ${asked} would mix the two — nothing was written.`);
+  }
+  const scaffold = asked ?? existing ?? "code";
+  if (scaffold === "code" && [opts.id, opts.name, opts.parent].some((value) => value !== undefined)) {
+    throw new InitError("--id, --name and --parent go into the identity file, which init writes with --kind docs only.");
+  }
+  if (scaffold === "docs" && opts.withExtras) {
+    throw new InitError("--with-extras adds skills, and a docs harness has none — leave it out.");
+  }
+  return scaffold;
+}
+
+// Every name a registered workspace answers to: its registry id, and the id
+// and aliases of its identity file, which the registry reads from #0079 on.
+function namesOf(workspace: Workspace): string[] {
+  const identity = readIdentity(workspace.repoPath);
+  return [workspace.id, ...(identity?.id ? [identity.id] : []), ...(identity?.aliases ?? [])];
+}
+
+// A registered folder keeps its workspace id, any other gets its slug. An id
+// that breaks ADR-0008 or is taken stops `init` before anything is written.
+async function settleId(opts: InitOptions): Promise<string> {
+  const repo = opts.repoPath;
+  const registry = opts.configDir ? (await loadRegistry(opts.configDir)).workspaces : [];
+  const here = registry.find((w) => sameRoot(resolve(w.repoPath), repo));
+  const id = opts.id ?? here?.id ?? slugify(basename(repo));
+  if (!id) throw new InitError(`The folder name ${quoted(basename(repo))} leaves no id — pass --id with ${ID_RULE}.`);
+  const problem = idProblem(id);
+  if (problem && opts.id !== undefined) throw new InitError(`--id ${quoted(id)} ${problem} — an id is ${ID_RULE}.`);
+  if (problem) {
+    throw new InitError(`${quoted(id)}, this folder's ${here ? "workspace id" : "slug"}, ${problem} — pass --id with ${ID_RULE}.`);
+  }
+  const owner = registry.find((w) => w !== here && namesOf(w).includes(id));
+  if (owner) {
+    throw new InitError(`The id ${quoted(id)} already belongs to the workspace at ${printable(owner.repoPath)} — pass --id with another one (${ID_RULE}).`);
+  }
+  return id;
+}
+
+// The identity file (ADR-0007): written once, never overwritten.
+async function identityAction(opts: InitOptions): Promise<Action> {
+  const repo = opts.repoPath;
+  const existing = readIdentity(repo);
+  if (existing) {
+    for (const key of ["id", "name", "parent"] as const) {
+      if (opts[key] === undefined || opts[key] === existing[key]) continue;
+      const how = key === "id" ? ", and an id never changes" : "; edit the file to change it";
+      throw new InitError(`${IDENTITY_FILE} already has ${key}: ${printable(existing[key] ?? "")} — init never overwrites it${how}.`);
+    }
+    return { path: IDENTITY_FILE, kind: "keep" };
+  }
+  if (existsSync(join(repo, IDENTITY_FILE))) throw new InitError(`${IDENTITY_FILE} can't be read — nothing was written.`);
+  const id = await settleId(opts);
+  const parent = opts.parent ?? null;
+  const problem = parent === null ? null : parent === id ? "is this harness's own id" : idProblem(parent);
+  if (parent !== null && problem) {
+    throw new InitError(`--parent ${quoted(parent)} ${problem} — a parent is another harness's id (${ID_RULE}); leave it out for a top node.`);
+  }
+  const content = renderIdentity({
+    id,
+    name: opts.name ?? basename(repo).normalize("NFC"),
+    kind: "harness",
+    type: "docs",
+    parent,
+    created: opts.today ?? todayIso(),
+  });
+  return { path: IDENTITY_FILE, kind: "create", content };
+}
+
 export async function planInit(opts: InitOptions): Promise<Action[]> {
   const repo = opts.repoPath;
   // Re-running init on an .agents/ harness only fills gaps; a legacy ai/
@@ -147,13 +274,16 @@ export async function planInit(opts: InitOptions): Promise<Action[]> {
       `This repo's harness lives in ${relative(repo, existing.root) || "."}/, not .agents/. Ask your agent to "upgrade my loopboard harness" — the upgrade-harness skill adapts paths and can move the root.`
     );
   }
+  const scaffold = pickScaffold(opts);
+  const docs = scaffold === "docs";
   const installed = new Set(
-    existsSync(join(repo, ".agents", "skills")) ? readdirSync(join(repo, ".agents", "skills")) : []
+    !docs && existsSync(join(repo, ".agents", "skills")) ? readdirSync(join(repo, ".agents", "skills")) : []
   );
   const manifest = opts.upgrade ? await readManifest(repo) : {};
   const actions: Action[] = [];
+  if (docs) actions.push(await identityAction(opts));
 
-  for (const file of shippedFiles(opts, installed)) {
+  for (const file of docs ? docsFiles(opts) : shippedFiles(opts, installed)) {
     const local = readLocal(repo, file.path);
     if (local === null) actions.push({ path: file.path, kind: "create", content: file.content, managed: true });
     else if (local === file.content) actions.push({ path: file.path, kind: "same", managed: true });
@@ -163,7 +293,7 @@ export async function planInit(opts: InitOptions): Promise<Action[]> {
     else actions.push({ path: file.path, kind: "keep-modified", note: "edited locally" });
   }
 
-  for (const seed of seedFiles(opts)) {
+  for (const seed of docs ? docsSeeds(opts) : seedFiles(opts)) {
     const local = readLocal(repo, seed.path);
     if (local === null) actions.push({ path: seed.path, kind: "create", content: seed.content });
     else actions.push({ path: seed.path, kind: "keep" });
@@ -173,9 +303,9 @@ export async function planInit(opts: InitOptions): Promise<Action[]> {
   const agentsPath = "AGENTS.md";
   const agents = readLocal(repo, agentsPath);
   const level = opts.upgrade ? "M000" : latestMigration(opts.packageRoot);
-  const block = renderBlock(opts.packageRoot, level);
+  const block = renderBlock(opts.packageRoot, level, scaffold);
   if (agents === null) {
-    const skeleton = readFileSync(join(opts.packageRoot, "scaffold", "AGENTS.md"), "utf8").replace("{{BLOCK}}", block.trimEnd());
+    const skeleton = readFileSync(join(scaffoldDir(opts.packageRoot, scaffold), "AGENTS.md"), "utf8").replace("{{BLOCK}}", block.trimEnd());
     actions.push({ path: agentsPath, kind: "create", content: skeleton });
   } else if (!agents.includes(BLOCK_START)) {
     actions.push({ path: agentsPath, kind: "block", content: `${agents.trimEnd()}\n\n${block}`, note: "appended the workflow block" });
@@ -185,6 +315,8 @@ export async function planInit(opts: InitOptions): Promise<Action[]> {
   } else {
     actions.push({ path: agentsPath, kind: "keep" });
   }
+  // A docs harness has no skills, so nothing to link (#0078).
+  if (docs) return actions;
 
   // Skill links for the agent tools: Claude Code always, Cursor if present.
   const tools = [".claude"];
@@ -235,6 +367,14 @@ const LABEL: Record<ActionKind, string> = {
   link: "linked",
   block: "AGENTS.md",
 };
+
+// What to do after a first run. The code scaffold has a SETUP.md for it; the
+// docs scaffold has none, so a CLAUDE.md from before is named here (#0078).
+export function nextStep(repo: string, actions: Action[]): string {
+  if (!actions.some((a) => a.path === IDENTITY_FILE)) return "ask your agent to follow .agents/SETUP.md, then run `npx loopboard`.";
+  const imported = readLocal(repo, "CLAUDE.md")?.includes("@AGENTS.md");
+  return `say what this folder is for in ${IDENTITY_FILE} and AGENTS.md${imported ? "" : ", add the line `@AGENTS.md` to your CLAUDE.md"}, then run \`loopboard\`.`;
+}
 
 export function summarizePlan(actions: Action[], dryRun: boolean): string {
   const lines: string[] = [];

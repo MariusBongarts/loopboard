@@ -1,6 +1,6 @@
 # Harness ids are short lowercase words, and references carry them in front
 
-- **Status**: accepted — not built yet: #0078 and #0079 (ids), #0082 (references)
+- **Status**: accepted — `init --kind docs` checks ids (#0078); not built yet: #0079 (ids), #0082 (references)
 - **Date**: 2026-10-13
 
 Every harness counts its issues from 0001, so a reference into another

@@ -21,6 +21,7 @@ const PARTS = [
 const COMMANDS = [
   { cmd: 'npx loopboard init', does: 'Sets up the workflow. Never overwrites a file.' },
   { cmd: 'npx loopboard init --with-extras', does: 'Adds tdd, diagnose, improve-codebase-architecture and write-a-skill.' },
+  { cmd: 'npx loopboard init --kind docs', does: 'Sets up a folder without code: issues and projects, no specs, skills or links, no git needed.' },
   { cmd: 'npx loopboard', does: 'Opens the board for this repo; a running board adds it to the switcher.' },
   { cmd: 'npx loopboard next-id issue', does: 'The next free issue number across every branch and worktree.' },
   { cmd: 'npx loopboard check --branches', does: 'Finds duplicate numbers, dangling references and files the board skips.' },

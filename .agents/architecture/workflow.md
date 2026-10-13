@@ -40,6 +40,14 @@ architecture, rules, design, `SETUP.md`, the AGENTS.md skeleton). The
 is the workflow section of every harness's AGENTS.md — this repo's own
 AGENTS.md embeds it verbatim, and a test keeps them identical.
 
+`loopboard init --kind docs` sets up a harness without code from
+[scaffold/docs/](../../scaffold/docs/) instead: an identity file, its own
+workflow block, AGENTS.md skeleton, READMEs and templates, and none of the
+skills, seed folders or links
+([ADR-0007](decisions/0007-identity-file-in-the-harness.md)). Its block
+carries the same markers and migration marker, so a conventions change has
+to reach both blocks.
+
 ## Changing the workflow
 
 A change to the conventions (statuses, loop, READMEs, skills) ships as a new

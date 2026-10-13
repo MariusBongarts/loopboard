@@ -63,6 +63,12 @@ Matt Pocock's videos and writing.
 - **`.agents/`** — issues, projects, specs, architecture, rules and design,
   each with a README that explains its format.
 
+Not a code repo? `npx loopboard init --kind docs` sets up the same loop in a
+folder of documents — a company's paperwork, taxes, a move — with issues and
+projects only: no specs, no skills, no links, and no git needed. An issue
+there is done when its acceptance criteria are ticked and the evidence is
+written down.
+
 ### Upgrade an existing harness
 
 Workflow changes ship as numbered [migrations](MIGRATIONS.md). In a repo that
@@ -85,6 +91,7 @@ change, and ask before any bulk edits.
 | `npx loopboard [path]` | Opens the board for the repo (default: here) at `http://127.0.0.1:5180`. A running board adds the repo instead of starting another. `--port <n>`, `--no-open`. |
 | `npx loopboard init [path]` | Sets up the workflow. `--with-extras` adds tdd, diagnose, improve-codebase-architecture and write-a-skill. |
 | `npx loopboard init --upgrade` | Refreshes shipped files you haven't edited. `--force` overwrites edited ones, `--dry-run` only reports. |
+| `npx loopboard init --kind docs [path]` | Sets up a folder without code — paperwork, taxes, a move: issues and projects, no specs, no skills, no links, no git needed. Writes the folder's id and name to `.agents/harness.md`; `--id`, `--name` and `--parent` set them. |
 | `npx loopboard workspaces` | Lists the registered workspaces: id, name, path and whether the folder still exists. `--json` prints them as data. `workspaces forget <id>…` removes entries from the list, never a repo's files. |
 
 Requires Node 20 or newer. The server binds to `127.0.0.1` and refuses

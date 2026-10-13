@@ -67,6 +67,10 @@
 - **Harness** — what makes an agent follow the workflow in a repo: the
   managed block in `AGENTS.md`, the skills in `.agents/skills/` and the
   conventions in the root's READMEs and templates.
+- **Docs harness** — a harness for work that isn't code, set up with
+  `loopboard init --kind docs`: issues and projects, an **identity file**
+  with `type: docs`, no specs, no skills and no links. It needs no git, and
+  an issue in it is done on written evidence instead of a verify command.
 - **Skill** — a folder with a `SKILL.md` (name, one-line description,
   instructions) that an agent loads when a request matches its description.
 - **Migration** — a numbered workflow change (`MNNN`) in `MIGRATIONS.md` that
@@ -76,9 +80,9 @@
   means M000.
 - **Identity file** — `.agents/harness.md` in a harness's folder: frontmatter
   with the **harness id**, a name, a kind, a parent and optional aliases,
-  and one paragraph saying what the harness is for. A convention loopboard
-  reads from a later release; until then a workspace's id is the **slug** of
-  its folder
+  and one paragraph saying what the harness is for. `init --kind docs`
+  writes it. A convention loopboard reads from a later release; until then a
+  workspace's id is the **slug** of its folder
   ([ADR-0007](../architecture/decisions/0007-identity-file-in-the-harness.md)).
 - **Harness id** — the name a harness gives itself in its **identity file**
   and that a **qualified reference** carries in front: lowercase letters,

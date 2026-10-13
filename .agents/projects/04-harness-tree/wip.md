@@ -13,17 +13,20 @@ The six standalone issues that come before the tree are built.
 and [#0099](../../issues/0099-list-and-forget-workspaces-from-the-cli.md)
 (the CLI and the registry) are `in-review`: linking the clone and choosing
 which registry entries to forget are the maintainer's steps. Of the project
-itself the conventions are written and nothing is built:
-[#0101](../../issues/0101-adrs-for-identity-ids-and-references.md) recorded
-the identity file, the id pattern, the reserved words, the reference syntax
-and what `init --kind` means in ADR-0007 and ADR-0008. Next is
-[#0078](../../issues/0078-init-kind-docs.md) — `loopboard init --kind docs`
-— which is unblocked: everything it needs is decided. #0101 stays with the
-maintainer for two questions that don't touch #0078: what a shared
+itself the conventions are written
+([#0101](../../issues/0101-adrs-for-identity-ids-and-references.md):
+ADR-0007 and ADR-0008) and the first feature is built:
+[#0078](../../issues/0078-init-kind-docs.md), `loopboard init --kind docs`,
+sets up a harness without code in a plain folder and writes its identity
+file. It is `in-review` for one thing no test can do: a run in a real
+cloud-synced folder with a second device. Next are
+[#0102](../../issues/0102-keep-a-docs-harness-lean-through-upgrades.md) —
+the upgrade-harness skill would still add skills and links to a docs
+harness — and [#0079](../../issues/0079-harness-identity-file.md), which
+makes loopboard read the file `init` now writes and unblocks the rest of
+phase 1. #0101 stays with the maintainer for two questions: what a shared
 repository's identity file holds, and how a worktree or second clone opens.
-The identity file (#0079) comes after #0078 and unblocks the rest of
-phase 1. Read "Questions for the maintainer" first: four issues wait on
-answers.
+Read "Questions for the maintainer" first: four issues wait on answers.
 
 ## Before the tree
 
@@ -40,10 +43,14 @@ in this order. The first six are standalone issues, not part of this project:
 
 Until those are done:
 
-- **`loopboard init --kind docs` doesn't work yet.** Since #0076 the CLI
-  refuses the flag and writes nothing; before, it took `docs` for the target
-  and scaffolded a full code harness into a new `docs/` folder. #0078 makes
-  it work.
+- **`loopboard init --kind docs` works (#0078), and the id it writes isn't
+  read yet.** A folder still opens under its slug. Where `init` asks for
+  `--id` — `2026-taxes` starts with a digit — the workspace id stays the
+  slug until #0079 takes it from the file; the URL and the saved views of
+  that workspace change with it, once.
+- **Don't run the upgrade-harness skill in a docs harness** until #0102: it
+  would add the eight skills and their links. `loopboard init --upgrade` is
+  safe there.
 - **Write an id only as ADR-0008 allows it.** The pattern and the reserved
   words are fixed since #0101. In a git repository that others clone, keep
   the identity file to what is true for everyone: what such a file holds is
@@ -79,7 +86,7 @@ Notes say "Also needs".
 Goal: a harness carries its own identity, a harness without code can be scaffolded, and references between harnesses are defined, checked and resolvable.
 
 - [ ] [#0101 Record the identity file, the id pattern and the reference syntax in ADRs](../../issues/0101-adrs-for-identity-ids-and-references.md) — in-progress (human: two questions left)
-- [ ] [#0078 Set up a harness without code with loopboard init --kind docs](../../issues/0078-init-kind-docs.md) — todo
+- [ ] [#0078 Set up a harness without code with loopboard init --kind docs](../../issues/0078-init-kind-docs.md) — in-review (human: one run in a synced folder)
 - [ ] [#0102 Keep a docs harness lean when it is upgraded](../../issues/0102-keep-a-docs-harness-lean-through-upgrades.md) — todo
 - [ ] [#0079 Take a harness's id, name and parent from its identity file](../../issues/0079-harness-identity-file.md) — todo
 - [ ] [#0080 A moved or symlinked harness shows up as a second workspace](../../issues/0080-moved-or-symlinked-harness-becomes-a-second-workspace.md) — todo
@@ -126,6 +133,32 @@ Goal: the documents an issue points at open from the board, and every harness ha
 - [ ] [#0098 Add a Home tab with INDEX.md, AGENTS.md and the identity](../../issues/0098-home-tab.md) — backlog
 
 ## Activity log
+
+### 2026-10-13 — init --kind docs
+
+- [#0078](../../issues/0078-init-kind-docs.md) is built:
+  `loopboard init --kind docs` writes twelve files and no link — the
+  identity file, issues and projects with READMEs and templates worded for
+  work that isn't code, the manifest, AGENTS.md and CLAUDE.md. It needs no
+  git, registers nothing and never overwrites a file.
+- The id is settled before anything is written: `--id`, else the folder's
+  workspace id, else its slug. A slug that starts with a digit, is one
+  character or longer than 32, is a reserved word or is empty stops `init`
+  with one sentence that asks for `--id`; so does an id that is the id or an
+  alias of a workspace registered elsewhere.
+- A harness keeps its kind: `init` and `init --upgrade` in a docs harness
+  stay in the docs scaffold with or without the flag, and neither kind can
+  be poured over the other.
+- The docs scaffold has its own sources in `scaffold/docs/`, all five
+  templates included. `server/identity.ts` is new and holds the id rules;
+  #0079 builds on it.
+- Tried by hand in three folders — a name with a space and an umlaut, one
+  nested inside it, one with files of its own: each opened on the board and
+  showed an issue created through the API.
+- `in-review`, not `done`: the run in a real synced folder is the
+  maintainer's. `--kind index` is refused until #0104, and `--id`, `--name`
+  and `--parent` without `--kind docs` until #0103.
+- Three things found and left alone are in the deferred list below.
 
 ### 2026-10-13 — ids and references decided
 
@@ -351,6 +384,20 @@ Cut in the review round, also on 2026-10-13:
 - `blocked-by:` lines in this project's own issues before loopboard reads
   the field: a second dependency is written as "Also needs" in the Notes,
   where agents look today (#0091).
+
+Found while building #0078, on 2026-10-13:
+
+- A docs harness that lost its identity file is a code harness to `init`:
+  `--kind docs` stops, and a plain `init` would add skills and links.
+  ADR-0007 says a harness without the file behaves as before; once the
+  registry remembers a harness's type (#0079), `init` could ask it.
+- A folder with an `issues/` folder of its own — a magazine's back issues —
+  counts as a harness that lives at its top (ADR-0003), and `init` sends it
+  to upgrade-harness. Older than this project, likelier in a folder of
+  documents.
+- A project created from the board starts with a "Current focus" that names
+  the grill-me skill, which a docs harness doesn't have. It belongs with
+  hiding the code-only parts of the board, above.
 
 ## Ship summary
 
