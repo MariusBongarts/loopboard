@@ -11,7 +11,8 @@ history, and a per-user registry remembers which repos (workspaces) exist.
   `vuedraggable` for the board, TipTap 3 (+ `@tiptap/markdown`) for rich
   editing. No store.
 - **Shared**: [shared/](../../shared/) holds pure code both sides use
-  (frontmatter line edits).
+  (frontmatter line edits; [refs.ts](../../shared/refs.ts), the one pattern
+  for a local `#NNNN` reference).
 - **Server**: one Node request handler, mounted by the Vite dev plugin or by
   the CLI's own `node:http` server; `gray-matter` parses frontmatter. Node
   built-ins otherwise.

@@ -156,6 +156,40 @@ describe('issueRefSegments', () => {
       { kind: 'text', value: '.' },
     ]);
   });
+
+  // #0100: `shop#0003` is issue 0003 of another harness, not the local one.
+  it('leaves a number directly after a letter or digit as text', () => {
+    expect(issueRefSegments('shop#0003 is next')).toEqual([{ kind: 'text', value: 'shop#0003 is next' }]);
+    expect(issueRefSegments('Blocked by shop#0003, then #0004')).toEqual([
+      { kind: 'text', value: 'Blocked by shop#0003, then ' },
+      { kind: 'issue', id: '0004' },
+    ]);
+  });
+
+  it('still links a bare, bracketed or sentence-ending #NNNN', () => {
+    expect(issueRefSegments('#0003')).toEqual([{ kind: 'issue', id: '0003' }]);
+    expect(issueRefSegments('Kickoff (#0003)')).toEqual([
+      { kind: 'text', value: 'Kickoff (' },
+      { kind: 'issue', id: '0003' },
+      { kind: 'text', value: ')' },
+    ]);
+    expect(issueRefSegments('Start #0003.')).toEqual([
+      { kind: 'text', value: 'Start ' },
+      { kind: 'issue', id: '0003' },
+      { kind: 'text', value: '.' },
+    ]);
+  });
+
+  it('links the label of an issue-file link, not the number in its path', () => {
+    expect(issueRefSegments('[#0003 First](../../issues/0003-first.md)')).toEqual([
+      { kind: 'text', value: '[' },
+      { kind: 'issue', id: '0003' },
+      { kind: 'text', value: ' First](../../issues/0003-first.md)' },
+    ]);
+    expect(issueRefSegments('[First](../../issues/0003-first.md)')).toEqual([
+      { kind: 'text', value: '[First](../../issues/0003-first.md)' },
+    ]);
+  });
 });
 
 describe('projectsByLastSession', () => {

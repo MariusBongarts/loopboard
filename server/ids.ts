@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
+import { issueRefs } from "../shared/refs";
 import { git, gitLocate } from "./git";
 
 // Sequential, branch-aware IDs (ADR-0004, #0016–#0018). Issues are 4-digit
@@ -123,7 +124,6 @@ export function findDuplicates(sightings: IdSighting[], kind: IdKind, branches: 
     .sort((a, b) => a.id.localeCompare(b.id));
 }
 
-const REF_RE = /(?<![\w#/])#(\d{4})\b/g;
 const PARENT_RE = /^parent:\s*["']?(\d{1,4})["']?\s*$/m;
 // Code (fenced blocks, `inline`) holds examples, not references.
 const CODE_RE = /^(```|~~~)[^\n]*\n[\s\S]*?^\1[^\n]*$|`[^`\n]+`/gm;
@@ -149,10 +149,10 @@ export function findDangling(root: string): DanglingRef[] {
       const parent = text.match(PARENT_RE)?.[1]?.padStart(4, "0");
       if (parent && !known.has(parent)) out.push({ file: rel, ref: `parent: ${parent}` });
       const seen = new Set<string>();
-      for (const m of text.replace(CODE_RE, "").matchAll(REF_RE)) {
-        if (known.has(m[1]) || seen.has(m[1])) continue;
-        seen.add(m[1]);
-        out.push({ file: rel, ref: `#${m[1]}` });
+      for (const { id } of issueRefs(text.replace(CODE_RE, ""))) {
+        if (known.has(id) || seen.has(id)) continue;
+        seen.add(id);
+        out.push({ file: rel, ref: `#${id}` });
       }
     }
   }

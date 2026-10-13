@@ -9,7 +9,7 @@ Status legend in [`_specs.md`](_specs.md#e2e-coverage).
 
 | Scenario | Status | Notes |
 |---|---|---|
-| The feed lists sessions and issues by day | 🟡 | [`02-rail-and-feed.spec.ts`](../../tests/e2e/02-rail-and-feed.spec.ts): rows, day groups, newest first, archived excluded, sessions before issues. Not asserted: day labels, scroll loading, `#NNNN` links. Labels unit-tested in `tests/inbox.test.ts` |
+| The feed lists sessions and issues by day | 🟡 | [`02-rail-and-feed.spec.ts`](../../tests/e2e/02-rail-and-feed.spec.ts): rows, day groups, newest first, archived excluded, sessions before issues. Not asserted: day labels, scroll loading, `#NNNN` links. Labels and what counts as a reference unit-tested in `tests/inbox.test.ts` and `tests/refs.test.ts` |
 | Filter the feed from the rail | ✅ | `02-rail-and-feed.spec.ts`: Needs you, Sessions, Issues, Inbox resets; no chip row |
 | Collapse the rail | ✅ | `02-rail-and-feed.spec.ts`: button and `[`, remembered after reload, entries still work |
 | Search narrows the feed and the project list | ✅ | `02-rail-and-feed.spec.ts`: "/" focuses, words narrow feed and rail, title, Esc clears |
@@ -35,6 +35,8 @@ AND each row starts with an icon — the issue's status, or a session mark —
     project, `#NNNN` or "Session", and the issue's assignee; a session's
     remaining text follows as a two-line preview
 AND `#NNNN` references in session notes open that issue
+AND a number directly after a letter or digit is not a reference: `shop#0003`
+    names an issue of another harness and stays plain text
 ```
 
 ### Scenario: Filter the feed from the rail

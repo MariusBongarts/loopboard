@@ -1,3 +1,4 @@
+import { issueRefs } from '../shared/refs';
 import {
   ALWAYS_VISIBLE_COLUMNS,
   STANDALONE,
@@ -150,13 +151,11 @@ export type TextSegment = { kind: 'text'; value: string } | { kind: 'issue'; id:
 
 export function issueRefSegments(text: string): TextSegment[] {
   const out: TextSegment[] = [];
-  const re = /#(\d{4})\b/g;
   let last = 0;
-  for (const m of text.matchAll(re)) {
-    const at = m.index ?? 0;
-    if (at > last) out.push({ kind: 'text', value: text.slice(last, at) });
-    out.push({ kind: 'issue', id: m[1] });
-    last = at + m[0].length;
+  for (const { id, index } of issueRefs(text)) {
+    if (index > last) out.push({ kind: 'text', value: text.slice(last, index) });
+    out.push({ kind: 'issue', id });
+    last = index + id.length + 1;
   }
   if (last < text.length) out.push({ kind: 'text', value: text.slice(last) });
   return out;

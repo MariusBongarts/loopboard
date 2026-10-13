@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, readdirSync, renameSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
+import { issueRefSource } from "../shared/refs";
 import { ID_WIDTH, nextId, type IdKind } from "./ids";
 
 // `loopboard renumber <old> [new]` (#0018): move an issue or project to a
@@ -97,10 +98,10 @@ export function planRenumber(opts: RenumberOptions): RenumberPlan {
       // Links name the slug, so they're unambiguous even with twins.
       after = after.split(`/${name}`).join(`/${newName}`).split(`(${name})`).join(`(${newName})`);
       if (isSelf) after = after.replace(new RegExp(`^id:\\s*["']?${opts.oldId}["']?\\s*$`, "m"), `id: ${newId}`);
-      const refs = new RegExp(`(?<![\\w#/])#${opts.oldId}\\b`, "g");
+      const refs = new RegExp(issueRefSource(opts.oldId), "g");
       const parent = new RegExp(`^(parent:\\s*)["']?${opts.oldId}["']?\\s*$`, "m");
       if (!twins || isSelf) {
-        after = after.replace(refs, `#${newId}`).replace(parent, `$1${newId}`);
+        after = after.replace(refs, `$1#${newId}`).replace(parent, `$1${newId}`);
       } else if (refs.test(after) || parent.test(after)) {
         ambiguous.push(fileRel);
       }

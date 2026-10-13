@@ -116,6 +116,11 @@ describe('check', () => {
     await issue(join(root, 'issues'), '0002', 'child', '', 'Run `check` on `#0098`.\n\n```\nsee #0099\n```\n\nBut #0097.');
     expect(checkRoot(root, false).dangling).toEqual([{ file: 'issues/0002-child.md', ref: '#0097' }]);
   });
+
+  it("ignores another harness's shop#NNNN, URL fragments and entities (#0100)", async () => {
+    await issue(join(root, 'issues'), '0002', 'child', '', 'After shop#0099, https://example.com/#0098 &#8212; and #0097.');
+    expect(checkRoot(root, false).dangling).toEqual([{ file: 'issues/0002-child.md', ref: '#0097' }]);
+  });
 });
 
 describe('renumber', () => {
@@ -135,6 +140,12 @@ describe('renumber', () => {
       '- [ ] [#0005 First](../../issues/0005-first.md) — todo\n',
     );
     expect(existsSync(join(root, 'issues', '0001-first.md'))).toBe(false);
+  });
+
+  it("leaves another harness's shop#NNNN alone (#0100)", async () => {
+    await issue(join(root, 'issues'), '0002', 'child', '', '#0001, (#0001) and shop#0001.');
+    applyRenumber(root, planRenumber({ root, oldId: '0001', newId: '0005' }));
+    expect(await readFile(join(root, 'issues', '0002-child.md'), 'utf8')).toContain('#0005, (#0005) and shop#0001.');
   });
 
   it('needs --file for twins and leaves their ambiguous #refs alone', async () => {
