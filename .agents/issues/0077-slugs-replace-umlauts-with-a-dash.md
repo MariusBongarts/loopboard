@@ -2,7 +2,7 @@
 id: 0077
 title: Slugs replace umlauts with a dash
 category: bug
-status: todo
+status: done
 assignee: agent
 labels: [server, data]
 created: 2026-10-13
@@ -34,12 +34,12 @@ Slugs stay readable: `NNNN-groesse-der-uebersicht-aendern.md`,
 
 ## Acceptance criteria (verification)
 
-- [ ] `ä` → `ae`, `ö` → `oe`, `ü` → `ue`, `ß` → `ss`, in either case, for issue file names, project folders and workspace ids
-- [ ] Other accented Latin letters keep their base letter (`é` → `e`, `ñ` → `n`) instead of becoming a dash
-- [ ] Precomposed and decomposed input give the same slug (macOS hands out folder names in either form)
-- [ ] The slug function stays the single implementation behind issue file names, project folders, workspace ids and the `id` that `init` writes into an identity file (#0078); the 60-character cut for issue and project slugs is applied after transliteration and never ends on a dash
-- [ ] Nothing that exists is renamed: registered workspaces keep their id, existing files keep their names
-- [ ] Regression tests cover the three reproduction steps, a decomposed `ü`, and a title whose slug only passes 60 characters once its umlauts are written out
+- [x] `ä` → `ae`, `ö` → `oe`, `ü` → `ue`, `ß` → `ss`, in either case, for issue file names, project folders and workspace ids
+- [x] Other accented Latin letters keep their base letter (`é` → `e`, `ñ` → `n`) instead of becoming a dash
+- [x] Precomposed and decomposed input give the same slug (macOS hands out folder names in either form)
+- [x] The slug function stays the single implementation behind issue file names, project folders, workspace ids and the `id` that `init` writes into an identity file (#0078); the 60-character cut for issue and project slugs is applied after transliteration and never ends on a dash
+- [x] Nothing that exists is renamed: registered workspaces keep their id, existing files keep their names
+- [x] Regression tests cover the three reproduction steps, a decomposed `ü`, and a title whose slug only passes 60 characters once its umlauts are written out
 
 ## Out of scope
 
@@ -54,3 +54,10 @@ Slugs stay readable: `NNNN-groesse-der-uebersicht-aendern.md`,
   afterwards, and ids end up in references.
 - Apply the four German mappings before stripping accents; a plain accent
   strip would turn `ü` into `u`.
+- Fixed in `slugify` ([server/workspaces.ts](../../server/workspaces.ts)),
+  still the only place a slug is derived: compose the text, lowercase it,
+  write out the umlauts, `ß` and the Latin letters that carry no accent to
+  strip (`æ`, `œ`, `ø`, `ł`, `đ`, `ð`, `þ`, `ı`), then strip the remaining
+  accents. #0078 takes the folder's slug from the same function. Vitest:
+  `tests/workspaces.test.ts` "slugify" and the registry tests marked #0077,
+  `tests/create.test.ts` for issue files, project folders and the cut.

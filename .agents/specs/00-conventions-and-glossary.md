@@ -19,6 +19,12 @@
   [`../projects/README.md`](../projects/README.md).
 - **PRD number** — the leading digits of a project slug, shown in small grey
   type next to every project name.
+- **Slug** — the readable, lowercase ASCII form of a title or folder name
+  that loopboard puts into issue file names, project folders and workspace
+  ids: `ä`, `ö`, `ü` and `ß` are written out (`ae`, `oe`, `ue`, `ss`), other
+  accented Latin letters keep their base letter (`é` → `e`, `ñ` → `n`), and
+  every other run of characters becomes one dash. Issue and project slugs
+  are cut at 60 characters.
 - **Current focus** — the first paragraph of a WIP's `## Current focus`
   section; what the project is doing right now.
 - **Session** — one dated `### YYYY-MM-DD` entry in a WIP's `## Activity log`.

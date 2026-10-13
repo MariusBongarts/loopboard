@@ -10,6 +10,7 @@ import {
   removeWorkspace,
   renameWorkspace,
   setLastUsed,
+  slugify,
   summarize,
 } from '../server/workspaces';
 
@@ -54,6 +55,31 @@ describe('detectRoot', () => {
   });
 });
 
+// Slugs stay readable (#0077).
+describe('slugify', () => {
+  it('writes German umlauts and ß out, in either case', () => {
+    expect(slugify('Größe der Übersicht ändern')).toBe('groesse-der-uebersicht-aendern');
+    expect(slugify('ÄRGER ÖL ÜBEL STRAẞE')).toBe('aerger-oel-uebel-strasse');
+  });
+
+  it('keeps the base letter of other accented Latin letters', () => {
+    expect(slugify('Café señor, crème brûlée')).toBe('cafe-senor-creme-brulee');
+    expect(slugify('Łódź Ærø œuvre')).toBe('lodz-aero-oeuvre');
+  });
+
+  it('gives precomposed and decomposed input the same slug', () => {
+    const decomposed = 'Bu\u0308ro Cafe\u0301';
+    expect(decomposed).not.toBe(decomposed.normalize('NFC'));
+    expect(slugify(decomposed)).toBe('buero-cafe');
+    expect(slugify(decomposed.normalize('NFC'))).toBe('buero-cafe');
+  });
+
+  it('still collapses everything else into single dashes', () => {
+    expect(slugify('  My App_v2 (old)!  ')).toBe('my-app-v2-old');
+    expect(slugify('日本語')).toBe('workspace');
+  });
+});
+
 describe('workspace registry', () => {
   it('registers a repo once and remembers it as last used', async () => {
     const path = await repo('my-app', '.agents');
@@ -79,6 +105,25 @@ describe('workspace registry', () => {
     const b = await repo('b/app', 'ai');
     expect((await registerWorkspace(config, a)).id).toBe('app');
     expect((await registerWorkspace(config, b)).id).toBe('app-2');
+  });
+
+  it('gives a folder with an umlaut one readable id, however the name is composed (#0077)', async () => {
+    const composed = await repo('a/B\u00fcro', '.agents');
+    const decomposed = await repo('b/Bu\u0308ro', '.agents');
+    expect((await registerWorkspace(config, composed)).id).toBe('buero');
+    expect((await registerWorkspace(config, decomposed)).id).toBe('buero-2');
+  });
+
+  it('keeps the id a workspace was registered under (#0077)', async () => {
+    const path = await repo('Büro', '.agents');
+    const root = join(path, '.agents');
+    await mkdir(config);
+    await writeFile(
+      join(config, 'workspaces.json'),
+      JSON.stringify({ workspaces: [{ id: 'b-ro', name: 'Büro', repoPath: path, root }], lastUsed: 'b-ro' }),
+    );
+    expect((await registerWorkspace(config, path)).id).toBe('b-ro');
+    expect((await loadRegistry(config)).workspaces.map((w) => w.id)).toEqual(['b-ro']);
   });
 
   it('renames and removes without touching files', async () => {

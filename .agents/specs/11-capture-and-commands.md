@@ -9,8 +9,8 @@ Status legend in [`_specs.md`](_specs.md#e2e-coverage).
 
 | Scenario | Status | Notes |
 |---|---|---|
-| Create an issue | ✅ | [`11-capture-and-commands.spec.ts`](../../tests/e2e/11-capture-and-commands.spec.ts): `C`, defaults, quoted title, toast, panel, live feed; file shape also in `tests/create.test.ts` |
-| Create a project | ✅ | `11-capture-and-commands.spec.ts`: rail "+", PRD tab, files |
+| Create an issue | ✅ | [`11-capture-and-commands.spec.ts`](../../tests/e2e/11-capture-and-commands.spec.ts): `C`, defaults, quoted title, toast, panel, live feed; file shape and umlauts in the slug also in `tests/create.test.ts` |
+| Create a project | ✅ | `11-capture-and-commands.spec.ts`: rail "+", PRD tab, files; umlauts in the slug in `tests/create.test.ts` |
 | Jump anywhere with ⌘K | ✅ | `11-capture-and-commands.spec.ts`: empty state, issue by number, an action; ranking in `tests/commands.test.ts` |
 | Act on the selected issue with ⌘K | 🟡 | `11-capture-and-commands.spec.ts`: group first, move status. Wontfix via ⌘K in `04-changing-issues.spec.ts` |
 | Copy an agent prompt | 🟡 | `11-capture-and-commands.spec.ts`: panel and pane; card hover not asserted. All prompt variants in `tests/prompts.test.ts` |
@@ -32,6 +32,8 @@ AND a "Created #NNNN" toast shows, the issue appears without a reload and
     opens in the panel
 AND titles YAML would misread (e.g. with ": ") are quoted so they read back
     intact
+AND the file name stays readable (slug, § 0): "Größe der Übersicht ändern"
+    becomes NNNN-groesse-der-uebersicht-aendern.md
 ```
 
 ### Scenario: Create a project
@@ -42,6 +44,8 @@ WHEN I click its "+" (or choose "New project" in ⌘K) and enter a title
 THEN <root>/projects/NN-<slug>/ gets prd.md and wip.md from the templates,
     dated today, with a kickoff activity-log entry and a current focus that
     says to write the PRD
+AND the folder name stays readable (slug, § 0): "Größe der Übersicht ändern"
+    becomes NN-groesse-der-uebersicht-aendern
 AND the project opens on its PRD tab
 ```
 
