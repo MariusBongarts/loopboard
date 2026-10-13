@@ -13,6 +13,9 @@ must apply are numbered in [MIGRATIONS.md](MIGRATIONS.md).
   linked with `npm link` says to run `pnpm build` when it isn't built.
 - One server for every repo: a workspace switcher in the top-left, workspaces
   remembered in `~/.config/loopboard`, folder suggestions when adding one.
+- `loopboard workspaces` lists the registered workspaces (`--json` for
+  agents); `workspaces forget <id>…` removes entries without a running board
+  and never touches a repo's files.
 - Live updates: the board follows file changes as agents work.
 
 ### Set up and upgrade

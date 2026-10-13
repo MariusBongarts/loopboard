@@ -2,8 +2,8 @@
 id: 0099
 title: List and forget registered workspaces from the CLI
 category: task
-status: todo
-assignee: agent
+status: in-review
+assignee: human
 labels: [cli, workspaces]
 created: 2026-10-13
 ---
@@ -27,10 +27,10 @@ identity migration asks a harness which id it is registered under (#0103).
 
 ## Acceptance criteria
 
-- [ ] `loopboard workspaces` lists every registered workspace with id, name, path and whether its folder exists; `--json` prints the same as data
-- [ ] `loopboard workspaces forget <id>…` removes those entries, prints what it removed and never touches a harness's files; an unknown id exits 1 and changes nothing
-- [ ] Both work without a running board and without git, from any folder; a running board shows the change on its next load
-- [ ] `--help`, the README's CLI table and spec § 7 describe the command; tests use their own config directory
+- [x] `loopboard workspaces` lists every registered workspace with id, name, path and whether its folder exists; `--json` prints the same as data
+- [x] `loopboard workspaces forget <id>…` removes those entries, prints what it removed and never touches a harness's files; an unknown id exits 1 and changes nothing
+- [x] Both work without a running board and without git, from any folder; a running board shows the change on its next load
+- [x] `--help`, the README's CLI table and spec § 7 describe the command; tests use their own config directory
 
 ## Out of scope
 
@@ -45,6 +45,9 @@ maintainer's call.
 
 - [ ] Run `loopboard workspaces`, decide which entries to forget, and forget them
 
+Until the CLI is on the PATH (#0076), run it from a clone: `pnpm build`, then
+`node bin/loopboard.js workspaces`.
+
 ## Notes
 
 - Split from #0076 in the review round. Together the two are the first step
@@ -54,3 +57,8 @@ maintainer's call.
   command is a second caller of the same code.
 - Forgetting a workspace leaves its saved views behind in the config
   directory; say so in the output rather than deleting them silently.
+- Built: the listed path is the root, as in "Manage workspaces" — a moved
+  root and its new twin share one repo path. `--json` is a list of
+  `{ id, name, path, exists }`. `forget` is all or nothing: one unknown id
+  and no entry goes. The saved-views line appears only for a workspace that
+  has a views file.

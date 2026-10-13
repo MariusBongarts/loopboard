@@ -5,7 +5,7 @@ import { copyFileSync, existsSync, lstatSync, readFileSync, readdirSync, rmSync,
 import { join } from 'node:path';
 import { git, loopboard, repo, sandbox, serve } from './cli';
 
-// Specs § 1, § 8 and § 10 — the real `loopboard` binary, end to end.
+// Specs § 1, § 7, § 8 and § 10 — the real `loopboard` binary, end to end.
 let box: { dir: string; config: string };
 test.beforeEach(() => {
   box = sandbox();
@@ -108,6 +108,74 @@ test.describe('§ 1 running loopboard', () => {
     // A flag with a value never takes a positional's place.
     expect(loopboard(['renumber', '0001', '--path', '../app'], plain, box.config).stdout).toContain('moved issues/0001-first.md → issues/0002-first.md');
     expect(loopboard(['renumber', '0002', '--path'], plain, box.config).stderr).toBe('Flag --path needs a value.\n');
+  });
+});
+
+test.describe('§ 7 workspaces from the terminal', () => {
+  // Registers repos as a user does: the first starts a board, the rest join it.
+  async function board(...repos: string[]) {
+    const server = await serve(['--port', '0'], repos[0], box.config);
+    for (const r of repos.slice(1)) expect(loopboard(['--no-open'], r, box.config).status).toBe(0);
+    return server;
+  }
+
+  test('list workspaces from the terminal', async () => {
+    const beta = repo(box.dir, 'beta', 'ai');
+    const server = await board(repo(box.dir, 'alpha'), beta);
+    const stopped = new Promise((r) => server.proc.once('exit', r));
+    server.proc.kill();
+    await stopped;
+    rmSync(beta, { recursive: true });
+
+    // box.dir has no root and no git, and no board is running any more.
+    const list = loopboard(['workspaces'], box.dir, box.config);
+    expect(list.status).toBe(0);
+    expect(list.stdout).toMatch(/^ID\s+NAME\s+FOLDER\s+PATH$/m);
+    expect(list.stdout).toMatch(/^alpha\s+alpha\s+exists\s+.*alpha[\\/]\.agents$/m);
+    expect(list.stdout).toMatch(/^beta\s+beta\s+missing\s+.*beta[\\/]ai$/m);
+
+    const data = loopboard(['workspaces', '--json'], box.dir, box.config);
+    expect(JSON.parse(data.stdout)).toEqual([
+      { id: 'alpha', name: 'alpha', path: expect.stringMatching(/alpha[\\/]\.agents$/), exists: true },
+      { id: 'beta', name: 'beta', path: expect.stringMatching(/beta[\\/]ai$/), exists: false },
+    ]);
+
+    expect(loopboard(['workspaces'], box.dir, join(box.dir, 'empty-config')).stdout).toContain('No workspaces registered');
+  });
+
+  test('forget workspaces from the terminal', async ({ page }) => {
+    const beta = repo(box.dir, 'beta');
+    const server = await board(repo(box.dir, 'alpha'), beta);
+    const menu = async () => {
+      await page.locator('.ws-current').click();
+      return page.getByRole('menuitemradio');
+    };
+    try {
+      await page.goto(server.url);
+      await expect(await menu()).toHaveText([/alpha/, /beta/]);
+      const views = await page.request.put(`http://127.0.0.1:${server.port}/api/w/beta/views`, {
+        data: { views: [{ id: 'v1', name: 'Mine', query: {} }] },
+      });
+      expect(views.status()).toBe(200);
+
+      const unknown = loopboard(['workspaces', 'forget', 'beta', 'nope'], box.dir, box.config);
+      expect(unknown.status).toBe(1);
+      expect(unknown.stderr).toContain('unknown workspace: nope — nothing was forgotten');
+      expect(loopboard(['workspaces', '--json'], box.dir, box.config).stdout).toContain('"id": "beta"');
+
+      const forgot = loopboard(['workspaces', 'forget', 'beta'], box.dir, box.config);
+      expect(forgot.status).toBe(0);
+      expect(forgot.stdout).toMatch(/^forgot beta  \(.*beta[\\/]\.agents\)$/m);
+      expect(forgot.stdout).toContain(`saved views stay in ${join(box.config, 'views', 'beta.json')}`);
+      expect(forgot.stdout).toContain('no file in a harness was touched');
+      expect(existsSync(join(box.config, 'views', 'beta.json'))).toBe(true);
+      expect(readFileSync(join(beta, '.agents/issues/0001-first.md'), 'utf8')).toContain('title: First');
+
+      await page.reload();
+      await expect(await menu()).toHaveText([/alpha/]);
+    } finally {
+      server.proc.kill();
+    }
   });
 });
 

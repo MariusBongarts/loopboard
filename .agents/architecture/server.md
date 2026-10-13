@@ -42,7 +42,7 @@ logged.
 |---|---|
 | [handler.ts](../../server/handler.ts) | Route table, JSON helpers, workspace lookup, the security guard on every request |
 | [security.ts](../../server/security.ts) | Loopback-only `Host`, same-origin writes ([ADR-0001](decisions/0001-npx-cli-with-a-local-server.md)) |
-| [workspaces.ts](../../server/workspaces.ts) | Root detection (`.agents` → `ai` → the path itself), the registry file, rename/remove, availability ([ADR-0002](decisions/0002-workspace-registry-in-user-config.md), [ADR-0003](decisions/0003-dot-agents-root-with-detection.md)) |
+| [workspaces.ts](../../server/workspaces.ts) | Root detection (`.agents` → `ai` → the path itself), the registry file, rename/remove, availability ([ADR-0002](decisions/0002-workspace-registry-in-user-config.md), [ADR-0003](decisions/0003-dot-agents-root-with-detection.md)). `loopboard workspaces` lists and forgets through the same functions as the API, reading and writing the file itself — no server involved (#0099) |
 | [paths.ts](../../server/paths.ts) | Package root (source and build output), version, per-user config dir |
 | [cli.ts](../../server/cli.ts) | `loopboard [path]`: start, or hand the repo to a running server found via `server.json`; a command table later slices extend — each entry declares its usage line and its flags |
 | [args.ts](../../server/args.ts) | Splits arguments into positionals, switches and values against a command's declared flags; an unknown flag or a missing value is a `UsageError`, raised before the command runs |

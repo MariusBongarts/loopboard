@@ -129,15 +129,24 @@ export async function renameWorkspace(configDir: string, id: string, name: strin
   });
 }
 
-// Forgets a workspace; never touches its files.
-export async function removeWorkspace(configDir: string, id: string): Promise<boolean> {
+// Forgets workspaces; never touches their files. All or nothing: one unknown
+// id leaves the registry as it was (#0099).
+export async function removeWorkspaces(
+  configDir: string,
+  ids: string[]
+): Promise<{ removed: Workspace[]; unknown: string[] }> {
   return updateRegistry(configDir, (registry) => {
-    const next = registry.workspaces.filter((w) => w.id !== id);
-    if (next.length === registry.workspaces.length) return false;
-    registry.workspaces = next;
-    if (registry.lastUsed === id) registry.lastUsed = next[0]?.id;
-    return true;
+    const unknown = ids.filter((id) => !registry.workspaces.some((w) => w.id === id));
+    if (unknown.length) return { removed: [], unknown };
+    const removed = registry.workspaces.filter((w) => ids.includes(w.id));
+    registry.workspaces = registry.workspaces.filter((w) => !ids.includes(w.id));
+    if (removed.some((w) => w.id === registry.lastUsed)) registry.lastUsed = registry.workspaces[0]?.id;
+    return { removed, unknown: [] };
   });
+}
+
+export async function removeWorkspace(configDir: string, id: string): Promise<boolean> {
+  return (await removeWorkspaces(configDir, [id])).removed.length > 0;
 }
 
 export async function setLastUsed(configDir: string, id: string): Promise<void> {
