@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { existsSync } from 'node:fs';
-import { cp, lstat, mkdir, mkdtemp, readFile, readdir, realpath, rm, writeFile } from 'node:fs/promises';
+import { chmod, cp, lstat, mkdir, mkdtemp, readFile, readdir, realpath, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join, relative, resolve } from 'node:path';
 import { parseFrontmatter } from '../server/frontmatter';
-import { ID_RULE, idProblem, RESERVED_IDS } from '../server/identity';
+import { ID_RULE, idProblem, readIdentity, RESERVED_IDS } from '../server/identity';
 import { applyPlan, planInit, refreshBlock, renderBlock, type Action } from '../server/init';
 import { latestMigration } from '../server/migrations';
 import { registerWorkspace } from '../server/workspaces';
@@ -77,6 +77,7 @@ describe('loopboard init', () => {
     expect(await read('CLAUDE.md')).toBe('@AGENTS.md\n');
     expect((await lstat(join(repo, '.claude/skills/implement'))).isSymbolicLink()).toBe(true);
     expect(await read('.claude/skills/implement/SKILL.md')).toContain('# Implement');
+    expect(JSON.parse(await read('.agents/.loopboard/manifest.json')).scaffold).toBe('code');
     await expect(lstat(join(repo, '.cursor'))).rejects.toThrow();
   });
 
@@ -134,6 +135,18 @@ describe('loopboard init --upgrade', () => {
     }
   });
 
+  // #0078: with nothing to upgrade, --upgrade is a first run.
+  it('sets up an empty folder at the latest level, and a hand-made harness at none', async () => {
+    const actions = await init({ upgrade: true });
+    expect(await read('AGENTS.md')).toContain(`<!-- loopboard:migration ${latestMigration(PKG)} -->`);
+    expect(paths(actions, 'create')).toContain('.agents/SETUP.md');
+
+    await rm(repo, { recursive: true, force: true });
+    await mkdir(join(repo, '.agents', 'issues'), { recursive: true });
+    await init({ upgrade: true });
+    expect(await read('AGENTS.md')).toContain('<!-- loopboard:migration M000 -->');
+  });
+
   it('refreshes the block text but keeps the harness level', () => {
     const agents = '# A\n\n<!-- loopboard:start -->\n<!-- loopboard:migration M001 -->\nold\n<!-- loopboard:end -->\n\nTail\n';
     const next = refreshBlock(agents, renderBlock(PKG, 'M009'));
@@ -159,6 +172,9 @@ describe('loopboard init --kind docs', () => {
     'AGENTS.md',
     'CLAUDE.md',
   ];
+  const NAMES = ['2026', '2026-10-13', 'true', 'Yes', 'off', '- list', '? key', ' padded ', 'Büro Unterlagen', 'line\nbreak', '"quoted" \\ slash', "it's"];
+  // Not as root, and not where a mode bit doesn't lock a file.
+  const locks = process.platform !== 'win32' && process.getuid?.() !== 0;
   let base: string;
   let config: string;
 
@@ -194,9 +210,9 @@ describe('loopboard init --kind docs', () => {
       expect(existsSync(join(repo, absent)), absent).toBe(false);
     }
     expect(await read('CLAUDE.md')).toBe('@AGENTS.md\n');
-    expect(Object.keys(JSON.parse(await read('.agents/.loopboard/manifest.json')).files).sort()).toEqual(
-      DOCS_FILES.filter((f) => /README|_templates/.test(f)),
-    );
+    const manifest = JSON.parse(await read('.agents/.loopboard/manifest.json'));
+    expect(manifest.scaffold).toBe('docs');
+    expect(Object.keys(manifest.files).sort()).toEqual(DOCS_FILES.filter((f) => /README|_templates/.test(f)));
   });
 
   it('writes the identity file with the folder\'s slug and name', async () => {
@@ -238,14 +254,24 @@ describe('loopboard init --kind docs', () => {
   });
 
   it('keeps any name readable as the text it is', async () => {
-    const names = ['2026', '2026-10-13', 'true', '- list', '? key', ' padded ', 'Büro Unterlagen', 'line\nbreak', '"quoted" \\ slash', "it's"];
-    for (const [i, name] of names.entries()) {
+    for (const [i, name] of NAMES.entries()) {
       await folder(`folder-${i}`);
       await docs({ name });
       expect(parseFrontmatter(await read('.agents/harness.md')).data.name, name).toBe(name);
     }
     // Quoted only where YAML needs it.
-    expect(await readFile(join(base, 'folder-6', '.agents/harness.md'), 'utf8')).toContain('\nname: Büro Unterlagen\n');
+    expect(await readFile(join(base, `folder-${NAMES.indexOf('Büro Unterlagen')}`, '.agents/harness.md'), 'utf8')).toContain('\nname: Büro Unterlagen\n');
+  });
+
+  // The reader takes back what the writer wrote: a ` #` inside quotes is text.
+  it('reads every name back, and takes the same --name on a second run', async () => {
+    for (const [i, name] of [...NAMES, 'Taxes #2026', 'Taxes: 2026 #1', 'x: y #z', 'a #b', "it's #1"].entries()) {
+      await folder(`again-${i}`);
+      await docs({ name });
+      expect(readIdentity(repo)?.name, name).toBe(name);
+      const again = await planInit({ repoPath: repo, packageRoot: PKG, kind: 'docs', name });
+      expect(again.filter((a) => !['same', 'keep'].includes(a.kind)), name).toEqual([]);
+    }
   });
 
   it('works in a folder whose name has spaces and umlauts', async () => {
@@ -307,6 +333,17 @@ describe('loopboard init --kind docs', () => {
     expect(await read('.agents/harness.md')).toContain('\nid: taxes-2\nname: taxes\n');
   });
 
+  it.skipIf(process.platform === 'win32')('knows its own registry entry through a symlinked path', async () => {
+    const real = await folder('real/taxes');
+    await mkdir(join(real, '.agents', 'issues'), { recursive: true });
+    await symlink(join(base, 'real'), join(base, 'cloud'));
+    expect(await registerWorkspace(config, join(base, 'cloud', 'taxes'))).toMatchObject({ id: 'taxes', repoPath: join(base, 'cloud', 'taxes') });
+
+    await docs();
+
+    expect(await read('.agents/harness.md')).toContain('\nid: taxes\nname: taxes\n');
+  });
+
   it('asks for --id when the id or an alias belongs to a workspace at another path', async () => {
     const other = await folder('a/taxes');
     await docs({ id: 'tax' });
@@ -326,6 +363,21 @@ describe('loopboard init --kind docs', () => {
     expect(await read('.agents/harness.md')).toContain('\nid: taxes-private\n');
   });
 
+  it('reads aliases written one per line', async () => {
+    const other = await folder('a/company');
+    await docs();
+    await writeFile(join(other, '.agents', 'harness.md'), (await read('.agents/harness.md')).replace('parent: null', 'parent: null\naliases:\n  - co\n  - "firm"  # short'));
+    await registerWorkspace(config, other);
+    await folder('b/office');
+
+    expect(readIdentity(other)?.aliases).toEqual(['co', 'firm']);
+    for (const id of ['co', 'firm']) {
+      await expect(planInit({ repoPath: repo, packageRoot: PKG, kind: 'docs', configDir: config, id }), id).rejects.toThrow(
+        `The id "${id}" already belongs to the workspace at ${other} — `,
+      );
+    }
+  });
+
   it('asks for --id when the folder is registered as `workspace`', async () => {
     await folder('!!!');
     await mkdir(join(repo, '.agents', 'issues'), { recursive: true });
@@ -333,6 +385,15 @@ describe('loopboard init --kind docs', () => {
 
     await expect(planInit({ repoPath: repo, packageRoot: PKG, kind: 'docs', configDir: config })).rejects.toThrow(
       /^"workspace", this folder's workspace id, is a reserved word — pass --id with /,
+    );
+    expect(await tree(repo)).toEqual([]);
+
+    // The second such folder is `workspace-2`, which fits the pattern.
+    await folder('other/???');
+    await mkdir(join(repo, '.agents', 'issues'), { recursive: true });
+    expect((await registerWorkspace(config, repo)).id).toBe('workspace-2');
+    await expect(planInit({ repoPath: repo, packageRoot: PKG, kind: 'docs', configDir: config })).rejects.toThrow(
+      /^"workspace-2", this folder's workspace id, stands in for a folder name that leaves no id — pass --id with /,
     );
     expect(await tree(repo)).toEqual([]);
   });
@@ -366,11 +427,170 @@ describe('loopboard init --kind docs', () => {
     );
   });
 
+  it('says so when an identity file from before has no usable id or parent', async () => {
+    await docs();
+    const text = await read('.agents/harness.md');
+    const cases = [
+      [text.replace('id: paperwork\n', ''), '.agents/harness.md has no id — an id is lowercase letters'],
+      [text.replace('id: paperwork', 'id: 2026'), '.agents/harness.md has the id "2026", which starts with a digit — an id is lowercase letters'],
+      [text.replace('parent: null', 'parent: Home'), '.agents/harness.md has the parent "Home", which doesn\'t fit the pattern — a parent is another harness\'s id or null; edit the file.'],
+    ];
+    for (const [content, message] of cases) {
+      await writeFile(join(repo, '.agents/harness.md'), content);
+      for (const opts of [{}, { id: 'paperwork' }, { upgrade: true }]) {
+        await expect(planInit({ repoPath: repo, packageRoot: PKG, ...opts }), message).rejects.toThrow(message);
+      }
+    }
+  });
+
+  // The manifest remembers the scaffold, so the kind doesn't hang on one line.
+  it('stays a docs harness when the identity file is damaged', async () => {
+    const damage: Record<string, (text: string) => string> = {
+      bom: (text) => `\uFEFF${text}`,
+      'blank-line': (text) => `\n${text}`,
+      'no-type': (text) => text.replace('type: docs\n', ''),
+      'other-case': (text) => text.replace('type: docs', 'type: Docs'),
+    };
+    for (const [what, change] of Object.entries(damage)) {
+      await folder(what);
+      await docs();
+      await writeFile(join(repo, '.agents/harness.md'), change(await read('.agents/harness.md')));
+
+      for (const upgrade of [false, true]) {
+        const again = await init({ upgrade, configDir: config });
+        expect(again.filter((a) => !['same', 'keep'].includes(a.kind)), what).toEqual([]);
+      }
+      expect(await tree(repo), what).toEqual(DOCS_FILES);
+      await expect(planInit({ repoPath: repo, packageRoot: PKG, kind: 'code' }), what).rejects.toThrow('This folder already holds a docs harness, ');
+    }
+    const manifest = JSON.parse(await read('.agents/.loopboard/manifest.json'));
+    expect(manifest.scaffold).toBe('docs');
+
+    // A manifest from before the field: files, and no skill among them.
+    await writeFile(join(repo, '.agents/.loopboard/manifest.json'), JSON.stringify({ version: manifest.version, files: manifest.files }));
+    await rm(join(repo, '.agents/harness.md'));
+    await expect(planInit({ repoPath: repo, packageRoot: PKG })).rejects.toThrow('This docs harness has lost .agents/harness.md');
+  });
+
+  it('writes a lost identity file again, and only with --kind docs', async () => {
+    await docs({ id: 'papers' });
+    await rm(join(repo, '.agents/harness.md'));
+    const before = await tree(repo);
+
+    for (const opts of [{}, { upgrade: true }, { upgrade: true, force: true }]) {
+      await expect(planInit({ repoPath: repo, packageRoot: PKG, configDir: config, ...opts })).rejects.toThrow(
+        "This docs harness has lost .agents/harness.md — run `loopboard init --kind docs` to write it again, with --id if its id was not the folder's; nothing was written.",
+      );
+    }
+    await expect(planInit({ repoPath: repo, packageRoot: PKG, kind: 'code' })).rejects.toThrow('This folder already holds a docs harness, ');
+    expect(await tree(repo)).toEqual(before);
+
+    const actions = await docs({ id: 'papers', upgrade: true });
+    expect(paths(actions, 'create')).toEqual(['.agents/harness.md']);
+    expect(await read('.agents/harness.md')).toContain('\nid: papers\n');
+    expect(await tree(repo)).toEqual(DOCS_FILES);
+  });
+
+  it.skipIf(!locks)('stops every run on an identity file it cannot read', async () => {
+    await docs();
+    await chmod(join(repo, '.agents/harness.md'), 0o000);
+    for (const opts of [{}, { kind: 'docs' }, { kind: 'code' }, { upgrade: true }]) {
+      await expect(planInit({ repoPath: repo, packageRoot: PKG, ...opts })).rejects.toThrow(".agents/harness.md can't be read — nothing was written.");
+    }
+  });
+
+  it('leaves an index node alone', async () => {
+    await mkdir(join(repo, '.agents'));
+    await writeFile(join(repo, '.agents/harness.md'), '---\nschema: 1\nid: home\nname: Home\nkind: index\nparent: null\ncreated: 2026-10-13\n---\n');
+    for (const opts of [{}, { kind: 'docs' }, { kind: 'code' }, { upgrade: true }]) {
+      await expect(planInit({ repoPath: repo, packageRoot: PKG, ...opts })).rejects.toThrow(
+        '.agents/harness.md says "kind: index", and init can\'t set up an index node yet — nothing was written.',
+      );
+    }
+    expect(await tree(repo)).toEqual(['.agents/harness.md']);
+  });
+
+  it('knows a code harness by any of its folders, and says what it found', async () => {
+    for (const mark of ['.agents/skills', '.agents/specs', '.agents/rules', '.agents/design']) {
+      await folder(`code-${basename(mark)}`);
+      await mkdir(join(repo, mark), { recursive: true });
+      await expect(planInit({ repoPath: repo, packageRoot: PKG, kind: 'docs' }), mark).rejects.toThrow(
+        `This folder already holds a code harness (it has ${mark}), and --kind docs would mix the two — nothing was written.`,
+      );
+    }
+    await folder('block-only');
+    await writeFile(join(repo, 'AGENTS.md'), renderBlock(PKG, 'M001'));
+    await expect(planInit({ repoPath: repo, packageRoot: PKG, kind: 'docs' })).rejects.toThrow(
+      'This folder already holds a code harness (AGENTS.md has the loopboard block, and no identity file says otherwise), and --kind docs would mix the two — nothing was written.',
+    );
+  });
+
+  // A magazine's back issues are no harness; issue files are (ADR-0003).
+  it('takes a folder with an issues/ folder of its own, unless issue files are in it', async () => {
+    await mkdir(join(repo, 'issues'));
+    await writeFile(join(repo, 'issues', '2024-03.pdf'), '');
+    await expect(planInit({ repoPath: repo, packageRoot: PKG })).rejects.toThrow(/lives in \.\/, not \.agents\//);
+    await docs();
+    expect(await tree(repo)).toEqual([...DOCS_FILES, 'issues/2024-03.pdf']);
+    expect((await init({ configDir: config })).filter((a) => !['same', 'keep'].includes(a.kind))).toEqual([]);
+
+    await folder('legacy');
+    await mkdir(join(repo, 'issues'));
+    await writeFile(join(repo, 'issues', '0001-first.md'), '---\nid: 0001\ntitle: First\n---\n');
+    await expect(planInit({ repoPath: repo, packageRoot: PKG, kind: 'docs' })).rejects.toThrow(/upgrade my loopboard harness/);
+  });
+
+  it('treats --upgrade as a first run where there is nothing to upgrade', async () => {
+    await docs({ upgrade: true });
+
+    expect(await read('AGENTS.md')).toContain(`<!-- loopboard:migration ${latestMigration(PKG)} -->`);
+    expect(await tree(repo)).toEqual(DOCS_FILES);
+  });
+
+  // Every target is asked before the first write.
+  it('writes nothing when one file of the plan cannot be written', async () => {
+    await mkdir(join(repo, 'AGENTS.md'));
+    const plan = await planInit({ repoPath: repo, packageRoot: PKG, kind: 'docs' });
+    await expect(applyPlan(repo, plan, '0.0.0-test')).rejects.toThrow('AGENTS.md is a folder where init writes a file — nothing was written.');
+    expect(await tree(repo)).toEqual([]);
+  });
+
+  it('says where it stopped when a write fails after the check', async () => {
+    // A plan no run makes: its second file needs the first one as a folder.
+    const plan: Action[] = [
+      { path: 'notes', kind: 'create', content: '' },
+      { path: 'notes/first.md', kind: 'create', content: '' },
+    ];
+    await expect(applyPlan(repo, plan, '0.0.0-test')).rejects.toThrow(
+      /^init stopped at notes(\/first\.md)? \(E[A-Z]+\) with some files written — fix that and run it again: it only fills the gaps\.$/,
+    );
+  });
+
+  it.skipIf(!locks)('writes nothing into a folder or a file that is read-only', async () => {
+    await writeFile(join(repo, 'AGENTS.md'), '# Mine\n');
+    await chmod(join(repo, 'AGENTS.md'), 0o444);
+    const plan = await planInit({ repoPath: repo, packageRoot: PKG, kind: 'docs' });
+    await expect(applyPlan(repo, plan, '0.0.0-test')).rejects.toThrow("AGENTS.md can't be written to — nothing was written.");
+    expect(await tree(repo)).toEqual(['AGENTS.md']);
+
+    await folder('locked');
+    await mkdir(join(repo, '.agents', 'issues'), { recursive: true });
+    await chmod(join(repo, '.agents', 'issues'), 0o555);
+    try {
+      await expect(applyPlan(repo, await planInit({ repoPath: repo, packageRoot: PKG, kind: 'docs' }), '0.0.0-test')).rejects.toThrow(
+        ".agents/issues can't be written to — nothing was written.",
+      );
+      expect(await tree(repo)).toEqual([]);
+    } finally {
+      await chmod(join(repo, '.agents', 'issues'), 0o755);
+    }
+  });
+
   it('does not mix with a code harness, in either direction', async () => {
     await init();
     const code = await tree(repo);
     await expect(planInit({ repoPath: repo, packageRoot: PKG, kind: 'docs' })).rejects.toThrow(
-      'This folder already holds a code harness (no "type: docs" in .agents/harness.md), and --kind docs would mix the two — nothing was written.',
+      'This folder already holds a code harness (it has .agents/skills), and --kind docs would mix the two — nothing was written.',
     );
     expect(await tree(repo)).toEqual(code);
 
@@ -388,7 +608,8 @@ describe('loopboard init --kind docs', () => {
     // `code` is the default and stays what it was.
     expect(await plan({ kind: 'code' })).toEqual(await plan({}));
     expect(paths(await plan({}), 'create')).not.toContain('.agents/harness.md');
-    await expect(plan({ kind: 'index' })).rejects.toThrow('--kind takes code or docs, not "index".');
+    await expect(plan({ kind: 'index' })).rejects.toThrow('--kind takes code or docs, not "index" — index nodes aren\'t built yet.');
+    await expect(plan({ kind: 'Docs' })).rejects.toThrow('--kind takes code or docs, not "Docs".');
     await expect(plan({ kind: 'docs', withExtras: true })).rejects.toThrow('--with-extras adds skills, and a docs harness has none — leave it out.');
     for (const flag of [{ id: 'app' }, { name: 'App' }, { parent: 'home' }]) {
       await expect(plan(flag)).rejects.toThrow('--id, --name and --parent go into the identity file, which init writes with --kind docs only.');
@@ -468,6 +689,8 @@ describe('loopboard init --kind docs', () => {
     const shipped = section(await readFile(join(PKG, '.agents/issues/README.md'), 'utf8'));
 
     expect(shipped).toContain('| `<id>:<path>` |');
+    // Where no ADR is at hand, the README is the only place the id rule is written.
+    for (const word of RESERVED_IDS) expect(shipped, word).toContain(`\`${word}\``);
     expect(section(await readFile(join(PKG, 'scaffold/docs/issues/README.md'), 'utf8'))).toBe(shipped);
   });
 

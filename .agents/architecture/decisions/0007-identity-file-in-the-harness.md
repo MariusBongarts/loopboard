@@ -1,6 +1,6 @@
 # A harness carries its identity in `.agents/harness.md`
 
-- **Status**: accepted, except the two points under "Still assumed" (#0101, questions 5 and 6) — `init --kind docs` writes the file (#0078); not built yet: #0079, #0080, #0103
+- **Status**: accepted, except the two points under "Still assumed" (#0101, questions 5 and 6) — `init --kind docs` writes the file and `init` reads it (#0078); not built yet: #0079, #0080, #0103, #0104
 - **Date**: 2026-10-13
 
 A workspace's id and name live only in the per-user registry
@@ -21,12 +21,13 @@ which becomes a map from id to path and remembers the last values it read.
 | `kind` | `harness` (has a board) or `index` (groups other nodes, has no `issues/`) |
 | `parent` | the id of another node, or `null` for a top node |
 | `created` | `YYYY-MM-DD` |
-| `aliases` | optional; a list of short ids that resolve like `id` |
-| `type` | optional; `code` or `docs` |
+| `aliases` | optional; a list of short ids that resolve like `id` — on one line (`[co, firm]`) or one `- co` per line |
+| `type` | optional; `code` or `docs`, in any case. Without it a harness is a code harness |
 | `objects` | optional; the path of an objects folder, relative to the node's folder |
 
 Any other field is kept and ignored. `id`, `parent` and `aliases` are read
-from the raw line, not through YAML, so a value keeps the text it has.
+from the raw line, not through YAML, so a value keeps the text it has. A
+byte order mark or blank lines before the frontmatter don't hide the file.
 
 The file always sits at `.agents/harness.md` in the node's folder — also in
 a legacy harness whose issues live under `ai/`, and in an index node, which
@@ -86,5 +87,13 @@ below until the maintainer decides otherwise.
   a move; `init` and one migration (#0103) write it, so nobody keeps it by
   hand.
 - A harness without the file behaves as before: its id is its folder's slug.
-- Today's code ignores the file, so one written by hand is valid before
-  loopboard reads it.
+- `init` reads the file since #0078, the board and the registry don't yet
+  (#0079). `init` takes `type` from it to keep a docs harness a docs
+  harness, checks `id` and `parent` against ADR-0008 and never writes into
+  a file that exists; where it says `kind: index`, `init` stops until #0104.
+  So a file written by hand has to hold a valid `id` already.
+- The kind must not hang on one line of one file: `init` also records the
+  scaffold in `.agents/.loopboard/manifest.json`. A docs harness whose file
+  lost its `type` line stays a docs harness, and one whose file is gone is
+  told to run `init --kind docs`, which writes it again — with the folder's
+  slug unless `--id` names the id it had.

@@ -1,12 +1,13 @@
 import { createHash } from "node:crypto";
-import { cpSync, existsSync, readFileSync, readdirSync, statSync, symlinkSync } from "node:fs";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { accessSync, constants, cpSync, existsSync, readFileSync, readdirSync, statSync, symlinkSync } from "node:fs";
+import { mkdir, writeFile } from "node:fs/promises";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import { printable, quoted } from "../shared/printable";
 import { todayIso } from "./files";
-import { ID_RULE, IDENTITY_FILE, idProblem, readIdentity, renderIdentity } from "./identity";
+import { ID_RULE, IDENTITY_FILE, idProblem, readIdentity, renderIdentity, type IdentityLines } from "./identity";
 import { latestMigration, MIGRATION_RE } from "./migrations";
-import { detectRoot, loadRegistry, sameRoot, slugify, type Workspace } from "./workspaces";
+import { matchName } from "./names";
+import { detectRoot, loadRegistry, samePath, slugify, type Workspace } from "./workspaces";
 
 // `loopboard init` / `init --upgrade` (#0011, #0012). Everything is planned
 // first, so --dry-run and tests see exactly what a real run would do.
@@ -161,14 +162,6 @@ function docsSeeds(opts: InitOptions): Shipped[] {
   ];
 }
 
-async function readManifest(repo: string): Promise<Record<string, string>> {
-  try {
-    return (JSON.parse(await readFile(join(repo, MANIFEST), "utf8")) as { files?: Record<string, string> }).files ?? {};
-  } catch {
-    return {};
-  }
-}
-
 function readLocal(repo: string, path: string): string | null {
   try {
     return readFileSync(join(repo, path), "utf8");
@@ -177,27 +170,89 @@ function readLocal(repo: string, path: string): string | null {
   }
 }
 
-// What the folder holds already. The identity file says it; a harness
-// without one is a code harness (ADR-0007).
-function existingScaffold(repo: string): Scaffold | null {
+// Hashes of the shipped files as init wrote them, and the scaffold they
+// came from (#0078).
+interface Manifest {
+  scaffold?: string;
+  files?: Record<string, string>;
+}
+
+function readManifest(repo: string): Manifest {
+  try {
+    return (JSON.parse(readLocal(repo, MANIFEST) ?? "{}") ?? {}) as Manifest;
+  } catch {
+    return {};
+  }
+}
+
+// The scaffold a manifest stands for. One written before the field existed
+// is a docs manifest when it lists files and no skill among them.
+function manifestScaffold(repo: string): string | undefined {
+  const { scaffold, files = {} } = readManifest(repo);
+  const paths = Object.keys(files);
+  return scaffold ?? (paths.length && !paths.some((path) => path.startsWith(".agents/skills/")) ? "docs" : undefined);
+}
+
+// Only a docs plan holds the identity file, until #0103 writes one for code.
+export function planScaffold(actions: Action[]): Scaffold {
+  return actions.some((a) => a.path === IDENTITY_FILE) ? "docs" : "code";
+}
+
+const CODE_MARKS = [".agents/skills", ".agents/specs", ".agents/architecture", ".agents/rules", ".agents/design", ".agents/SETUP.md", MANIFEST];
+
+// What the folder holds already, and what says so. The identity file's
+// `type` decides; where the file is gone or names none, the manifest
+// remembers the scaffold (#0078). Without either it is a code harness
+// (ADR-0007).
+function existingHarness(repo: string): { scaffold: Scaffold; by: string } | null {
   const identity = readIdentity(repo);
-  if (identity) return identity.type === "docs" ? "docs" : "code";
-  const marks = [MANIFEST, ".agents/specs", ".agents/architecture", ".agents/SETUP.md"];
-  if (marks.some((mark) => existsSync(join(repo, mark)))) return "code";
-  return readLocal(repo, "AGENTS.md")?.includes(BLOCK_START) ? "code" : null;
+  const type = identity?.type?.toLowerCase();
+  if (type === "code") return { scaffold: "code", by: `"type: code" in ${IDENTITY_FILE}` };
+  if (type === "docs" || manifestScaffold(repo) === "docs") return { scaffold: "docs", by: "" };
+  if (identity) return { scaffold: "code", by: `no "type: docs" in ${IDENTITY_FILE}` };
+  const mark = CODE_MARKS.find((path) => existsSync(join(repo, path)));
+  if (mark) return { scaffold: "code", by: `it has ${mark}` };
+  const block = readLocal(repo, "AGENTS.md")?.includes(BLOCK_START);
+  return block ? { scaffold: "code", by: "AGENTS.md has the loopboard block, and no identity file says otherwise" } : null;
+}
+
+// A folder of documents may have an `issues/` of its own — a magazine's back
+// issues. For `--kind docs` that is a harness only with an issue file in it.
+function issueRoot(opts: InitOptions): string | null {
+  const found = detectRoot(opts.repoPath);
+  if (!found) return null;
+  if (found.root !== found.repoPath || opts.kind !== "docs") return found.root;
+  try {
+    return readdirSync(join(found.root, "issues")).some((file) => matchName("issue", file)?.valid) ? found.root : null;
+  } catch {
+    return found.root;
+  }
+}
+
+// Nothing here yet: `--upgrade` is then a first run like any other (#0078).
+export function isNewHarness(opts: InitOptions): boolean {
+  return !issueRoot(opts) && !existingHarness(opts.repoPath);
 }
 
 // `--kind` picks the scaffold for a new harness; an existing one keeps the
 // kind it has, with or without the flag (#0078).
 function pickScaffold(opts: InitOptions): Scaffold {
+  const repo = opts.repoPath;
+  const identity = readIdentity(repo);
+  if (!identity && existsSync(join(repo, IDENTITY_FILE))) throw new InitError(`${IDENTITY_FILE} can't be read — nothing was written.`);
+  if (identity?.kind === "index") {
+    throw new InitError(`${IDENTITY_FILE} says "kind: index", and init can't set up an index node yet — nothing was written.`);
+  }
   const asked = SCAFFOLDS.find((kind) => kind === opts.kind);
-  if (opts.kind !== undefined && !asked) throw new InitError(`--kind takes code or docs, not ${quoted(opts.kind)}.`);
-  const existing = existingScaffold(opts.repoPath);
-  if (asked && existing && asked !== existing) {
-    const found = existing === "docs" ? "a docs harness" : `a code harness (no "type: docs" in ${IDENTITY_FILE})`;
+  if (opts.kind !== undefined && !asked) {
+    throw new InitError(`--kind takes code or docs, not ${quoted(opts.kind)}${opts.kind === "index" ? " — index nodes aren't built yet" : ""}.`);
+  }
+  const existing = existingHarness(repo);
+  if (asked && existing && asked !== existing.scaffold) {
+    const found = existing.scaffold === "docs" ? "a docs harness" : `a code harness (${existing.by})`;
     throw new InitError(`This folder already holds ${found}, and --kind ${asked} would mix the two — nothing was written.`);
   }
-  const scaffold = asked ?? existing ?? "code";
+  const scaffold = asked ?? existing?.scaffold ?? "code";
   if (scaffold === "code" && [opts.id, opts.name, opts.parent].some((value) => value !== undefined)) {
     throw new InitError("--id, --name and --parent go into the identity file, which init writes with --kind docs only.");
   }
@@ -219,19 +274,36 @@ function namesOf(workspace: Workspace): string[] {
 async function settleId(opts: InitOptions): Promise<string> {
   const repo = opts.repoPath;
   const registry = opts.configDir ? (await loadRegistry(opts.configDir)).workspaces : [];
-  const here = registry.find((w) => sameRoot(resolve(w.repoPath), repo));
-  const id = opts.id ?? here?.id ?? slugify(basename(repo));
+  // By the folder, not the spelling: a registered path may lead through a symlink.
+  const mine = registry.filter((w) => samePath(resolve(w.repoPath), repo));
+  const here = mine.at(0);
+  const slug = slugify(basename(repo));
+  const id = opts.id ?? here?.id ?? slug;
   if (!id) throw new InitError(`The folder name ${quoted(basename(repo))} leaves no id — pass --id with ${ID_RULE}.`);
-  const problem = idProblem(id);
+  // `workspace-2` stands in for a name without a slug as `workspace` does.
+  const problem = idProblem(id) ?? (opts.id === undefined && !slug ? "stands in for a folder name that leaves no id" : null);
   if (problem && opts.id !== undefined) throw new InitError(`--id ${quoted(id)} ${problem} — an id is ${ID_RULE}.`);
   if (problem) {
     throw new InitError(`${quoted(id)}, this folder's ${here ? "workspace id" : "slug"}, ${problem} — pass --id with ${ID_RULE}.`);
   }
-  const owner = registry.find((w) => w !== here && namesOf(w).includes(id));
+  const owner = registry.find((w) => !mine.includes(w) && namesOf(w).includes(id));
   if (owner) {
     throw new InitError(`The id ${quoted(id)} already belongs to the workspace at ${printable(owner.repoPath)} — pass --id with another one (${ID_RULE}).`);
   }
   return id;
+}
+
+// An identity file from before is checked, never repaired: `init` doesn't
+// write into it, so it says what is wrong with the id or the parent.
+function checkIdentity(existing: IdentityLines): void {
+  const id = existing.id ?? "";
+  const wrong = id === "" ? "has no id" : idProblem(id) && `has the id ${quoted(id)}, which ${idProblem(id)}`;
+  if (wrong) throw new InitError(`${IDENTITY_FILE} ${wrong} — an id is ${ID_RULE}; edit the file.`);
+  const parent = ["", "null", "~"].includes(existing.parent ?? "") ? null : (existing.parent ?? null);
+  const problem = parent === null ? null : parent === id ? "is this harness's own id" : idProblem(parent);
+  if (parent !== null && problem) {
+    throw new InitError(`${IDENTITY_FILE} has the parent ${quoted(parent)}, which ${problem} — a parent is another harness's id or null; edit the file.`);
+  }
 }
 
 // The identity file (ADR-0007): written once, never overwritten.
@@ -239,6 +311,7 @@ async function identityAction(opts: InitOptions): Promise<Action> {
   const repo = opts.repoPath;
   const existing = readIdentity(repo);
   if (existing) {
+    checkIdentity(existing);
     for (const key of ["id", "name", "parent"] as const) {
       if (opts[key] === undefined || opts[key] === existing[key]) continue;
       const how = key === "id" ? ", and an id never changes" : "; edit the file to change it";
@@ -246,7 +319,13 @@ async function identityAction(opts: InitOptions): Promise<Action> {
     }
     return { path: IDENTITY_FILE, kind: "keep" };
   }
-  if (existsSync(join(repo, IDENTITY_FILE))) throw new InitError(`${IDENTITY_FILE} can't be read — nothing was written.`);
+  // A docs harness that lost the file gets it back only when asked by name:
+  // the id it had may be another than the one settled here.
+  if (opts.kind !== "docs") {
+    throw new InitError(
+      `This docs harness has lost ${IDENTITY_FILE} — run \`loopboard init --kind docs\` to write it again, with --id if its id was not the folder's; nothing was written.`
+    );
+  }
   const id = await settleId(opts);
   const parent = opts.parent ?? null;
   const problem = parent === null ? null : parent === id ? "is this harness's own id" : idProblem(parent);
@@ -264,14 +343,15 @@ async function identityAction(opts: InitOptions): Promise<Action> {
   return { path: IDENTITY_FILE, kind: "create", content };
 }
 
-export async function planInit(opts: InitOptions): Promise<Action[]> {
+export async function planInit(asked: InitOptions): Promise<Action[]> {
+  const opts = { ...asked, upgrade: !!asked.upgrade && !isNewHarness(asked) };
   const repo = opts.repoPath;
   // Re-running init on an .agents/ harness only fills gaps; a legacy ai/
   // root needs path-aware merging, which is upgrade-harness's job.
-  const existing = detectRoot(repo);
-  if (existing && relative(repo, existing.root) !== ".agents") {
+  const root = issueRoot(opts);
+  if (root && relative(repo, root) !== ".agents") {
     throw new InitError(
-      `This repo's harness lives in ${relative(repo, existing.root) || "."}/, not .agents/. Ask your agent to "upgrade my loopboard harness" — the upgrade-harness skill adapts paths and can move the root.`
+      `This repo's harness lives in ${relative(repo, root) || "."}/, not .agents/. Ask your agent to "upgrade my loopboard harness" — the upgrade-harness skill adapts paths and can move the root.`
     );
   }
   const scaffold = pickScaffold(opts);
@@ -279,7 +359,7 @@ export async function planInit(opts: InitOptions): Promise<Action[]> {
   const installed = new Set(
     !docs && existsSync(join(repo, ".agents", "skills")) ? readdirSync(join(repo, ".agents", "skills")) : []
   );
-  const manifest = opts.upgrade ? await readManifest(repo) : {};
+  const manifest = opts.upgrade ? (readManifest(repo).files ?? {}) : {};
   const actions: Action[] = [];
   if (docs) actions.push(await identityAction(opts));
 
@@ -332,8 +412,43 @@ export async function planInit(opts: InitOptions): Promise<Action[]> {
   return actions;
 }
 
+// Why the plan can't write `path`; null when it can. Every target is asked
+// before the first write, so a plan is applied whole or not at all (#0078).
+function writeProblem(repo: string, path: string): string | null {
+  const target = join(repo, path);
+  let at = target;
+  while (!existsSync(at) && dirname(at) !== at) at = dirname(at);
+  const name = relative(repo, at).split("\\").join("/");
+  const where = name === "" ? "This folder" : name.startsWith("..") ? printable(at) : name;
+  try {
+    const folder = statSync(at).isDirectory();
+    if (folder === (at === target)) return `${where} is a ${folder ? "folder" : "file"} where init writes a ${folder ? "file" : "folder"}`;
+    accessSync(at, folder ? constants.W_OK | constants.X_OK : constants.W_OK);
+    return null;
+  } catch {
+    return `${where} can't be written to`;
+  }
+}
+
 export async function applyPlan(repo: string, actions: Action[], packageVersion: string): Promise<void> {
-  const manifest: Record<string, string> = await readManifest(repo);
+  const writes = actions.filter((a) => (a.content !== undefined && ["create", "update", "block"].includes(a.kind)) || a.kind === "link");
+  for (const path of [...writes.map((a) => a.path), MANIFEST]) {
+    const problem = writeProblem(repo, path);
+    if (problem) throw new InitError(`${problem} — nothing was written.`);
+  }
+  try {
+    await writePlan(repo, actions, packageVersion);
+  } catch (err) {
+    // What the check can't foresee — a full disk, a file locked meanwhile.
+    if (!(err instanceof Error && "path" in err && typeof err.path === "string")) throw err;
+    const at = relative(repo, err.path).split("\\").join("/");
+    const code = "code" in err ? ` (${String(err.code)})` : "";
+    throw new InitError(`init stopped at ${printable(at)}${code} with some files written — fix that and run it again: it only fills the gaps.`);
+  }
+}
+
+async function writePlan(repo: string, actions: Action[], packageVersion: string): Promise<void> {
+  const manifest: Record<string, string> = readManifest(repo).files ?? {};
   for (const a of actions) {
     const target = join(repo, a.path);
     if (a.content !== undefined && (a.kind === "create" || a.kind === "update" || a.kind === "block")) {
@@ -355,7 +470,8 @@ export async function applyPlan(repo: string, actions: Action[], packageVersion:
     }
   }
   await mkdir(dirname(join(repo, MANIFEST)), { recursive: true });
-  await writeFile(join(repo, MANIFEST), JSON.stringify({ version: packageVersion, files: manifest }, null, 2) + "\n", "utf8");
+  const record = { version: packageVersion, scaffold: planScaffold(actions), files: manifest };
+  await writeFile(join(repo, MANIFEST), JSON.stringify(record, null, 2) + "\n", "utf8");
 }
 
 const LABEL: Record<ActionKind, string> = {
@@ -371,9 +487,10 @@ const LABEL: Record<ActionKind, string> = {
 // What to do after a first run. The code scaffold has a SETUP.md for it; the
 // docs scaffold has none, so a CLAUDE.md from before is named here (#0078).
 export function nextStep(repo: string, actions: Action[]): string {
-  if (!actions.some((a) => a.path === IDENTITY_FILE)) return "ask your agent to follow .agents/SETUP.md, then run `npx loopboard`.";
-  const imported = readLocal(repo, "CLAUDE.md")?.includes("@AGENTS.md");
-  return `say what this folder is for in ${IDENTITY_FILE} and AGENTS.md${imported ? "" : ", add the line `@AGENTS.md` to your CLAUDE.md"}, then run \`loopboard\`.`;
+  if (planScaffold(actions) === "code") return "ask your agent to follow .agents/SETUP.md, then run `npx loopboard`.";
+  // A CLAUDE.md that is a link to AGENTS.md has nothing to import.
+  const imported = readLocal(repo, "CLAUDE.md")?.includes("@AGENTS.md") || samePath(join(repo, "CLAUDE.md"), join(repo, "AGENTS.md"));
+  return `say what this folder is for in ${IDENTITY_FILE} and AGENTS.md${imported ? "" : ", add the line `@AGENTS.md` to your CLAUDE.md"}, then run \`loopboard\` — opening the folder is what keeps its id from going to another one.`;
 }
 
 export function summarizePlan(actions: Action[], dryRun: boolean): string {

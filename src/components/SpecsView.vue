@@ -18,7 +18,8 @@ import {
   type Spec,
 } from '../types';
 
-const props = defineProps<{ specs: Spec[] }>();
+// `loaded` tells a workspace without specs from one still loading (#0078).
+const props = defineProps<{ specs: Spec[]; loaded?: boolean }>();
 
 const SELECTED_KEY = 'specs.selectedId';
 const STATUS_KEY = 'specs.enabledStatuses';
@@ -247,6 +248,11 @@ defineExpose({ focusSearch });
           <div class="pane-doc-tools"><button type="button" class="spec-edit" @click="editing = true">Edit spec</button></div>
           <SpecSection :spec="selectedSpec" :visible-scenarios="visibleScenarios" :has-filters="hasFilters" />
         </template>
+        <div v-else-if="loaded && specs.length === 0" class="spec-pane-empty">
+          <p class="eyebrow">No specs</p>
+          <h2>This workspace has no specs.</h2>
+          <p>Specs are numbered files in the <code>specs/</code> folder next to <code>issues/</code>. A harness without code has none.</p>
+        </div>
         <div v-else-if="hasFilters && visibleSpecsForToc.length === 0" class="spec-pane-empty">
           <p class="eyebrow">No matches</p>
           <h2>No scenarios match the current filters.</h2>

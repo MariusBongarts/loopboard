@@ -118,17 +118,23 @@ export class RootNotFoundError extends Error {
   }
 }
 
-// One folder reached through a composed and a decomposed spelling of its
-// name (macOS hands out both) is one root (#0077).
-export function sameRoot(a: string, b: string): boolean {
+// One file or folder, whatever path leads to it: a symlinked parent, another
+// case on a disk that ignores it, another spelling of its name.
+export function samePath(a: string, b: string): boolean {
   if (a === b) return true;
-  if (a.normalize("NFC") !== b.normalize("NFC")) return false;
   try {
     const [x, y] = [statSync(a), statSync(b)];
     return x.ino === y.ino && x.dev === y.dev;
   } catch {
     return false;
   }
+}
+
+// One folder reached through a composed and a decomposed spelling of its
+// name (macOS hands out both) is one root (#0077). A symlinked path stays a
+// root of its own until #0080.
+export function sameRoot(a: string, b: string): boolean {
+  return a === b || (a.normalize("NFC") === b.normalize("NFC") && samePath(a, b));
 }
 
 // Registers (or re-selects) the repo at `path`; deduplicated by root.

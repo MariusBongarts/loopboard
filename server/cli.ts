@@ -4,7 +4,7 @@ import { join, resolve } from "node:path";
 import { escapeControls, printable } from "../shared/printable";
 import { parseArgs, UsageError, type Args, type Flags } from "./args";
 import { checkRoot, nextId, type IdKind } from "./ids";
-import { applyPlan, InitError, nextStep, planInit, summarizePlan } from "./init";
+import { applyPlan, InitError, isNewHarness, nextStep, planInit, planScaffold, summarizePlan, type InitOptions } from "./init";
 import { readBoard } from "./issues";
 import { matchName } from "./names";
 import { applyRenumber, planRenumber, RenumberError } from "./renumber";
@@ -80,7 +80,7 @@ export async function launch(opts: LaunchOptions): Promise<LaunchResult> {
   if (!detectRoot(opts.target)) {
     return {
       kind: "error",
-      message: `No .agents/ (or legacy ai/) folder with issues/ in ${opts.target}.\nSet the workflow up first:  npx loopboard init`,
+      message: `No .agents/ (or legacy ai/) folder with issues/ in ${opts.target}.\nSet the workflow up first:  npx loopboard init\nIn a folder without code:   npx loopboard init --kind docs`,
     };
   }
   const running = await findRunningServer(opts.configDir);
@@ -171,22 +171,29 @@ commands.init = {
     "--parent": "value",
   },
   async run({ positionals, switches, values }) {
+    // A second word is the rest of a path that wasn't quoted (#0078).
+    if (positionals.length > 1) {
+      console.error(`init takes one folder, not ${positionals.length} — put a path with spaces in quotes.`);
+      return 1;
+    }
     const repoPath = resolve(positionals[0] ?? ".");
-    const upgrade = switches.has("--upgrade");
     const dryRun = switches.has("--dry-run");
+    const options: InitOptions = {
+      repoPath,
+      packageRoot: packageRoot(),
+      withExtras: switches.has("--with-extras"),
+      upgrade: switches.has("--upgrade"),
+      force: switches.has("--force"),
+      kind: values["--kind"],
+      id: values["--id"],
+      name: values["--name"],
+      parent: values["--parent"],
+      configDir: configDir(),
+    };
+    // Where there is nothing to upgrade, --upgrade is a first run.
+    const upgrade = !!options.upgrade && !isNewHarness(options);
     try {
-      const actions = await planInit({
-        repoPath,
-        packageRoot: packageRoot(),
-        withExtras: switches.has("--with-extras"),
-        upgrade,
-        force: switches.has("--force"),
-        kind: values["--kind"],
-        id: values["--id"],
-        name: values["--name"],
-        parent: values["--parent"],
-        configDir: configDir(),
-      });
+      const actions = await planInit(options);
       if (!dryRun) await applyPlan(repoPath, actions, packageVersion());
       console.log(summarizePlan(actions, dryRun));
       if (dryRun) return 0;
@@ -194,12 +201,14 @@ commands.init = {
         console.log("Nothing to do — the workflow is already set up.");
         return 0;
       }
-      if (upgrade) {
-        if (actions.some((a) => a.kind === "keep-modified")) {
-          console.log('\nEdited files were left alone. To merge them and apply workflow migrations, ask your agent: "upgrade my loopboard harness".');
-        }
-      } else {
-        console.log(`\nNext: ${nextStep(repoPath, actions)}`);
+      if (!upgrade) console.log(`\nNext: ${nextStep(repoPath, actions)}`);
+      else if (actions.some((a) => a.kind === "keep-modified")) {
+        // A docs harness has no upgrade-harness skill to merge with.
+        const how =
+          planScaffold(actions) === "docs"
+            ? "To see the shipped version of one, move yours aside and run `loopboard init` again."
+            : 'To merge them and apply workflow migrations, ask your agent: "upgrade my loopboard harness".';
+        console.log(`\nEdited files were left alone. ${how}`);
       }
       return 0;
     } catch (err) {

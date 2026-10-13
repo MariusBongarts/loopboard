@@ -19,6 +19,12 @@ describe('Help Center content (#0060, #0061)', () => {
     expect(prompt).toContain('/opt/loopboard/.agents/skills/upgrade-harness/SKILL.md');
   });
 
+  // #0078: the command for a folder without code is where people look for it.
+  it('names init --kind docs in the README and in Help → Set up', () => {
+    expect(readme).toContain('| `npx loopboard init --kind docs [path]` |');
+    expect(readFileSync('src/views/help/HelpSetup.vue', 'utf8')).toContain("{ cmd: 'npx loopboard init --kind docs', does:");
+  });
+
   it('keeps ?from on every Help link', () => {
     expect(helpLink('/help/learn', 'tracker', 'skills')).toEqual({ path: '/help/learn', query: { from: 'tracker' }, hash: '#skills' });
     expect(helpLink('/help', undefined)).toEqual({ path: '/help', query: {}, hash: '' });

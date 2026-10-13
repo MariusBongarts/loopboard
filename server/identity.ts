@@ -74,12 +74,22 @@ export function renderIdentity(identity: Identity): string {
 export interface IdentityLines {
   id?: string;
   name?: string;
+  kind?: string;
   type?: string;
   parent?: string;
   aliases: string[];
 }
 
-// null when the folder has no identity file, or one that can't be read.
+// `aliases: [a, b]` on one line, or one `- a` per line below `aliases:`.
+function readAliases(inner: string): string[] {
+  const line = readField(inner, "aliases") ?? "";
+  if (line && !line.startsWith("#")) return readList(inner, "aliases") ?? [line];
+  const block = inner.match(/^aliases:[ \t]*(?:#.*)?\r?\n((?:[ \t]*-[ \t]+.*(?:\r?\n|$))+)/m)?.[1] ?? "";
+  return [...block.matchAll(/^[ \t]*-[ \t]+(.*)$/gm)].map(([, item]) => readField(`a: ${item}`, "a") ?? "").filter(Boolean);
+}
+
+// null when the folder has no identity file, or one that can't be read. A
+// BOM or blank lines before the frontmatter don't hide it (#0078).
 export function readIdentity(folder: string): IdentityLines | null {
   let text: string;
   try {
@@ -87,7 +97,7 @@ export function readIdentity(folder: string): IdentityLines | null {
   } catch {
     return null;
   }
-  const inner = frontmatterInner(text) ?? "";
+  const inner = frontmatterInner(text.replace(/^[\uFEFF\s]+/, "")) ?? "";
   const field = (key: string) => readField(inner, key);
-  return { id: field("id"), name: field("name"), type: field("type"), parent: field("parent"), aliases: readList(inner, "aliases") ?? [] };
+  return { id: field("id"), name: field("name"), kind: field("kind"), type: field("type"), parent: field("parent"), aliases: readAliases(inner) };
 }

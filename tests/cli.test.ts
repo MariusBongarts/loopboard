@@ -5,7 +5,8 @@ import { copyFile, mkdir, mkdtemp, readFile, readdir, realpath, rm, symlink, wri
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { launch, launchOptions, main, type LaunchResult } from '../server/cli';
-import { loadRegistry } from '../server/workspaces';
+import { todayIso } from '../server/files';
+import { loadRegistry, registerWorkspace } from '../server/workspaces';
 
 const CWD = process.cwd();
 let tmp: string;
@@ -82,7 +83,8 @@ describe('loopboard [path]', () => {
     await mkdir(join(tmp, 'plain'));
     const result = await launch({ target: join(tmp, 'plain'), port: 0, configDir: join(tmp, 'c'), clientDir: client });
     expect(result).toMatchObject({ kind: 'error' });
-    if (result.kind === 'error') expect(result.message).toMatch(/npx loopboard init/);
+    // Both ways to set a folder up, the one without code included (#0078).
+    if (result.kind === 'error') expect(result.message).toMatch(/npx loopboard init\n.*npx loopboard init --kind docs$/);
   });
 });
 
@@ -100,10 +102,10 @@ describe('init --kind docs (#0078)', () => {
 
     expect(r).toMatchObject({ code: 0, err: '' });
     expect(r.out).toContain('created (11):\n  .agents/harness.md\n');
-    expect(r.out).toContain('Next: say what this folder is for in .agents/harness.md and AGENTS.md, then run `loopboard`.');
+    expect(r.out).toContain('Next: say what this folder is for in .agents/harness.md and AGENTS.md, then run `loopboard` — opening the folder is what keeps its id from going to another one.');
     expect((await readdir(plain)).sort()).toEqual(['.agents', 'AGENTS.md', 'CLAUDE.md']);
     expect((await readdir(join(plain, '.agents'))).sort()).toEqual(['.loopboard', 'harness.md', 'issues', 'projects']);
-    expect(await identity(plain)).toContain('\nid: plain\nname: plain\nkind: harness\ntype: docs\nparent: null\n');
+    expect(await identity(plain)).toContain(`\nid: plain\nname: plain\nkind: harness\ntype: docs\nparent: null\ncreated: ${todayIso()}\n---\n`);
     // Setting up registers nothing.
     expect(existsSync(config)).toBe(false);
 
@@ -132,8 +134,47 @@ describe('init --kind docs (#0078)', () => {
     const r = await run('init', papers, '--kind', 'docs');
 
     expect(r.out).toContain('created (10):');
-    expect(r.out).toContain('Next: say what this folder is for in .agents/harness.md and AGENTS.md, add the line `@AGENTS.md` to your CLAUDE.md, then run `loopboard`.');
+    expect(r.out).toContain('Next: say what this folder is for in .agents/harness.md and AGENTS.md, add the line `@AGENTS.md` to your CLAUDE.md, then run `loopboard` — opening the folder is what keeps its id from going to another one.');
     expect(await readFile(join(papers, 'CLAUDE.md'), 'utf8')).toBe('Be brief.\n');
+  });
+
+  it.skipIf(process.platform === 'win32')('does not name a CLAUDE.md that is a link to AGENTS.md', async () => {
+    const papers = join(tmp, 'papers');
+    await mkdir(papers);
+    await writeFile(join(papers, 'AGENTS.md'), '# Agents\n');
+    await symlink('AGENTS.md', join(papers, 'CLAUDE.md'));
+
+    const r = await run('init', papers, '--kind', 'docs');
+
+    expect(r.out).toContain('Next: say what this folder is for in .agents/harness.md and AGENTS.md, then run `loopboard`');
+  });
+
+  it('refuses a second folder: a path with a space that was not quoted', async () => {
+    process.chdir(tmp);
+    await mkdir(join(tmp, 'Büro Unterlagen'));
+
+    const r = await run('init', '--kind', 'docs', 'Büro', 'Unterlagen');
+
+    expect(r).toEqual({ code: 1, out: '', err: 'init takes one folder, not 2 — put a path with spaces in quotes.' });
+    expect(existsSync(join(tmp, 'Büro'))).toBe(false);
+    expect(await readdir(join(tmp, 'Büro Unterlagen'))).toEqual([]);
+  });
+
+  it('--upgrade is a first run where there is nothing to upgrade, and names no skill in a docs harness', async () => {
+    const plain = join(tmp, 'plain');
+
+    const first = await run('init', plain, '--kind', 'docs', '--upgrade');
+    expect(first.out).toContain('created (11):');
+    expect(first.out).toContain('\nNext: say what this folder is for');
+    expect(await readFile(join(plain, 'AGENTS.md'), 'utf8')).not.toContain('loopboard:migration M000');
+
+    await writeFile(join(plain, '.agents', 'issues', 'README.md'), '# Mine\n');
+    const again = await run('init', plain, '--upgrade');
+    expect(again.out).toBe(
+      'skipped (edited locally) (1):\n  .agents/issues/README.md — edited locally\n10 file(s) already in place.\n\n' +
+        'Edited files were left alone. To see the shipped version of one, move yours aside and run `loopboard init` again.',
+    );
+    expect(await readFile(join(plain, '.agents', 'issues', 'README.md'), 'utf8')).toBe('# Mine\n');
   });
 
   it('--dry-run only lists', async () => {
@@ -170,8 +211,38 @@ describe('init --kind docs (#0078)', () => {
     expect(r.err).toBe(
       '"2026-taxes", this folder\'s slug, starts with a digit — pass --id with lowercase letters, digits and hyphens, 2 to 32 characters, starting with a letter and ending with a letter or digit.',
     );
-    expect(await run('init', taxes, '--kind', 'index')).toEqual({ code: 1, out: '', err: '--kind takes code or docs, not "index".' });
+    expect(await run('init', taxes, '--kind', 'index')).toEqual({
+      code: 1,
+      out: '',
+      err: '--kind takes code or docs, not "index" — index nodes aren\'t built yet.',
+    });
     expect(await readdir(taxes)).toEqual([]);
+  });
+
+  // Through the entry point, where a refusal could still have written.
+  it('writes nothing when it refuses a taken id, a reserved word, a mixed kind or a file it cannot write', async () => {
+    const first = join(tmp, 'a', 'taxes');
+    expect((await run('init', first, '--kind', 'docs')).code).toBe(0);
+    await registerWorkspace(config, first);
+    const second = join(tmp, 'b', 'taxes');
+    await mkdir(second, { recursive: true });
+
+    expect(await run('init', second, '--kind', 'docs')).toMatchObject({ code: 1, out: '', err: expect.stringContaining(`The id "taxes" already belongs to the workspace at ${first} — pass --id`) });
+    expect(await run('init', second, '--kind', 'docs', '--id', 'file')).toMatchObject({ code: 1, out: '', err: expect.stringContaining('--id "file" is a reserved word — an id is') });
+    await mkdir(join(second, 'AGENTS.md'));
+    expect(await run('init', second, '--kind', 'docs', '--id', 'taxes-2')).toEqual({ code: 1, out: '', err: 'AGENTS.md is a folder where init writes a file — nothing was written.' });
+    expect(await readdir(second)).toEqual(['AGENTS.md']);
+    expect(await readdir(join(second, 'AGENTS.md'))).toEqual([]);
+
+    const app = join(tmp, 'app');
+    expect((await run('init', app)).code).toBe(0);
+    const before = (await readdir(app, { recursive: true })).sort();
+    expect(await run('init', app, '--kind', 'docs')).toEqual({
+      code: 1,
+      out: '',
+      err: 'This folder already holds a code harness (it has .agents/skills), and --kind docs would mix the two — nothing was written.',
+    });
+    expect((await readdir(app, { recursive: true })).sort()).toEqual(before);
   });
 
   it('next-id, check and the board work in a folder with a space and an umlaut in its name', async () => {

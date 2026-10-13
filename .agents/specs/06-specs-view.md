@@ -12,6 +12,7 @@ Status legend in [`_specs.md`](_specs.md#e2e-coverage).
 | Search scenarios across specs | 🟡 | `06-specs-view.spec.ts`: "/" focuses the box, words filter scenarios. Not asserted: table-of-contents narrowing, Clear search, Esc |
 | Filter scenarios by coverage status | ✅ | `06-specs-view.spec.ts`: toggle, remembered after reload |
 | A spec without a coverage table | ✅ | `06-specs-view.spec.ts` (fixture `specs/02-import.md`) |
+| A workspace without specs | ✅ | [`cli.spec.ts`](../../tests/e2e/cli.spec.ts): the board of a folder set up with `init --kind docs` |
 
 ### Scenario: Browse specs with their coverage
 
@@ -56,4 +57,14 @@ AND the chip selection is remembered in this browser
 GIVEN a spec file without an `## E2E coverage` table
 THEN every scenario counts as ❌ not yet
 AND the spec header reads "No coverage table — counted as uncovered"
+```
+
+### Scenario: A workspace without specs
+
+```
+GIVEN a root without spec files — a harness without code has none
+WHEN I open Specs
+THEN the pane reads "This workspace has no specs." and says where specs
+    would live
+AND it doesn't stay on "Loading specs…"
 ```

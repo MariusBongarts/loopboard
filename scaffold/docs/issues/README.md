@@ -129,5 +129,6 @@ optional.
 
 `<id>` is the id a harness carries in its `.agents/harness.md`: lowercase
 letters, digits and hyphens, 2 to 32 characters, starting with a letter and
-ending with a letter or digit. A plain `#NNNN` always means an issue in this
-harness.
+ending with a letter or digit — and never one of `http`, `https`, `mailto`,
+`file`, `ftp`, `tel`, `github`, `true`, `false`, `null`, `yes`, `no`, `on`,
+`off` or `workspace`. A plain `#NNNN` always means an issue in this harness.

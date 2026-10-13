@@ -27,6 +27,17 @@ describe('issue fields', () => {
     });
   });
 
+  // A ` #` starts a comment only outside quotes (#0078).
+  it('reads a quoted value with " #" in it whole', () => {
+    const fields = (title: string) => readIssueFields(`---\nid: 0001\ntitle: ${title}\nstatus: todo\n---\n`)?.title;
+
+    expect(fields('"Fix #12 again"')).toBe('Fix #12 again');
+    expect(fields('"Fix #12 again"   # the second try')).toBe('Fix #12 again');
+    expect(fields("'it''s #1'")).toBe("it's #1");
+    expect(fields('"a \\" #b"')).toBe('a " #b');
+    expect(fields('Fix the export # later')).toBe('Fix the export');
+  });
+
   it('rewrites only changed lines, keeping comments, order and body', () => {
     const before = readIssueFields(file)!;
     const after = { ...before, status: 'in-progress', project: '01-launch', parent: '0042', labels: ['ui'] };

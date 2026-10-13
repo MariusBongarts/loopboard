@@ -221,7 +221,7 @@ test.describe('§ 8 setup and upgrades', () => {
     const r = loopboard(['init', '--kind', 'docs'], office, box.config);
     expect(r.status).toBe(0);
     expect(r.stdout).toContain('created (11):');
-    expect(r.stdout).toContain('Next: say what this folder is for in .agents/harness.md and AGENTS.md, then run `loopboard`.');
+    expect(r.stdout).toContain('Next: say what this folder is for in .agents/harness.md and AGENTS.md, then run `loopboard` — opening the folder is what keeps its id from going to another one.');
     expect(readdirSync(office).sort()).toEqual(['.agents', 'AGENTS.md', 'CLAUDE.md', 'lease.txt']);
     expect(readdirSync(join(office, '.agents')).sort()).toEqual(['.loopboard', 'harness.md', 'issues', 'projects']);
     expect(readFileSync(join(office, '.agents/harness.md'), 'utf8')).toMatch(
@@ -248,6 +248,10 @@ test.describe('§ 8 setup and upgrades', () => {
       await page.reload();
       await expect(page.locator('.feed-row', { hasText: 'File the lease' })).toBeVisible();
       expect(readFileSync(join(office, '.agents/issues/0001-file-the-lease.md'), 'utf8')).toContain('## What needs to be done\n');
+      // No specs here, and the Specs entry says so instead of loading for good.
+      await page.locator('.rail-nav', { hasText: 'Specs' }).click();
+      await expect(page.getByRole('heading', { name: 'This workspace has no specs.' })).toBeVisible();
+      await expect(page.getByText('Loading specs…')).toHaveCount(0);
     } finally {
       server.proc.kill();
     }
@@ -269,8 +273,16 @@ test.describe('§ 8 setup and upgrades', () => {
     expect(loopboard(['init'], app, box.config).status).toBe(0);
     const mixed = loopboard(['init', '--kind', 'docs'], app, box.config);
     expect(mixed.status).toBe(1);
-    expect(mixed.stderr).toBe('This folder already holds a code harness (no "type: docs" in .agents/harness.md), and --kind docs would mix the two — nothing was written.\n');
+    expect(mixed.stderr).toBe('This folder already holds a code harness (it has .agents/skills), and --kind docs would mix the two — nothing was written.\n');
     expect(existsSync(join(app, '.agents/harness.md'))).toBe(false);
+
+    // A docs harness stays one without its identity file: the manifest remembers.
+    rmSync(join(taxes, '.agents/harness.md'));
+    const lost = loopboard(['init', '--upgrade'], taxes, box.config);
+    expect(lost.status).toBe(1);
+    expect(lost.stderr).toMatch(/^This docs harness has lost \.agents\/harness\.md — run `loopboard init --kind docs` to write it again, [^\n]+\n$/);
+    expect(existsSync(join(taxes, '.agents/skills'))).toBe(false);
+    expect(loopboard(['init', '--kind', 'docs', '--id', 'taxes'], taxes, box.config).stdout).toContain('created (1):\n  .agents/harness.md\n');
   });
 
   test('upgrade updates untouched files and skips edited ones', () => {

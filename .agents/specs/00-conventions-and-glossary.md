@@ -64,9 +64,10 @@
 - **Scenario** — one GIVEN/WHEN/THEN block under a `### Scenario:` heading.
 - **E2E coverage** — the per-scenario Playwright status recorded in a spec's
   `## E2E coverage` table: ✅ covered, 🟡 partial, ⏳ fixme, ❌ not yet.
-- **Harness** — what makes an agent follow the workflow in a repo: the
-  managed block in `AGENTS.md`, the skills in `.agents/skills/` and the
-  conventions in the root's READMEs and templates.
+- **Harness** — what makes an agent follow the workflow in a repo or a
+  folder of documents: the managed block in `AGENTS.md` and the conventions
+  in the root's READMEs and templates — in a code harness also the skills in
+  `.agents/skills/`.
 - **Docs harness** — a harness for work that isn't code, set up with
   `loopboard init --kind docs`: issues and projects, an **identity file**
   with `type: docs`, no specs, no skills and no links. It needs no git, and
@@ -81,8 +82,9 @@
 - **Identity file** — `.agents/harness.md` in a harness's folder: frontmatter
   with the **harness id**, a name, a kind, a parent and optional aliases,
   and one paragraph saying what the harness is for. `init --kind docs`
-  writes it. A convention loopboard reads from a later release; until then a
-  workspace's id is the **slug** of its folder
+  writes it, and `init` reads it to tell a docs harness from a code one. The
+  board reads it from a later release; until then a workspace's id is the
+  **slug** of its folder
   ([ADR-0007](../architecture/decisions/0007-identity-file-in-the-harness.md)).
 - **Harness id** — the name a harness gives itself in its **identity file**
   and that a **qualified reference** carries in front: lowercase letters,

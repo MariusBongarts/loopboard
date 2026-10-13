@@ -30,6 +30,8 @@ must apply are numbered in [MIGRATIONS.md](MIGRATIONS.md).
   projects with READMEs and templates worded for it, an identity file
   (`.agents/harness.md`) with a checked id, no specs, skills or links. It
   works without git.
+- `loopboard init` checks every file of its plan before it writes the first
+  one, and takes one folder: a path with spaces belongs in quotes.
 - The `upgrade-harness` skill and numbered migrations bring running harnesses
   forward without overwriting customized skills.
 - The `issue-grooming` skill reconciles the board with git and releases:

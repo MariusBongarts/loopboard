@@ -22,17 +22,22 @@ function lineRe(key: string): RegExp {
   return new RegExp(`^(${key}:[ \\t]*)([^\\r\\n]*)$`, 'm');
 }
 
+// Where the quoted scalar that `rest` starts with ends: the index after its
+// closing quote, or the whole length when it has none.
+function quotedEnd(rest: string): number {
+  const q = rest[0];
+  let i = 1;
+  for (; i < rest.length; i++) {
+    if (q === '"' && rest[i] === '\\') i++;
+    else if (q === "'" && rest[i] === q && rest[i + 1] === q) i++;
+    else if (rest[i] === q) return i + 1;
+  }
+  return i;
+}
+
 // A trailing `# comment` after a value (outside quotes), with its spacing.
 function trailingComment(rest: string): string {
-  if (/^["']/.test(rest)) {
-    const q = rest[0];
-    let i = 1;
-    for (; i < rest.length; i++) {
-      if (q === '"' && rest[i] === '\\') i++;
-      else if (rest[i] === q) break;
-    }
-    return rest.slice(i + 1).match(/^(\s+#.*)$/)?.[1] ?? '';
-  }
+  if (/^["']/.test(rest)) return rest.slice(quotedEnd(rest)).match(/^(\s+#.*)$/)?.[1] ?? '';
   return rest.match(/(\s+#.*)$/)?.[1] ?? '';
 }
 
@@ -53,7 +58,8 @@ export function setLine(fm: string, key: string, value: string | null, after: st
 export function readField(fmInner: string, key: string): string | undefined {
   const m = fmInner.match(lineRe(key));
   if (!m) return undefined;
-  const raw = m[2].replace(/\s+#.*$/, '').trim();
+  // A ` #` inside quotes is text, not a comment (#0078).
+  const raw = /^["']/.test(m[2]) ? m[2].slice(0, quotedEnd(m[2])).trim() : m[2].replace(/\s+#.*$/, '').trim();
   if (raw.startsWith('"')) {
     try {
       return JSON.parse(raw) as string;

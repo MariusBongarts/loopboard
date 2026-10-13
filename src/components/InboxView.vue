@@ -413,7 +413,7 @@ onBeforeUnmount(() => {
       <IssuePage :issue-id="String(route.params.id)" :archived="route.query.archived === '1'" :loaded="props.workspace !== null" />
     </section>
     <section v-else-if="view === 'specs'" class="inbox-specs">
-      <SpecsView ref="specsView" :specs="props.specs" />
+      <SpecsView ref="specsView" :specs="props.specs" :loaded="props.workspace !== null" />
     </section>
 
     <section v-show="view === 'feed'" class="inbox-list" aria-label="Activity">
