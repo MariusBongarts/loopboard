@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { mkdir, rename, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { readIssueFile, workspaceRoot, writeIssueFile } from './workspace';
@@ -101,6 +101,95 @@ test('see which files the board skipped', async ({ page, context }) => {
     await rm(join(issues, '0011-tax-return.md'), { force: true });
     await rm(join(issues, '0012-offline.md'), { recursive: true, force: true });
     await rm(folder, { recursive: true, force: true });
+  }
+});
+
+// Swaps the event stream for one the test drives: a watcher failure can't be
+// provoked from the browser (#0072). Nothing arrives unless the test sends it.
+async function driveStream(page: Page): Promise<(event: 'ready' | 'stale' | 'error') => Promise<void>> {
+  await page.addInitScript(() => {
+    class Stream extends EventTarget {
+      onerror: (() => void) | null = null;
+      constructor() {
+        super();
+        Object.assign(window, { loopboardStream: this });
+      }
+      close() {}
+    }
+    Object.assign(window, { EventSource: Stream });
+  });
+  return (event) =>
+    page.evaluate((name) => {
+      const stream: EventTarget & { onerror: (() => void) | null } = Reflect.get(window, 'loopboardStream');
+      if (name === 'error') stream.onerror?.();
+      else stream.dispatchEvent(new Event(name));
+    }, event);
+}
+
+test('the board says when it stops being live', async ({ page }) => {
+  const send = await driveStream(page);
+  await page.goto('/w/demo-repo');
+  const rail = page.getByRole('navigation', { name: 'Inbox navigation' });
+  await expect(page.locator('.feed-row').first()).toBeVisible();
+  await send('ready');
+  await expect(page.locator('.live-dot.live')).toBeVisible();
+
+  // The server lost its watcher: the board says so and refetches.
+  let refetch = page.waitForRequest('**/api/w/demo-repo/data');
+  await send('stale');
+  await refetch;
+  await expect(rail.getByRole('button', { name: /^Not live/ })).toHaveText('Not live');
+  await expect(page.locator('.live-dot')).toHaveCount(0);
+
+  // The watcher is back: catch up, live again.
+  refetch = page.waitForRequest('**/api/w/demo-repo/data');
+  await send('ready');
+  await refetch;
+  await expect(page.locator('.live-dot.live')).toBeVisible();
+
+  // Same for a dropped connection.
+  await send('error');
+  await expect(rail.getByRole('button', { name: /^Lost the connection/ })).toHaveText('Offline');
+  refetch = page.waitForRequest('**/api/w/demo-repo/data');
+  await send('ready');
+  await refetch;
+  await expect(page.locator('.live-dot.live')).toBeVisible();
+});
+
+test('refresh on demand', async ({ page }) => {
+  // No events arrive, so only a refresh can show what changed on disk.
+  const send = await driveStream(page);
+  await page.goto('/w/demo-repo');
+  const rail = page.getByRole('navigation', { name: 'Inbox navigation' });
+  await page.locator('.feed-row', { hasText: 'Cache the feed' }).click();
+  await expect(page.locator('.col-in-progress [data-issue-id="0002"]')).toBeVisible();
+  await send('ready');
+
+  const original = await readIssueFile('0002-cache-the-feed.md');
+  try {
+    await writeIssueFile('0002-cache-the-feed.md', original.replace('status: in-progress', 'status: in-review'));
+    await rail.getByRole('button', { name: /^Live — updates as files change/ }).click();
+    await expect(page.locator('.col-in-review [data-issue-id="0002"]')).toBeVisible();
+    await expect(page.locator('.toast')).toContainText('Refreshed');
+
+    // Not live any more; the refetch that comes with it is done before the next edit.
+    const settled = page.waitForResponse('**/api/w/demo-repo/data');
+    await send('stale');
+    await settled;
+    await writeIssueFile('0002-cache-the-feed.md', original);
+    await page.keyboard.press('ControlOrMeta+k');
+    const palette = page.getByRole('dialog', { name: 'Command palette' });
+    await palette.getByRole('combobox').fill('refresh');
+    await expect(palette.getByRole('option').first()).toHaveText(/Refresh/);
+    await palette.getByRole('combobox').press('Enter');
+    await expect(page.locator('.col-in-progress [data-issue-id="0002"]')).toBeVisible();
+
+    // The badge refreshes too.
+    await writeIssueFile('0002-cache-the-feed.md', original.replace('status: in-progress', 'status: in-review'));
+    await rail.getByRole('button', { name: /^Not live/ }).click();
+    await expect(page.locator('.col-in-review [data-issue-id="0002"]')).toBeVisible();
+  } finally {
+    await writeIssueFile('0002-cache-the-feed.md', original);
   }
 });
 

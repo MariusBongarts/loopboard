@@ -16,7 +16,11 @@ must apply are numbered in [MIGRATIONS.md](MIGRATIONS.md).
 - `loopboard workspaces` lists the registered workspaces (`--json` for
   agents); `workspaces forget <id>…` removes entries without a running board
   and never touches a repo's files.
-- Live updates: the board follows file changes as agents work.
+- Live updates: the board follows file changes as agents work. When the file
+  watcher fails it says "Not live", refetches and recovers on its own;
+  "Refresh" is a click on the live indicator or ⌘K away. Symlinked `issues/`
+  and `projects/` folders are polled, and `LOOPBOARD_POLL_MS` polls every
+  workspace.
 
 ### Set up and upgrade
 - `loopboard init` scaffolds the workflow (skills, templates, specs,

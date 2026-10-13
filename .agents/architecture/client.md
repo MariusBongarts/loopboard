@@ -10,7 +10,9 @@ workspace's data and every write and provides the workspace context
 ([workspace.ts](../../src/workspace.ts)) to the components below it;
 [InboxView.vue](../../src/components/InboxView.vue) owns navigation inside it.
 All HTTP goes through [api.ts](../../src/api.ts); [live.ts](../../src/live.ts)
-follows the workspace's event stream and triggers a debounced refetch.
+follows the workspace's event stream and triggers a debounced refetch; its
+`onLiveEvent` decides the indicator's state (live, stale, offline) and when
+to catch up.
 
 ## Components
 

@@ -2,7 +2,7 @@
 id: 0072
 title: Live updates stop silently when the file watcher fails
 category: bug
-status: todo
+status: done
 assignee: agent
 labels: [server, ui]
 created: 2026-10-13
@@ -32,14 +32,14 @@ recovers on its own, and a manual refresh is always one action away.
 
 ## Acceptance criteria (verification)
 
-- [ ] On a watcher error the client is notified (state is no longer "live"
+- [x] On a watcher error the client is notified (state is no longer "live"
   and one refetch runs) and the server re-watches with backoff
-- [ ] Optional polling (`LOOPBOARD_POLL_MS`) compares mtime and file count of
+- [x] Optional polling (`LOOPBOARD_POLL_MS`) compares mtime and file count of
   `issues/` and `projects/` and emits the same change event
-- [ ] A symlinked `issues/` or `projects/` folder is detected and falls back
+- [x] A symlinked `issues/` or `projects/` folder is detected and falls back
   to polling
-- [ ] "Refresh" is always reachable (⌘K and a click on the live indicator)
-- [ ] A test simulates the watcher error and checks the re-subscription
+- [x] "Refresh" is always reachable (⌘K and a click on the live indicator)
+- [x] A test simulates the watcher error and checks the re-subscription
 
 ## Out of scope
 
@@ -49,3 +49,12 @@ recovers on its own, and a manual refresh is always one action away.
 ## Notes
 
 - Related: #0071 reports files the reader had to skip.
+- The stream gained a `stale` event; `ready` is sent again once the root is
+  watched. A root that can't be watched when a client connects (missing
+  folder) is reported and retried the same way.
+- Polling runs next to the watcher, not instead of it: the watcher still
+  covers `specs/`. A change both see causes two refetches.
+- Not covered: a watcher that goes quiet without an error. On macOS a
+  replaced root raises none, and a renamed folder only produces directory
+  events, which the hub ignores (#0010) — `LOOPBOARD_POLL_MS` catches both
+  for `issues/` and `projects/`.

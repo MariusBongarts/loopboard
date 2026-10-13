@@ -62,6 +62,15 @@ const FEED: { key: InboxFilter; label: string; icon: Component }[] = [
   { key: 'issues', label: 'Issues', icon: CircleDot },
 ];
 
+// The live indicator (#0010) says when the board isn't live, and a click on
+// it always refreshes (#0072).
+const LIVE: Record<LiveState, { badge?: string; title: string }> = {
+  connecting: { title: 'Connecting… Click to refresh.' },
+  live: { title: 'Live — updates as files change. Click to refresh.' },
+  stale: { badge: 'Not live', title: "Not live — loopboard can't watch this folder right now and keeps retrying. Click to refresh." },
+  offline: { badge: 'Offline', title: 'Lost the connection to loopboard — retrying. Click to refresh.' },
+};
+
 const searchInput = ref<HTMLInputElement | null>(null);
 async function focusSearch() {
   collapsed.value = false;
@@ -83,23 +92,15 @@ const feedOn = (key: InboxFilter) => props.view === 'feed' && props.filter === k
           <SquarePen :size="15" aria-hidden="true" />
         </button>
       </template>
-      <button
-        v-if="props.live === 'offline'"
-        type="button"
-        class="live-badge offline"
-        title="Lost the connection to loopboard — retrying. Click to reload now."
-        @click="emit('refresh')"
-      >
-        Offline
-      </button>
-      <span
-        v-else
-        class="live-dot"
-        :class="props.live"
-        role="status"
-        :aria-label="props.live === 'live' ? 'Live — updates as files change' : 'Connecting'"
-        :title="props.live === 'live' ? 'Live — updates as files change' : 'Connecting…'"
-      />
+      <span class="live-status" role="status">
+        <button
+          type="button"
+          :class="[LIVE[props.live].badge ? 'live-badge' : 'live-dot', props.live]"
+          :title="LIVE[props.live].title"
+          :aria-label="LIVE[props.live].title"
+          @click="emit('refresh')"
+        >{{ LIVE[props.live].badge }}</button>
+      </span>
     </div>
 
     <div v-if="!collapsed" class="rail-search-wrap">
@@ -276,6 +277,7 @@ const feedOn = (key: InboxFilter) => props.view === 'feed' && props.filter === k
 
 .rail-head { display: flex; align-items: center; gap: 4px; padding: 0 0 8px; }
 .rail-head :deep(.ws-switch) { flex: 1; min-width: 0; }
+.live-status { display: flex; flex: 0 0 auto; }
 
 .rail-icon {
   flex: 0 0 auto;
@@ -371,6 +373,7 @@ const feedOn = (key: InboxFilter) => props.view === 'feed' && props.filter === k
 .collapsed .rail-head { flex-direction: column; gap: 6px; }
 .collapsed .rail-head :deep(.ws-name), .collapsed .rail-head :deep(.ws-chevron) { display: none; }
 .collapsed .rail-head :deep(.ws-current) { justify-content: center; padding: 4px; }
+.collapsed .live-badge { width: 10px; height: 10px; padding: 0; background: var(--amber); font-size: 0; }
 .collapsed .rail-nav { justify-content: center; padding: 0; }
 .collapsed .rail-name, .collapsed .rail-count, .collapsed .prd-num, .collapsed .rail-pin, .collapsed kbd { display: none; }
 .collapsed .rail-count.hot { display: block; position: absolute; margin: -14px 0 0 18px; min-width: 8px; height: 8px; padding: 0; font-size: 0; line-height: 0; }

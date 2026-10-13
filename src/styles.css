@@ -754,13 +754,16 @@ body.is-resizing { cursor: col-resize; user-select: none; }
 .ws-manage-path { font: 11px var(--mono); color: var(--text-4); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ws-manage button { padding: 4px 9px; font-size: 12px; }
 
-/* ── Live updates (#0010) ──────────────────────────────────────── */
-.live-dot { flex: 0 0 auto; width: 8px; height: 8px; margin-right: 6px; border-radius: 50%; background: var(--text-4); }
+/* ── Live updates (#0010); the indicator is a refresh button (#0072) ── */
+.live-dot { position: relative; flex: 0 0 auto; width: 8px; height: 8px; margin-right: 6px; padding: 0; border: 0; border-radius: 50%; }
+.live-dot, .live-dot:hover, .live-dot:active { background: var(--text-4); }
 .live-dot.live { background: var(--green); box-shadow: 0 0 0 3px var(--green-soft); }
+.live-dot:focus-visible { box-shadow: 0 0 0 3px var(--focus); }
+.live-dot::after { content: ""; position: absolute; inset: -6px -6px -6px -4px; }
 .live-badge {
-  flex: 0 0 auto; padding: 2px 8px; font-size: 11px; font-weight: 600; border-radius: 99px;
+  flex: 0 0 auto; padding: 2px 8px; font-size: 11px; font-weight: 600; border-radius: 99px; white-space: nowrap;
 }
-.live-badge.offline { color: var(--amber-text); border-color: var(--amber); background: var(--amber-soft); }
+.live-badge.offline, .live-badge.stale { color: var(--amber-text); border-color: var(--amber); background: var(--amber-soft); }
 
 /* ── Help (#0014) ──────────────────────────────────────────────── */
 .help-back { font-size: 13px; color: var(--text-3); text-decoration: none; }

@@ -54,7 +54,7 @@ AND the project opens on its PRD tab
 ```
 WHEN I press ⌘K (Ctrl+K)
 THEN a palette opens with actions (New issue, New backlog idea, New project,
-    Go to Inbox, Go to Specs, Open Help) and the other workspaces
+    Refresh (§ 2), Go to Inbox, Go to Specs, Open Help) and the other workspaces
 WHEN I type
 THEN issues (by number or title), projects, specs and actions that match every
     word are listed, best match first
