@@ -53,6 +53,12 @@ must apply are numbered in [MIGRATIONS.md](MIGRATIONS.md).
   issues as `done` (migration M002).
 - `loopboard next-id`, `check` and `renumber` keep sequential numbers unique
   across branches and worktrees; `check` ignores mentions inside code.
+- Files the board can't show — invalid frontmatter, a name that isn't
+  `NNNN-slug.md`, a file that can't be read, a project folder not named
+  `NN-slug` — are counted in the rail and listed with the reason and a prompt
+  for your agent; `loopboard check` prints the same list.
+- Slugs for issue files, project folders and workspace ids write umlauts out
+  (`ä` → `ae`, `ß` → `ss`) and keep the base letter of other accented ones.
 
 ### Look and feel
 - A calm, Linear-like look: neutral grays, one violet accent, Inter, status

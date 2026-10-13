@@ -6,13 +6,14 @@
 
 ## Current focus
 
-Nothing is built yet. Work starts with what has to land before a tree of
-harnesses is created, in the decided order:
+The six standalone issues that come before the tree are built.
+[#0077](../../issues/0077-slugs-replace-umlauts-with-a-dash.md) (slugs),
+#0071, #0072 and #0100 are `done`.
 [#0076](../../issues/0076-cli-callable-everywhere-and-registry-cleanup.md)
 and [#0099](../../issues/0099-list-and-forget-workspaces-from-the-cli.md)
-(the CLI and the registry), then
-[#0077](../../issues/0077-slugs-replace-umlauts-with-a-dash.md) (slugs),
-#0071, #0072 and #0100, then
+(the CLI and the registry) are `in-review`: linking the clone and choosing
+which registry entries to forget are the maintainer's steps. Nothing of the
+project itself is built yet. Next is
 [#0078](../../issues/0078-init-kind-docs.md) — `loopboard init --kind docs`.
 #0078 can't start before
 [#0101](../../issues/0101-adrs-for-identity-ids-and-references.md), the ADRs
@@ -24,7 +25,8 @@ on answers.
 ## Before the tree
 
 What should be `done` before a tree of harnesses is created in real folders,
-in this order. The first six are standalone issues, not part of this project.
+in this order. The first six are standalone issues, not part of this project:
+#0077, #0071, #0072 and #0100 are `done`, #0076 and #0099 `in-review`.
 
 1. [#0076 Make the CLI callable everywhere](../../issues/0076-cli-callable-everywhere-and-registry-cleanup.md) and [#0099 List and forget registered workspaces from the CLI](../../issues/0099-list-and-forget-workspaces-from-the-cli.md) — agents call the CLI from every harness, and the registry should be clean before new entries go in
 2. [#0077 Slugs replace umlauts with a dash](../../issues/0077-slugs-replace-umlauts-with-a-dash.md) — an id is the folder's slug for now, never changes once written, and ends up in references
@@ -35,18 +37,19 @@ in this order. The first six are standalone issues, not part of this project.
 
 Until those are done:
 
-- **Don't run `loopboard init --kind docs`.** Today's CLI ignores the flag,
-  takes `docs` for the target and scaffolds a full code harness — skills and
-  eight symlinks — into a new `docs/` folder. #0076 makes it refuse; #0078
-  makes it work.
+- **`loopboard init --kind docs` doesn't work yet.** Since #0076 the CLI
+  refuses the flag and writes nothing; before, it took `docs` for the target
+  and scaffolded a full code harness into a new `docs/` folder. #0078 makes
+  it work.
 - **Don't write ids into identity files** before #0101 is accepted: an id
   never changes, and its pattern isn't fixed yet.
 - **Register each harness once, through its real path.** A symlinked path
   becomes a second workspace until #0080 lands.
 - **Don't move or rename a registered harness folder** until #0079 and #0080
   land: it still gets a new workspace id.
-- **Keep references to other harnesses out of WIP notes and phase lists**
-  until #0100 is fixed.
+- **References to other harnesses stay plain text.** Since #0100 a
+  `shop#0003` in a WIP note or a phase list is no longer taken for the local
+  issue 0003; loopboard reads such references from #0082 on.
 
 The rest of phase 1 can follow the tree. Once #0101 is accepted, identity
 files and references can be written by hand, because today's code ignores
@@ -117,6 +120,26 @@ Goal: the documents an issue points at open from the board, and every harness ha
 - [ ] [#0098 Add a Home tab with INDEX.md, AGENTS.md and the identity](../../issues/0098-home-tab.md) — backlog
 
 ## Activity log
+
+### 2026-10-13 — before the tree
+
+- The six standalone issues from "Before the tree" are built and brought
+  together: #0076 and #0099 (the CLI runs from any folder, refuses a flag it
+  doesn't know, lists and forgets workspaces), #0077 (umlauts are written
+  out in slugs), #0071 (skipped and unreadable files are listed in the rail
+  and by `check`), #0072 (the board says "Not live", recovers and refreshes
+  on demand) and #0100 (a reference to another harness is never linked to
+  the local issue).
+- #0076 and #0099 wait for the maintainer in `in-review`; the other four are
+  `done`.
+- Two things the six ran into: #0099's command had to declare its `--json`
+  flag once #0076 refused unknown flags, and #0071's `check` tests now run
+  through the CLI's entry point like the others.
+- Not part of this: the inbox visual baselines fail without these changes
+  too — the board toolbar wraps at 1440 px since the You and Agent filters
+  got avatars.
+- Nothing of the project itself is built. #0101 still waits on the answers
+  below, and #0078 on #0101.
 
 ### 2026-10-13 — review round
 

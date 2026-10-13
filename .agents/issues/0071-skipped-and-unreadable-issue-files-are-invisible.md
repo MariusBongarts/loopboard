@@ -71,5 +71,8 @@ down.
 - Renaming a project folder alone emits no `.md` event (the watcher ignores
   directory events), so the count follows on the next file change or reload.
 - The e2e demo workspace keeps its malformed `0009`, so its rail shows
-  "1 file skipped" on every screen. The visual baselines were not refreshed
-  with this change.
+  "1 file skipped" on every screen. The visual baselines for the list,
+  projects, specs and the issue page show the new row. Those with the board
+  in view (inbox, panel, menu, editor, palette) were left alone: the board's
+  toolbar had already moved away from them before this change, and the inbox
+  ones fail without it too.
