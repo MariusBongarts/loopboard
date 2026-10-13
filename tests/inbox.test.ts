@@ -180,6 +180,25 @@ describe('issueRefSegments', () => {
     ]);
   });
 
+  // The repo's own logs write pairs as `#0061/#0062`.
+  it('links both references of a pair written with a slash', () => {
+    expect(issueRefSegments('#0003/#0004: docs, then #0005')).toEqual([
+      { kind: 'issue', id: '0003' },
+      { kind: 'text', value: '/' },
+      { kind: 'issue', id: '0004' },
+      { kind: 'text', value: ': docs, then ' },
+      { kind: 'issue', id: '0005' },
+    ]);
+    expect(issueRefSegments('see https://example.com/#0003')).toEqual([{ kind: 'text', value: 'see https://example.com/#0003' }]);
+  });
+
+  it('reads a letter of any script as a name', () => {
+    expect(issueRefSegments('café#0003 and #0004')).toEqual([
+      { kind: 'text', value: 'café#0003 and ' },
+      { kind: 'issue', id: '0004' },
+    ]);
+  });
+
   it('links the label of an issue-file link, not the number in its path', () => {
     expect(issueRefSegments('[#0003 First](../../issues/0003-first.md)')).toEqual([
       { kind: 'text', value: '[' },

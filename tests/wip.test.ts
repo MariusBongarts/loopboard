@@ -83,6 +83,13 @@ describe('toPlainText', () => {
     expect(out).toBe('the keystore (#0482) and Firebase Pass 1 (#0454) and docs');
   });
 
+  // #0100: the same number in another harness is not this root's issue.
+  it("keeps the text of a link to another harness's issue file and adds no local number", () => {
+    expect(toPlainText('Waiting on [shop#0003](../../../shop/.agents/issues/0003-pay.md) and [the fix](../../../shop/.agents/issues/0004-fix.md).')).toBe(
+      'Waiting on shop#0003 and the fix.',
+    );
+  });
+
   it('strips emphasis and code marks and normalizes whitespace', () => {
     expect(toPlainText('**bold**  `code`\n  __u__')).toBe('bold code u');
   });

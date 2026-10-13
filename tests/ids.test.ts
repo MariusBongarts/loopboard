@@ -157,6 +157,11 @@ describe('check', () => {
     await issue(join(root, 'issues'), '0002', 'child', '', 'After shop#0099, https://example.com/#0098 &#8212; and #0097.');
     expect(checkRoot(root, false).dangling).toEqual([{ file: 'issues/0002-child.md', ref: '#0097' }]);
   });
+
+  it('reads a name in code, in emphasis or in another script as a name, and both halves of #NNNN/#NNNN (#0100)', async () => {
+    await issue(join(root, 'issues'), '0002', 'child', '', '`shop`#0099, **shop**#0098, café#0097, [shop#0096](../../../shop/.agents/issues/0096-pay.md), then #0001/#0095.');
+    expect(checkRoot(root, false).dangling).toEqual([{ file: 'issues/0002-child.md', ref: '#0095' }]);
+  });
 });
 
 describe('renumber', () => {
@@ -178,10 +183,10 @@ describe('renumber', () => {
     expect(existsSync(join(root, 'issues', '0001-first.md'))).toBe(false);
   });
 
-  it("leaves another harness's shop#NNNN alone (#0100)", async () => {
-    await issue(join(root, 'issues'), '0002', 'child', '', '#0001, (#0001) and shop#0001.');
+  it("leaves another harness's shop#NNNN alone and follows a pair written with a slash (#0100)", async () => {
+    await issue(join(root, 'issues'), '0002', 'child', '', '#0001, (#0001) and shop#0001. Pair: #0003/#0001.');
     applyRenumber(root, planRenumber({ root, oldId: '0001', newId: '0005' }));
-    expect(await readFile(join(root, 'issues', '0002-child.md'), 'utf8')).toContain('#0005, (#0005) and shop#0001.');
+    expect(await readFile(join(root, 'issues', '0002-child.md'), 'utf8')).toContain('#0005, (#0005) and shop#0001. Pair: #0003/#0005.');
   });
 
   it('needs --file for twins and leaves their ambiguous #refs alone', async () => {

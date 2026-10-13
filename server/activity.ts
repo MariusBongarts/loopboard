@@ -1,4 +1,5 @@
 import { statSync } from "node:fs";
+import { issueRefs } from "../shared/refs";
 import { git, gitLocate } from "./git";
 
 // What happened to an issue, from local git only (#0030): commits that
@@ -27,16 +28,6 @@ const SEP = "\x1f";
 const REC = "\x1e";
 const cache = new Map<string, { stamp: string; value: Activity }>();
 
-function parseCommits(out: string | null): CommitRef[] {
-  return (out ?? "")
-    .split("\n")
-    .filter(Boolean)
-    .map((line) => {
-      const [hash, date, subject] = line.split(SEP);
-      return { hash, date, subject };
-    });
-}
-
 export function issueActivity(filePath: string, id: string): Activity {
   const located = gitLocate(filePath);
   if (!located) return { git: false, commits: [], branches: [], history: [] };
@@ -47,9 +38,14 @@ export function issueActivity(filePath: string, id: string): Activity {
   const hit = cache.get(key);
   if (hit && hit.stamp === stamp) return hit.value;
 
-  const commits = parseCommits(
-    git(top, ["log", "--all", "-F", `--grep=#${id}`, `--format=%h${SEP}%as${SEP}%s`, "-n", "30"])
-  );
+  // --grep only narrows the log: `shop#0003` and a URL fragment contain
+  // `#0003` too, so each message is matched like every other reference (#0100).
+  const commits: CommitRef[] = (git(top, ["log", "--all", "-F", `--grep=#${id}`, `--format=%h${SEP}%as${SEP}%s${SEP}%B${REC}`, "-n", "200"]) ?? "")
+    .split(REC)
+    .map((record) => record.trim().split(SEP))
+    .filter(([, , , message]) => message !== undefined && issueRefs(message).some((r) => r.id === id))
+    .slice(0, 30)
+    .map(([hash, date, subject]) => ({ hash, date, subject }));
   const numberRe = new RegExp(`(^|[^0-9])${id}([^0-9]|$)`);
   const branches = (git(top, ["for-each-ref", "--format=%(refname:short)", "refs/heads", "refs/remotes"]) ?? "")
     .split("\n")

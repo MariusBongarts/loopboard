@@ -64,3 +64,21 @@ digits.
   the activity note and the pinned note keep `shop#0003` as text and still
   link `#0003`, and the phase bar counts only the local issue. No Playwright
   test was added; the coverage row in spec § 2 names the unit tests.
+- Review round, all in [`shared/refs.ts`](../../shared/refs.ts), which is now
+  a function instead of a pattern:
+  - `#0061/#0062` reads as two references again, everywhere. The shared
+    pattern had stopped at the `/` in notes and phase lists; this repo's logs
+    write pairs that way. A `/` only passes right after a reference, so a URL
+    fragment still isn't one.
+  - A letter or digit of any script is a name (`café#0003`), and emphasis or
+    code marks don't part a name from its number (`**shop**#0003`,
+    `` `shop`#0003 ``) — for the note, the phase list, `check` and issue
+    bodies alike.
+  - A link to another harness's issue file
+    (`../../../shop/.agents/issues/0003-pay.md`) no longer becomes a local
+    `#0003` in a note or counts towards a phase.
+  - An issue's activity lists a commit only when its message holds a local
+    reference; `git log --grep` alone also matched `shop#0003`.
+  - The linkifier of issue bodies looks at the text right before a node, so
+    `<strong>shop</strong>#0003` is no button. No DOM in Vitest: checked in
+    a browser, the rule itself is pinned in `tests/refs.test.ts`.

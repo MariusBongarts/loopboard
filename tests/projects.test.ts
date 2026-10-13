@@ -64,6 +64,20 @@ describe('parsePhases', () => {
     expect(listed('[First](../../issues/0003-first.md) — todo')).toEqual(['0003']);
     expect(listed('[#0003 First](../../issues/_archive/0003-first.md) — done')).toEqual(['0003']);
   });
+
+  it('counts both references of a pair written with a slash', () => {
+    expect(listed('#0003/#0004 init')).toEqual(['0003', '0004']);
+  });
+
+  it("leaves a link to another harness's issue file out of the phase", () => {
+    expect(listed('[shop#0003](../../../shop/.agents/issues/0003-pay.md) — waiting')).toEqual([]);
+    expect(listed('[Pay](../../../shop/.agents/issues/0003-pay.md), then [First](../../issues/0004-first.md)')).toEqual(['0004']);
+  });
+
+  it('reads a name in emphasis, in code or in another script as a name', () => {
+    expect(listed('**shop**#0003, `shop`#0004, café#0005, then #0006')).toEqual(['0006']);
+    expect(listed('**#0003** first')).toEqual(['0003']);
+  });
 });
 
 describe('projectProgress', () => {

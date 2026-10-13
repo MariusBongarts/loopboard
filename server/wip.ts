@@ -3,6 +3,8 @@
 // and when it was worked on (dated activity-log entries). Plain text only —
 // issue links collapse to `#NNNN` so the client can linkify them.
 
+import { localIssuePath } from "../shared/refs";
+
 export interface ProjectSession {
   date: string;
   note: string;
@@ -17,7 +19,6 @@ export interface ProjectDigest {
 }
 
 const DATE_HEADING_RE = /^###\s+(\d{4}-\d{2}-\d{2})\b.*$/gm;
-const ISSUE_HREF_RE = /issues\/(?:_archive\/)?(\d{4})-/;
 
 export function sectionBody(md: string, heading: string): string {
   const lines = md.split("\n");
@@ -42,9 +43,10 @@ export function firstParagraph(md: string): string {
 export function toPlainText(md: string): string {
   return md
     .replace(/\[([^\]]*)\]\(([^)]*)\)/g, (_, text: string, href: string) => {
-      const m = href.match(ISSUE_HREF_RE);
-      if (!m) return text;
-      return /^#?\d{4}$/.test(text.trim()) ? `#${m[1]}` : `${text} (#${m[1]})`;
+      // A link into another harness is not this root's issue (#0100).
+      const id = localIssuePath(href.trim());
+      if (!id) return text;
+      return /^#?\d{4}$/.test(text.trim()) ? `#${id}` : `${text} (#${id})`;
     })
     .replace(/\*\*|__|`/g, "")
     .replace(/^\s*[-*]\s+/gm, "")

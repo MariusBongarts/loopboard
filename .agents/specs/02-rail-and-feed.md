@@ -39,8 +39,12 @@ AND each row starts with an icon — the issue's status, or a session mark —
     project, `#NNNN` or "Session", and the issue's assignee; a session's
     remaining text follows as a two-line preview
 AND `#NNNN` references in session notes open that issue
-AND a number directly after a letter or digit is not a reference: `shop#0003`
-    names an issue of another harness and stays plain text
+AND a number directly after a letter or digit (of any script) is not a
+    reference: `shop#0003` names an issue of another harness and stays plain
+    text, also as `**shop**#0003`, and so does the text of a link to another
+    harness's issue file (`../../../shop/.agents/issues/0003-pay.md`)
+AND neither is a number after `#`, `&` or `/` (a heading, an entity, a URL
+    fragment) — except in a pair written `#0061/#0062`, where both link
 ```
 
 ### Scenario: Filter the feed from the rail

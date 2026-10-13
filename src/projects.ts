@@ -1,4 +1,4 @@
-import { issueRefSource } from '../shared/refs';
+import { issuePathRefs, issueRefs } from '../shared/refs';
 import { needsYou, prdNumber } from './inbox';
 import { isClosed, type Issue, type Project } from './types';
 
@@ -18,9 +18,6 @@ export interface ProjectProgress extends Progress {
   needsYou: number;
 }
 
-// An issue-file link (group 1) or a local `#NNNN` (group 3, #0100).
-const ISSUE_REF_RE = new RegExp(String.raw`issues\/(?:_archive\/)?(\d{4})-|${issueRefSource()}`, 'g');
-
 // `### Phase …` headings under `## Phases`, each with the issues it lists.
 export function parsePhases(wipBody: string): Phase[] {
   const section = wipBody.match(/^## Phases[ \t]*\r?\n([\s\S]*?)(?=^## |(?![\s\S]))/m)?.[1] ?? '';
@@ -29,9 +26,9 @@ export function parsePhases(wipBody: string): Phase[] {
     const heading = chunk.match(/^###\s+(.+?)\s*$/m);
     // Dated headings are journal entries that strayed into the section.
     if (!heading || /^\d{4}-\d{2}-\d{2}/.test(heading[1])) continue;
-    const ids = new Set<string>();
-    for (const m of chunk.matchAll(ISSUE_REF_RE)) ids.add(m[1] ?? m[3]);
-    phases.push({ name: heading[1], ids: [...ids] });
+    // A local issue-file link or a local `#NNNN` (#0100), in the order listed.
+    const found = [...issuePathRefs(chunk), ...issueRefs(chunk)].sort((a, b) => a.index - b.index);
+    phases.push({ name: heading[1], ids: [...new Set(found.map((f) => f.id))] });
   }
   return phases;
 }

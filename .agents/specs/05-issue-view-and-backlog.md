@@ -130,7 +130,8 @@ THEN it lists, from local git only:
     - branches whose name contains the issue's number
     - the file's own commits, newest first, each with its status change
       ("todo → in-progress", "created as todo") — across the move to _archive/
-    - commits whose message mentions #NNNN
+    - commits whose message mentions #NNNN (not `shop#NNNN` or a URL
+      fragment: the rule of § 2)
 AND outside git it says the repo isn't a git repository
 AND the history loads only when opened, and refreshes when the issue changes
 ```

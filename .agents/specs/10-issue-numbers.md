@@ -58,6 +58,9 @@ THEN each is listed as a warning and the exit code stays 0
 AND with --strict they fail the check
 AND mentions inside code (fenced blocks or `inline`) are examples, not
     references
+AND what counts as a mention is the rule of § 2: `shop#0099`, `café#0099`
+    and `**shop**#0099` belong to another harness, and `#0001/#0099` is two
+    mentions
 ```
 
 ### Scenario: Find files the board skips

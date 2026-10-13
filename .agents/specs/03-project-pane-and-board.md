@@ -168,7 +168,8 @@ AND each shows its PRD number, title, last session, how many issues need me,
 AND one small bar per `### Phase …` heading in the WIP's Phases section,
     counting the issues it lists (dated headings, and headings with nothing
     scheduled such as "Backlog", get no bar; `shop#0003`, an issue of another
-    harness, doesn't count as the local 0003)
+    harness, doesn't count as the local 0003, nor does a link to that
+    harness's issue file; `#0061/#0062` counts both — the rule of § 2)
 WHEN I click a project
 THEN its board opens
 ```

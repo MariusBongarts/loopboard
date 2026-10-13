@@ -173,7 +173,8 @@ export function findDangling(root: string): DanglingRef[] {
       const parent = text.match(PARENT_RE)?.[1]?.padStart(4, "0");
       if (parent && !known.has(parent)) out.push({ file: rel, ref: `parent: ${parent}` });
       const seen = new Set<string>();
-      for (const { id } of issueRefs(text.replace(CODE_RE, ""))) {
+      // An inline span keeps its place, so `shop`#0004 stays qualified (#0100).
+      for (const { id } of issueRefs(text.replace(CODE_RE, (_, fence?: string) => (fence ? "" : "`x`")))) {
         if (known.has(id) || seen.has(id)) continue;
         seen.add(id);
         out.push({ file: rel, ref: `#${id}` });

@@ -47,6 +47,19 @@ describe('issueActivity', () => {
     ]);
   });
 
+  // #0100: a number directly after a letter is another harness's issue.
+  it("leaves out commits that mention another harness's issue, a URL fragment or an entity", async () => {
+    git('init', '-q', '-b', 'main');
+    await write('todo');
+    git('add', '.');
+    git('commit', '-qm', 'shop#0042 fix the checkout of the other harness');
+    git('commit', '-q', '--allow-empty', '-m', 'see https://example.com/page#0042 and &#0042;');
+    git('commit', '-q', '--allow-empty', '-m', 'Tidy up', '-m', 'Follows #0041/#0042.');
+    git('commit', '-q', '--allow-empty', '-m', 'Merge #0042: the thing');
+
+    expect(issueActivity(file(), '0042').commits.map((c) => c.subject)).toEqual(['Merge #0042: the thing', 'Tidy up']);
+  });
+
   it('reports no git outside a repository', async () => {
     await write('todo');
     expect(issueActivity(file(), '0042')).toEqual({ git: false, commits: [], branches: [], history: [] });
