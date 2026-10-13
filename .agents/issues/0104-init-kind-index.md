@@ -44,6 +44,7 @@ folder"**.
 - `check` is per root today. The parent chain is the first thing it reads
   from the registry, so it has to work when there is none — a public repo's
   CI has no registry.
-- Since #0078, `--kind index` stops with "--kind takes code or docs". The
+- Since #0078, `--kind index` stops with "--kind takes code or docs", and
+  every `init` stops in a folder whose identity file says `kind: index`. The
   id rules and the identity file's writer are in `server/identity.ts`; the
   writer knows `kind: harness` only.

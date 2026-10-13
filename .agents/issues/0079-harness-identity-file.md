@@ -59,7 +59,14 @@ same name can be told apart, and harnesses can form a tree**.
 - Dates in YAML arrive as `Date` objects; normalise `created` the way issue
   dates are normalised.
 - Since #0078, `server/identity.ts` holds the id pattern, the reserved
-  words, the file's writer and a raw-line reader for `id`, `name`, `type`,
-  `parent` and `aliases`; `init` is its only caller. A docs harness set up
-  with an `--id` other than its folder's slug is registered under the slug
-  until this issue reads the file.
+  words, the file's writer and a raw-line reader for `id`, `name`, `kind`,
+  `type`, `parent` and `aliases`; `init` is its only caller. A docs harness
+  set up with an `--id` other than its folder's slug is registered under the
+  slug until this issue reads the file.
+- The reader takes a file with a BOM or blank lines before the frontmatter,
+  a quoted name with ` #` in it, and `aliases` on one line or one per line.
+  `init` checks the registry only: two folders with the same name that are
+  set up before either is opened both carry that id, and this issue is where
+  the second registration is refused. `samePath` in `server/workspaces.ts`
+  tells one folder reached through two paths; `init` uses it, the registry
+  doesn't until #0080.

@@ -128,8 +128,9 @@ for the identity file and
 for ids and references. Where a line still says **assumed**, it goes beyond
 those decisions and names where the question is settled; two of them are
 open questions in #0101 — a shared repository's identity file, and
-worktrees. The contract can be written by hand: today's code ignores the
-identity file and unknown frontmatter fields, and qualified references are
+worktrees. The contract can be written by hand: the board ignores the
+identity file and unknown frontmatter fields — only `init` reads the file,
+for `type`, `kind`, `id` and `parent` (#0078) — and qualified references are
 inert in issue bodies and for `check` (the one exception is #0100). The
 examples use one tree throughout:
 
@@ -162,7 +163,7 @@ home         index     top node; names the objects folder
   | `parent` | the id of another node, or `null` for a top node |
   | `created` | `YYYY-MM-DD` |
   | `aliases` | optional; short ids that resolve like `id` |
-  | `type` | optional; `code` or `docs`. **Assumed:** `code` when the field is missing |
+  | `type` | optional; `code` or `docs`. **Assumed:** `code` when the field is missing — `init` relies on it since #0078, and ADR-0007 records it |
   | `objects` | optional; path to an objects folder, relative to the node's folder. **Assumed:** it has to stay inside that folder |
 
   Any other field (say `access` or `related`) is preserved and ignored.

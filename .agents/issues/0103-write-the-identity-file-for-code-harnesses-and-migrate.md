@@ -50,3 +50,5 @@ harness can be recognised after a move and nothing I bookmarked changes**.
 - #0078 left two places for this issue in `server/init.ts`: `--id`,
   `--name` and `--parent` are refused without `--kind docs`, and the "Next:"
   line takes a plan that holds the identity file for the docs scaffold.
+  `planScaffold` is that one test; the manifest's `scaffold` and the hint
+  after `--upgrade` use it too, so it has to change with this issue.

@@ -47,4 +47,8 @@ up**.
 - Skill and Help wording is shipped text — no migration entry.
 - Since #0078 the docs variants — the workflow block, the AGENTS.md
   skeleton, both READMEs and all five templates — are in `scaffold/docs/`.
-  `init --upgrade` in a docs harness already refreshes from there.
+  `init --upgrade` in a docs harness already refreshes from there. Where it
+  skips an edited file it no longer points at the upgrade-harness skill; it
+  says how to see the shipped version. `.agents/.loopboard/manifest.json`
+  carries `"scaffold": "docs"`, which the skill can read without parsing the
+  identity file.

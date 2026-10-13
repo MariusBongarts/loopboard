@@ -53,7 +53,9 @@ half the scaffold first**.
 - A folder that holds a harness keeps its kind. With `type: docs` in the
   identity file, `init` and `init --upgrade` plan from the docs scaffold,
   with or without the flag. `--kind docs` on a code harness stops, and so
-  does `--kind code` on a docs harness.
+  does `--kind code` on a docs harness. The manifest records the scaffold
+  too (`"scaffold": "docs"`), so the kind survives a damaged or lost
+  identity file.
 - The identity file is written once: a flag that names another id, name or
   parent than the file holds stops the command.
 - Refused with one sentence until their issues land: `--kind index` (#0104),
@@ -82,7 +84,7 @@ which no test has:
 - [ ] Run `loopboard init --kind docs` in a real cloud-synced folder: all twelve files arrive on a second device, `.agents/.loopboard/manifest.json` and the empty `_archive/.gitkeep` included
 - [ ] The board opens on the second device
 - [ ] A status change made from the board arrives on the other device without a conflict copy or a leftover `.tmp` file
-- [x] The two new scenarios in `cli.spec.ts` pass — that file was run on its own, 17 of 17. The full e2e suite was not run in this session
+- [x] The two new scenarios in `cli.spec.ts` pass — that file was run on its own, 17 of 17. The full e2e suite ran after the review round: 96 of 98 pass, and the two that fail are the inbox baselines of #0112
 
 ## Out of scope
 
@@ -135,12 +137,57 @@ which no test has:
 - Until #0079 the registry doesn't read the file: a folder set up with an
   `--id` that differs from its slug still opens under the slug, and gets the
   file's id once #0079 lands.
-- A docs harness that lost its identity file is a code harness to `init`
-  (ADR-0007: without the file a harness behaves as before). `--kind docs`
-  stops there, and a plain `init` would add the code scaffold; put the file
-  back first.
-- Found on the way, not changed: a folder with an `issues/` folder of its
-  own counts as a harness that lives at its top (ADR-0003), so `init` sends
-  it to upgrade-harness; and a project created from the board gets a
-  "Current focus" that names the grill-me skill. Both are in the WIP's
+- Found on the way, not changed: a project created from the board gets a
+  "Current focus" that names the grill-me skill. It is in the WIP's
   deferred list.
+- Review round, 2026-10-13 — two reviewers ran the built CLI; 22 findings,
+  each reproduced first:
+  - **The kind hung on one line.** A docs harness was one only while
+    `type: docs` could be read. A BOM, a blank line before the frontmatter,
+    a lost `type` line, an unreadable or a deleted file made it a code
+    harness: `init` planned 17 more files and 8 links, `init --upgrade`
+    also replaced the docs READMEs, and `--kind docs` answered "already
+    holds a code harness". Now the manifest records the scaffold, the
+    reader skips a BOM and blank lines and compares `type` in any case, an
+    unreadable file stops every run, and a lost file is written again by
+    `init --kind docs` — every other run stops and says so, because the id
+    the file had may not be the folder's slug. A manifest from before the
+    field counts as docs when it lists no skill.
+  - **A name with ` #` was cut when read back**, so a second run with the
+    same `--name` was refused. `readField` in `shared/frontmatter.ts` now
+    ends a quoted value at its closing quote; that also mends issue titles
+    such as `"Fix #12 again"` in the editor's fields.
+  - **Ids.** A folder registered through a symlinked path is known as
+    itself. A workspace id that only counts up from `workspace` asks for
+    `--id`. `aliases` are read one per line too. An identity file from
+    before is checked: no id, an id or a parent that breaks ADR-0008 stops
+    the run and names the line to edit.
+  - **What counts as a code harness.** Also `.agents/skills`, `rules` and
+    `design`; the sentence names what was found instead of a file that
+    isn't there. A folder whose identity file says `kind: index` is left
+    alone until #0104.
+  - **Writing.** Every target is checked before the first write — a
+    read-only file or folder, a folder where a file belongs — so a plan is
+    applied whole or not at all, with one sentence naming the path. A
+    second folder on the command line stops `init`: an unquoted path with a
+    space used to set up the folder named by its first word.
+  - **`--upgrade`.** Where there is nothing to upgrade it is a first run:
+    the latest migration marker and the "Next:" line. In a docs harness the
+    hint for edited files names no skill.
+  - **A folder with an `issues/` of its own** — a magazine's back issues —
+    is taken by `--kind docs` unless issue files are in it. A plain `init`
+    still reads it as a harness at the top (ADR-0003).
+  - **The board.** The Specs entry of a workspace without specs says so
+    instead of "Loading specs…"; `loopboard` in a folder without a harness
+    names `init --kind docs` as well.
+  - **Documents.** Spec § 8 had the id sources in the wrong order and left
+    the manifest out; the glossary's "Harness" meant a repo with skills;
+    ADR-0007 said today's code ignores the file. The issues README lists
+    the reserved words.
+  - **Not decided here.** `init` checks an id against registered folders
+    only and registers nothing, so two folders with the same name can both
+    get it — the spec, the "Next:" line and the WIP say to open each folder
+    first. Whether `--kind docs` should refuse a folder that doesn't exist,
+    and the agent prompts that name skills in a docs harness, are in the
+    WIP's deferred list; the migration entry for the reserved fields is
+    question 10 in #0101.

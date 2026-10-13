@@ -32,12 +32,13 @@ called `github`.
 
 ## Questions
 
-Two are left, assigned to the maintainer: each answer becomes part of the
-on-disk format. Both have the answer the PRD and the issues assume — "as
+Three are left, assigned to the maintainer. The first two become part of
+the on-disk format. Both have the answer the PRD and the issues assume — "as
 proposed" is a complete reply — and
 [ADR-0007](../architecture/decisions/0007-identity-file-in-the-harness.md)
 records that answer as **assumed**. They keep their numbers, because #0079,
-#0080 and the WIP cite them.
+#0080 and the WIP cite them. The third came out of the review of #0078 and
+carries its number from the WIP.
 
 5. **A shared repository's identity file.** In a git repository that others
    clone, `id`, `name`, `parent` and `aliases` are public. Proposal: the
@@ -50,8 +51,21 @@ records that answer as **assumed**. They keep their numbers, because #0079,
    another one opens as a secondary checkout of the same id and is never the
    target of a reference (#0080).
 
-Neither touches #0078: a docs harness is not a shared repository and has no
-worktrees. The first and the fourth criterion stay open until both are
+10. **A migration entry for the reserved fields.** This issue added `due`,
+    `waiting-on`, `blocked-by` and `recurrence` to the shipped issues README
+    and wrote no entry in `MIGRATIONS.md`. AGENTS.md names frontmatter
+    fields as a reason for one, and both existing migrations list optional
+    fields (M001 `source:`, M002 `reviewed:` and `deployed:`). Reserving a
+    name also asks something of a harness that already uses it for
+    something else. Proposal, as the WIP assumes (its question 10): no
+    entry — the fields are optional and need nothing from an existing
+    harness, and the README section reaches it through upgrade-harness. The
+    alternative is an entry now, with the step "rename your own fields
+    called `due`, `waiting-on`, `blocked-by` or `recurrence`", and both
+    blocks' markers moved to it.
+
+Neither of the first two touches #0078: a docs harness is not a shared
+repository and has no worktrees. The first and the fourth criterion stay open until both are
 answered; everything in them that doesn't hang on these two questions is
 written.
 
@@ -114,3 +128,8 @@ was not meant.
   question 2 in #0090, and `loopboard recur` writes it.
 - README wording is shipped text, not a workflow change — no migration
   entry. The docs variant of the README gets the same section in #0078.
+  Whether reserving four field names is only wording is question 10 above.
+- Review of #0078: the README section now lists the reserved words next to
+  the id pattern — in a docs harness it is the only place the rule is
+  written. ADR-0007 records what `init` reads of the file, that a harness
+  without `type` is a code harness, and both ways to write `aliases`.

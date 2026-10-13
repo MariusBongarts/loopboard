@@ -19,13 +19,15 @@ ADR-0007 and ADR-0008) and the first feature is built:
 [#0078](../../issues/0078-init-kind-docs.md), `loopboard init --kind docs`,
 sets up a harness without code in a plain folder and writes its identity
 file. It is `in-review` for one thing no test can do: a run in a real
-cloud-synced folder with a second device. Next are
+cloud-synced folder with a second device; two reviewers went through it
+first, and what they found is fixed (see the log). Next are
 [#0102](../../issues/0102-keep-a-docs-harness-lean-through-upgrades.md) —
 the upgrade-harness skill would still add skills and links to a docs
 harness — and [#0079](../../issues/0079-harness-identity-file.md), which
 makes loopboard read the file `init` now writes and unblocks the rest of
-phase 1. #0101 stays with the maintainer for two questions: what a shared
-repository's identity file holds, and how a worktree or second clone opens.
+phase 1. #0101 stays with the maintainer for three questions: what a shared
+repository's identity file holds, how a worktree or second clone opens, and
+whether the four reserved fields get a migration entry.
 Read "Questions for the maintainer" first: four issues wait on answers.
 
 ## Before the tree
@@ -51,6 +53,11 @@ Until those are done:
 - **Don't run the upgrade-harness skill in a docs harness** until #0102: it
   would add the eight skills and their links. `loopboard init --upgrade` is
   safe there.
+- **Open each new docs folder on the board before you set up the next.**
+  `init` registers nothing and checks an id only against registered
+  folders, so two folders called `taxes` that are set up one after the
+  other both get `id: taxes`. An id never changes; #0079 refuses the second
+  registration.
 - **Write an id only as ADR-0008 allows it.** The pattern and the reserved
   words are fixed since #0101. In a git repository that others clone, keep
   the identity file to what is true for everyone: what such a file holds is
@@ -65,8 +72,11 @@ Until those are done:
   reads such references from #0082 on.
 
 The rest of phase 1 can follow the tree. Since #0101's ADRs, identity files
-and references can be written by hand, because today's code ignores them;
-#0102 has to be done before the first upgrade of a docs harness.
+and references can be written by hand: the board ignores them. `init` reads
+an identity file since #0078 — its `type`, `kind`, `id` and `parent` — so
+one written by hand needs a valid `id`, and `init` stops in a folder whose
+file says `kind: index`. #0102 has to be done before the first upgrade of a
+docs harness.
 
 Before phase 3: #0074 (one "Needs you" rule) and #0075 (the generated large
 fixture and its measurements) — the Overview builds on both. Also related
@@ -133,6 +143,34 @@ Goal: the documents an issue points at open from the board, and every harness ha
 - [ ] [#0098 Add a Home tab with INDEX.md, AGENTS.md and the identity](../../issues/0098-home-tab.md) — backlog
 
 ## Activity log
+
+### 2026-10-13 — review of init --kind docs
+
+- Two reviewers went through #0078 by running the built CLI; 22 findings,
+  three of them major. Each is fixed in #0078's code or its documents, with
+  a test where there is code; three points are decisions and went to the
+  maintainer, listed below. #0078's notes say what changed.
+- The majors: a docs harness was recognised only by a perfectly readable
+  `type: docs` line. A BOM, a blank line before the frontmatter, a lost
+  `type` line or a deleted file made it a code harness, and `init` or
+  `init --upgrade` then poured skills, specs and links over it. The
+  manifest now records the scaffold, the reader takes the damaged files,
+  and a lost file is written again only by `init --kind docs`. And the
+  reader cut a quoted name at ` #`, so `init --kind docs --name "Taxes #1"`
+  refused its own second run.
+- Also fixed: a folder registered through a symlinked path was told its own
+  id belonged to another workspace; `workspace-2` passed as an id;
+  `aliases` written one per line were not read; an identity file without an
+  id went through; a second word of an unquoted path set up another folder;
+  a write that failed halfway left a harness without a manifest; `--upgrade`
+  in an empty folder started at M000; a code harness known only by its
+  skills, rules or design folder got the docs scaffold; the Specs entry of a
+  workspace without specs said "Loading specs…" for good.
+- Left for the maintainer: question 10 is now in #0101's `## Questions`
+  (a migration entry for the reserved fields), and two items are in the
+  deferred list — the agent prompts in a docs harness, and `init` creating a
+  folder that doesn't exist.
+- The full e2e suite ran: see #0078's `## Review` for the numbers.
 
 ### 2026-10-13 — init --kind docs
 
@@ -332,7 +370,8 @@ record; nothing blocks #0078 any more.
 9. **Where recurring duties live (#0090).** `recurrence:` and
    `loopboard recur` are decided; the place for the definitions isn't.
    Assumed: one file per duty in `.agents/recurring/`.
-10. **How many migrations.** Assumed: one, for the identity file (#0103).
+10. **How many migrations (also in #0101's `## Questions`).** Assumed: one,
+    for the identity file (#0103).
     `due`, `waiting-on`, `blocked-by` and `recurrence` are optional and need
     nothing from an existing harness, so they are documented through the
     README and templates that upgrade-harness merges. M001 did list the
@@ -387,17 +426,31 @@ Cut in the review round, also on 2026-10-13:
 
 Found while building #0078, on 2026-10-13:
 
-- A docs harness that lost its identity file is a code harness to `init`:
-  `--kind docs` stops, and a plain `init` would add skills and links.
-  ADR-0007 says a harness without the file behaves as before; once the
-  registry remembers a harness's type (#0079), `init` could ask it.
+- A docs harness that lost its identity file was a code harness to `init`.
+  Fixed in the review: the manifest records the scaffold, so the folder
+  stays a docs harness and `init --kind docs` writes the file again. What
+  stays: the id it writes is the folder's slug unless `--id` names the old
+  one, until the registry remembers ids (#0079).
 - A folder with an `issues/` folder of its own — a magazine's back issues —
   counts as a harness that lives at its top (ADR-0003), and `init` sends it
-  to upgrade-harness. Older than this project, likelier in a folder of
-  documents.
+  to upgrade-harness. Since the review `init --kind docs` takes such a
+  folder unless issue files are in it; a plain `init` and the board still
+  read it as a harness.
 - A project created from the board starts with a "Current focus" that names
   the grill-me skill, which a docs harness doesn't have. It belongs with
   hiding the code-only parts of the board, above.
+
+Found in the review of #0078, on 2026-10-13:
+
+- "Copy agent prompt" names the implement, to-prd, to-issues and triage
+  skills, which a docs harness doesn't have. The board doesn't know a
+  harness's type until #0079 exposes it; it belongs with the two items
+  above on skills and code-only parts.
+- `loopboard init <path>` creates a folder that doesn't exist, parents
+  included, and lists only the files in it. For `--kind docs` a mistyped
+  path sets up a new folder next to the documents. Older than this project
+  and the same for code; whether `--kind docs` should refuse a missing
+  folder is the maintainer's call.
 
 ## Ship summary
 
