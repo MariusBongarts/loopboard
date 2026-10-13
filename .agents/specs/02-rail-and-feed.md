@@ -18,7 +18,10 @@ Status legend in [`_specs.md`](_specs.md#e2e-coverage).
 | Narrow the feed to one project | 🟡 | `02-rail-and-feed.spec.ts`. Not asserted: Paused section, empty project opening its board |
 | Pin a project to the top of the rail | ✅ | `02-rail-and-feed.spec.ts`: pin, remembered after reload, unpin; order unit-tested |
 | Resize the rail and the feed | ✅ | `02-rail-and-feed.spec.ts`: drag and keys, remembered after reload, double-click resets; clamp unit-tested in `tests/resize.test.ts` |
-| The board follows file changes live | 🟡 | `02-rail-and-feed.spec.ts`: live dot, a status change moves the card, a new file appears, selection kept. Not asserted: offline badge and catch-up. Debounce unit-tested in `tests/watch.test.ts` |
+| The board follows file changes live | 🟡 | `02-rail-and-feed.spec.ts`: live dot, a status change moves the card, a new file appears, selection kept. Not asserted: the open panel and scroll position. Debounce unit-tested in `tests/watch.test.ts` |
+| The board says when it stops being live | 🟡 | `02-rail-and-feed.spec.ts` drives the event stream: "Not live" and "Offline" badges, the refetch, the dot coming back with a catch-up. The watcher failure, the re-watch with backoff and the stream's `stale` / `ready` are in `tests/watch.test.ts`, `tests/handler.test.ts` and `tests/live.test.ts` (#0072) |
+| Refresh on demand | ✅ | `02-rail-and-feed.spec.ts`: a click on the dot, "Refresh" in ⌘K and a click on the badge each show a change made on disk; toast |
+| Folders the watcher can't follow still update | ❌ | Vitest only — `tests/watch.test.ts`: a symlinked `issues/` is polled, `LOOPBOARD_POLL_MS`, what a poll compares |
 
 ### Scenario: The feed lists sessions and issues by day
 
@@ -142,7 +145,42 @@ THEN the feed, rail, board and an open issue panel update within a moment,
     without a reload
 AND my selection, open panel and scroll position stay put
 AND a burst of writes causes one refresh, not one per file
+```
+
+### Scenario: The board says when it stops being live
+
+```
+GIVEN loopboard is open on a workspace and the dot says it's live
+WHEN the server can no longer watch the root (the folder was replaced or is
+    briefly unavailable, as happens on synced or network folders)
+THEN a "Not live" badge replaces the dot and the board is fetched once more
+AND the server tries to watch again on its own: after 1 s, then 2 s, 4 s, …
+    up to every 30 s
+WHEN it watches again
+THEN the dot is back and changes made in the meantime are fetched
 WHEN the connection to loopboard drops
-THEN an "Offline" badge replaces the dot; clicking it reloads now
+THEN an "Offline" badge replaces the dot
 AND after reconnecting, changes made in the meantime are fetched
+```
+
+### Scenario: Refresh on demand
+
+```
+GIVEN a workspace, live or not
+WHEN I click the live indicator (the dot or a badge) or choose "Refresh" in ⌘K
+THEN the workspace is read from disk again and a "Refreshed" toast confirms it
+```
+
+### Scenario: Folders the watcher can't follow still update
+
+```
+GIVEN a root whose issues/ or projects/ folder is a symlink
+WHEN a file behind the link changes
+THEN the board updates within a few seconds: those two folders are checked
+    every 2 s for a different number of markdown files or a newer one
+GIVEN a root whose changes never reach the watcher (some network or synced
+    folders)
+WHEN I start loopboard with LOOPBOARD_POLL_MS=<milliseconds> (250 or more)
+THEN issues/ and projects/ of every workspace are checked at that interval
+    as well, and a difference updates the board like any other change
 ```

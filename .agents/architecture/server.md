@@ -21,7 +21,7 @@ Repo data lives under `/api/w/:workspace`; everything else is global.
 | `DELETE /api/workspaces/:id` | — | Forgets the workspace; files untouched |
 | `GET /api/fs/suggest?path=` | — | Sub-folder names under the typed path, flagged `hasRoot` — names only, never contents |
 | `GET /api/w/:id/data` | — | `{ workspace, issues, projects, specs }`; marks the workspace last used |
-| `GET /api/w/:id/events` | — | Server-Sent Events: `ready` on connect, `change` after `.md` files under the root change (debounced) |
+| `GET /api/w/:id/events` | — | Server-Sent Events: `change` after `.md` files under the root change (debounced); `ready` on connect and whenever the root is watched again, `stale` instead while its watcher is down |
 | `GET /api/w/:id/issues/:issue/activity?archived=` | — | Local git: commits mentioning `#NNNN`, branches named after it, the file's history with status changes |
 | `GET` / `PUT /api/w/:id/views` | `{ views }` on PUT | Saved list views for the workspace, kept in the user config |
 | `GET /api/w/:id/doc?path=` | — | `{ path, content, hash }` for a markdown file under the root |
@@ -48,7 +48,7 @@ logged.
 | [ids.ts](../../server/ids.ts), [renumber.ts](../../server/renumber.ts) | `next-id` / `check` / `renumber`: IDs from the working tree, other worktrees' working copies and every local and remote-tracking branch (`git ls-tree`); duplicates are different names sharing a number; renumber plans every edit before applying ([ADR-0004](decisions/0004-sequential-branch-aware-ids.md)) |
 | [init.ts](../../server/init.ts) | `loopboard init [--upgrade]`: plans every file action (create, update, keep, keep-modified, link, block), then applies it; a manifest of shipped-file hashes in `.agents/.loopboard/manifest.json` tells untouched files from edited ones. Sources: this repo's `.agents/skills`, issue/project READMEs and templates, and [scaffold/](../../scaffold/) |
 | [migrations.ts](../../server/migrations.ts) | Parses `MIGRATIONS.md` and a harness's level (the AGENTS.md marker, none → M000); per workspace: current, behind, unmarked, no AGENTS.md or missing, plus legacy `ai/` roots. `init` takes the latest level from here |
-| [watch.ts](../../server/watch.ts) | One recursive `fs.watch` per root while a client listens; only `.md` paths count; bursts collapse into one event |
+| [watch.ts](../../server/watch.ts) | One recursive `fs.watch` per root while a client listens; only `.md` paths count; bursts collapse into one event. A watcher that errors (or can't start) is reported as `stale` and reopened with backoff (1 s doubling to 30 s), then `ready`. Where `fs.watch` can't see — a symlinked `issues/` or `projects/`, or every root when `LOOPBOARD_POLL_MS` is set — it also polls those two folders (markdown paths and mtimes) and emits the same `change` (#0072) |
 | [serve.ts](../../server/serve.ts), [open.ts](../../server/open.ts) | Production HTTP server with port fall-through (static files with `Range` support — Safari plays video only in parts); opening the browser |
 | [issues.ts](../../server/issues.ts) | Status/assignee vocabularies, reading issues and projects. The filename's digits are the canonical ID — YAML 1.1 reads `0070` as octal, so `id:` is never trusted. Malformed files are skipped with a warning; frontmatter goes through [frontmatter.ts](../../server/frontmatter.ts), which bypasses gray-matter's cache so a skipped file can't return as a ghost (#0042). |
 | [wip.ts](../../server/wip.ts) | Project digest: PRD problem/solution, WIP current focus, dated sessions (first entry per date wins). |

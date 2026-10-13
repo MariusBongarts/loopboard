@@ -8,6 +8,7 @@ import type { Server } from 'node:http';
 import { latestMigration } from '../server/migrations';
 import { packageRoot } from '../server/paths';
 import { createAppServer } from '../server/serve';
+import { watchHub } from '../server/watch';
 
 let tmp: string;
 let server: Server;
@@ -49,6 +50,26 @@ function call(
     if (data) req.write(data);
     req.end();
   });
+}
+
+// Follows a Server-Sent Events stream; returns the event names so far and a stop.
+function follow(path: string): { events: string[]; stop: () => void } {
+  const events: string[] = [];
+  const req = request({ host: '127.0.0.1', port, path, headers: { host: `localhost:${port}` } }, (res) => {
+    let text = '';
+    res.on('data', (c) => {
+      text += c;
+      events.splice(0, events.length, ...[...text.matchAll(/^event: (\w+)$/gm)].map((m) => m[1]));
+    });
+  });
+  req.on('error', () => {});
+  req.end();
+  return { events, stop: () => req.destroy() };
+}
+
+async function until(check: () => boolean, ms = 4000): Promise<void> {
+  const deadline = Date.now() + ms;
+  while (!check() && Date.now() < deadline) await new Promise((r) => setTimeout(r, 20));
 }
 
 beforeAll(async () => {
@@ -143,5 +164,32 @@ describe('API over HTTP', () => {
     const part = await call('GET', '/media/clip.mp4', { headers: { range: 'bytes=10-19' } });
     expect(part).toMatchObject({ status: 206, headers: { 'content-range': 'bytes 10-19/100', 'content-length': '10' } });
     expect((await call('GET', '/media/clip.mp4', { headers: { range: 'bytes=200-' } })).status).toBe(416);
+  });
+
+  // #0072
+  it('says on the event stream whether the root is being watched', async () => {
+    const demo = follow('/api/w/demo/events');
+    await until(() => demo.events.length > 0);
+    demo.stop();
+    expect(demo.events).toEqual(['ready']);
+
+    const repo = join(tmp, 'away');
+    await mkdir(join(repo, '.agents', 'issues'), { recursive: true });
+    const added = await call('POST', '/api/workspaces', { body: { path: repo } });
+    const { root } = JSON.parse(added.body).workspace as { root: string };
+    await rm(root, { recursive: true });
+    const away = follow('/api/w/away/events');
+    try {
+      await until(() => away.events.length > 0);
+      expect(away.events).toEqual(['stale']);
+      // The hub re-watches on its own once the folder is back.
+      await mkdir(join(root, 'issues'), { recursive: true });
+      await until(() => away.events.length > 1);
+      expect(away.events).toEqual(['stale', 'ready']);
+    } finally {
+      away.stop();
+      await until(() => !watchHub.watching(root));
+      await call('DELETE', '/api/workspaces/away');
+    }
   });
 });

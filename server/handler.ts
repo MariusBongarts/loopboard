@@ -18,7 +18,7 @@ import { packageRoot, packageVersion } from "./paths";
 import { guardRequest } from "./security";
 import { readAllSpecs } from "./specs";
 import { loadViews, saveViews, validViews } from "./views";
-import { watchHub } from "./watch";
+import { watchHub, type WatchEvent } from "./watch";
 import {
   loadRegistry,
   registerWorkspace,
@@ -199,7 +199,8 @@ route("GET", /^\/api\/w\/([^/]+)\/data$/, async (ctx, _req, res, m) => {
   json(res, 200, { workspace: summary, issues, projects, specs });
 });
 
-// Server-Sent Events: "change" whenever files under the root change (#0010).
+// Server-Sent Events: "change" whenever files under the root change (#0010),
+// "stale" while the watcher is down and "ready" once it watches (#0072).
 route("GET", /^\/api\/w\/([^/]+)\/events$/, async (ctx, req, res, m) => {
   const workspace = await findWorkspace(ctx, m.params[0]);
   res.writeHead(200, {
@@ -207,10 +208,10 @@ route("GET", /^\/api\/w\/([^/]+)\/events$/, async (ctx, req, res, m) => {
     "cache-control": "no-store",
     connection: "keep-alive",
   });
-  res.write("retry: 2000\n\nevent: ready\ndata: {}\n\n");
-  const unsubscribe = watchHub.subscribe(workspace.root, () => {
-    res.write(`event: change\ndata: ${JSON.stringify({ at: Date.now() })}\n\n`);
-  });
+  res.write("retry: 2000\n\n");
+  const send = (event: WatchEvent) => res.write(`event: ${event}\ndata: ${JSON.stringify({ at: Date.now() })}\n\n`);
+  const unsubscribe = watchHub.subscribe(workspace.root, send);
+  send(watchHub.watching(workspace.root) ? "ready" : "stale");
   const heartbeat = setInterval(() => res.write(": ping\n\n"), 25_000);
   req.on("close", () => {
     clearInterval(heartbeat);

@@ -10,7 +10,11 @@ must apply are numbered in [MIGRATIONS.md](MIGRATIONS.md).
   (or legacy `ai/`) folder; a second repo joins the running server.
 - One server for every repo: a workspace switcher in the top-left, workspaces
   remembered in `~/.config/loopboard`, folder suggestions when adding one.
-- Live updates: the board follows file changes as agents work.
+- Live updates: the board follows file changes as agents work. When the file
+  watcher fails it says "Not live", refetches and recovers on its own;
+  "Refresh" is a click on the live indicator or ⌘K away. Symlinked `issues/`
+  and `projects/` folders are polled, and `LOOPBOARD_POLL_MS` polls every
+  workspace.
 
 ### Set up and upgrade
 - `loopboard init` scaffolds the workflow (skills, templates, specs,

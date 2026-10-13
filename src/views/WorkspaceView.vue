@@ -143,6 +143,12 @@ function scheduleReload() {
 }
 const { state: liveState } = useLiveUpdates(workspaceId, scheduleReload);
 
+// Always one action away (#0072): ⌘K and a click on the live indicator.
+async function refresh() {
+  await load();
+  if (!errorFromLoad) toast('Refreshed');
+}
+
 // A missing root can't be watched, so poll until it's back (#0015).
 let missingTimer: ReturnType<typeof setInterval> | null = null;
 watch(
@@ -348,6 +354,7 @@ const commands = computed<Command[]>(() => {
     { id: 'new-issue', title: 'New issue', group: 'Actions', hint: SHORTCUTS.create.display, run: () => openCreate(false) },
     { id: 'new-backlog', title: 'New backlog idea', group: 'Actions', run: () => openCreate(true) },
     { id: 'new-project', title: 'New project', group: 'Actions', run: () => (projectDialogOpen.value = true) },
+    { id: 'refresh', title: 'Refresh', group: 'Actions', keywords: 'reload refetch update live', run: () => void refresh() },
     { id: 'go-inbox', title: 'Go to Inbox', group: 'Actions', keywords: 'feed', run: () => router.push(`/w/${ws}`) },
     { id: 'go-specs', title: 'Go to Specs', group: 'Actions', run: () => router.push(`/w/${ws}/specs`) },
     { id: 'go-issues', title: 'Go to Issues (list)', group: 'Actions', keywords: 'list table', run: () => router.push(`/w/${ws}/issues`) },
@@ -581,7 +588,7 @@ async function onCancelWontfix() {
       :specs="specs"
       :live="liveState"
       :request="paneRequest"
-      @refresh="load"
+      @refresh="refresh"
       @selection="(iss) => (selectedIssue = iss)"
       @pane-project="(slug) => (paneProject = slug)"
       @new-issue="openCreate(false)"
