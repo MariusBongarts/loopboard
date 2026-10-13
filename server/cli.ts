@@ -271,9 +271,11 @@ commands.renumber = {
 // The registry without a running board (#0099). The path is the root, as in
 // "Manage workspaces": a moved root and its new twin share one repo path.
 commands.workspaces = {
+  usage: "workspaces",
   summary: "List registered workspaces (--json); `workspaces forget <id>…` removes entries, never files",
-  async run(args) {
-    const [sub, ...ids] = positionals(args);
+  flags: { "--json": "switch" },
+  async run({ positionals, switches }) {
+    const [sub, ...ids] = positionals;
     const dir = configDir();
     if (sub === "forget" && ids.length) {
       const { removed, unknown } = await removeWorkspaces(dir, ids);
@@ -295,7 +297,7 @@ commands.workspaces = {
     const entries = (await loadRegistry(dir)).workspaces
       .map(summarize)
       .map((w) => ({ id: w.id, name: w.name, path: w.root, exists: w.available }));
-    if (flag(args, "--json")) console.log(JSON.stringify(entries, null, 2));
+    if (switches.has("--json")) console.log(JSON.stringify(entries, null, 2));
     else if (!entries.length) console.log("No workspaces registered. `loopboard [path]` opens a repo and registers it.");
     else {
       const rows = [["ID", "NAME", "FOLDER", "PATH"], ...entries.map((e) => [e.id, e.name, e.exists ? "exists" : "missing", e.path])];
