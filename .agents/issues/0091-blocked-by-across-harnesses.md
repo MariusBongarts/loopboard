@@ -35,7 +35,7 @@ know what finishing something unlocks**.
 
 - A picker to add or remove blockers in the board — deferred in `wip.md`; until then agents and the editor write the line
 - Dependencies declared on a project (a line in the WIP header) — deferred in `wip.md`; an issue can already be blocked by a project
-- The Connections section of the Overview — #0093
+- A list of connections across harnesses — not loopboard's (ADR-0009)
 - Changing an issue's status in the board when its blockers finish — loopboard shows; the grooming skill proposes the move
 - Rewriting `blocked-by` entries in other harnesses when an issue is renumbered — deferred in `wip.md`; `check` there reports the break
 

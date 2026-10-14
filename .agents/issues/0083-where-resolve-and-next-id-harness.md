@@ -21,18 +21,18 @@ guessing where it lives or which number is free**.
 
 ## Acceptance criteria
 
-- [ ] `loopboard where <id|alias>` prints the absolute path of that node's folder; `--json` adds id, name, kind, type, parent, aliases, the root loopboard reads there (`.agents/` or a legacy `ai/`) and the id of the tree's top node; an unknown id exits 1 and lists the ids that are registered
+- [ ] `loopboard where <id|alias>` prints the absolute path of that node's folder; `--json` adds id, name, kind, type, parent, aliases, and the root loopboard reads there (`.agents/` or a legacy `ai/`); an unknown id exits 1 and lists the ids that are registered
 - [ ] `loopboard resolve <ref>` prints the absolute path for `<id>#NNNN` (the issue file, live or archived), `<id>#PNN` (the project folder) and `<id>:<path>` (the file); an unqualified `#NNNN` resolves in the harness of the current folder; `--json` adds the kind of target and, for an issue, its title and status
 - [ ] A reference that doesn't resolve exits 1 with one line saying why: unknown id, no such issue, no such project, no such file, folder missing
 - [ ] `<id>:<path>` never resolves outside the harness folder: `..`, absolute paths and symlinks that lead out are refused
-- [ ] `loopboard next-id <issue|project> --harness <id>` prints the next free number of that harness from any folder, and refuses an index node with one sentence
+- [ ] `loopboard next-id <issue|project> --harness <id>` prints the next free number of that harness from any folder
 - [ ] All three work without git and without a running board, appear in `--help`, and are tested from a foreign working directory against two temp harnesses
 - [ ] The issues README and the implement and to-issues skills say to follow a qualified reference with `loopboard resolve`; spec § 10 gains the scenarios
 
 ## Out of scope
 
 - Listing and pruning the registry — `loopboard workspaces` (#0099)
-- Resolving `@id` to a person's or an organisation's file, and the objects folder in `where --json` — #0087 adds both
+- Resolving `@id` to a person's or an organisation's file, and the objects folder — not loopboard's (ADR-0009)
 - Opening the resolved file — the command prints a path; what opens it is the caller's business
 - Allocating numbers for a harness that isn't registered — pass its path, as today
 
@@ -40,8 +40,7 @@ guessing where it lives or which number is free**.
 
 - PRD stories 18, 19. These commands read the registry and the files; they
   must not need the server, because agents call them while no board is open.
-- "Root" keeps its glossary meaning here — the folder loopboard reads. The
-  top of the tree is the top node.
+- "Root" keeps its glossary meaning here — the folder loopboard reads.
 - `next-id <kind> [path]` keeps working; `--harness` is a second way to name
   the target.
 - Skill and README wording is shipped text, not a workflow change — no

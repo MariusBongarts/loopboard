@@ -1,6 +1,6 @@
 # Harness ids are short lowercase words, and references carry them in front
 
-- **Status**: accepted — `init --kind docs` checks ids (#0078); not built yet: #0079 (ids), #0082 (references)
+- **Status**: accepted — `init --kind docs` checks ids (#0078); not built yet: #0079 (ids), #0082 (references); the note on `@id` amended by [ADR-0009](0009-views-over-a-tree-live-outside-loopboard.md)
 - **Date**: 2026-10-13
 
 Every harness counts its issues from 0001, so a reference into another
@@ -82,5 +82,6 @@ id; the ids and aliases of the registered nodes share one namespace.
   reference — which trailing characters are punctuation, and how a path
   that needs one of them is written.
 - `@id` names a person or an organisation, not a harness. Objects have their
-  own ids ([project 04's PRD](../../projects/04-harness-tree/prd.md)); this
+  own ids, and since [ADR-0009](0009-views-over-a-tree-live-outside-loopboard.md)
+  loopboard doesn't resolve them: `@id` stays plain text on the board. This
   ADR doesn't cover them.

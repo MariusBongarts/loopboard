@@ -1,10 +1,18 @@
-# A tree of harnesses — WIP
+# Harnesses across folders — WIP
 
-> Last updated: 2026-10-13
+> Last updated: 2026-10-14
 > PRD: [./prd.md](./prd.md)
 > Status: in-progress
 
 ## Current focus
+
+**Narrowed on 2026-10-14
+([ADR-0009](../../architecture/decisions/0009-views-over-a-tree-live-outside-loopboard.md)).**
+Views over a whole tree — index nodes, people and organisations, the
+Overview, the switcher as a tree, the Home tab and a log — moved out of
+loopboard into tools built on the same files. Ten issues are `wontfix` with
+a "Why rejected" section; #0113 is new and gives such tools stable URLs and
+the folder and URL of each workspace. Nothing that was built changes.
 
 The six standalone issues that come before the tree are built.
 [#0077](../../issues/0077-slugs-replace-umlauts-with-a-dash.md) (slugs),
@@ -79,7 +87,8 @@ file says `kind: index`. #0102 has to be done before the first upgrade of a
 docs harness.
 
 Before phase 3: #0074 (one "Needs you" rule) and #0075 (the generated large
-fixture and its measurements) — the Overview builds on both. Also related
+fixture and its measurements) — the harness index and the cross-workspace
+due list build on both. Also related
 and standalone: #0073 (relative links; #0097 builds on it).
 
 ## Phases
@@ -101,48 +110,77 @@ Goal: a harness carries its own identity, a harness without code can be scaffold
 - [ ] [#0079 Take a harness's id, name and parent from its identity file](../../issues/0079-harness-identity-file.md) — todo
 - [ ] [#0080 A moved or symlinked harness shows up as a second workspace](../../issues/0080-moved-or-symlinked-harness-becomes-a-second-workspace.md) — todo
 - [ ] [#0103 Write the identity file for code harnesses and add it to existing ones](../../issues/0103-write-the-identity-file-for-code-harnesses-and-migrate.md) — todo
-- [ ] [#0081 Register index nodes — folders that group harnesses but hold no issues](../../issues/0081-register-index-nodes.md) — todo
-- [ ] [#0104 Scaffold an index node with loopboard init --kind index](../../issues/0104-init-kind-index.md) — todo
 - [ ] [#0082 Reference issues, projects and files in other harnesses and check them](../../issues/0082-qualified-references-syntax-and-check.md) — todo
 - [ ] [#0083 Turn an id or a reference into a path with loopboard where and resolve](../../issues/0083-where-resolve-and-next-id-harness.md) — todo
 - [ ] [#0084 Follow references to other harnesses in the board](../../issues/0084-qualified-references-in-the-board.md) — todo
+- [ ] [#0113 Link into the board from other tools with stable URLs](../../issues/0113-link-into-the-board-from-other-tools.md) — todo
 
-### Phase 2 — Deadlines and people
+### Phase 2 — Deadlines and waiting
 
-Goal: issues carry due dates and say who they wait on; people and organisations are files every harness and agent can reach, with a page; recurring duties file themselves through a command.
+Goal: issues carry due dates and say who they wait on, what's due shows across workspaces, and recurring duties file themselves through a command.
 
 - [ ] [#0085 Give issues a due date and see what's overdue](../../issues/0085-due-dates.md) — backlog
 - [ ] [#0105 Sort, group and filter the list by due date](../../issues/0105-sort-group-and-filter-by-due-date.md) — backlog
 - [ ] [#0086 See what's due across all harnesses](../../issues/0086-due-across-harnesses.md) — backlog
-- [ ] [#0087 Keep people and organisations as files every harness can reach](../../issues/0087-people-and-organisations-as-files.md) — backlog
-- [ ] [#0106 Browse people and organisations in loopboard](../../issues/0106-browse-people-and-organisations.md) — backlog
 - [ ] [#0088 Say who owes a reply with waiting-on](../../issues/0088-waiting-on.md) — backlog (human: questions)
 - [ ] [#0107 Set and filter waiting-on from the board](../../issues/0107-set-and-filter-waiting-on-from-the-board.md) — backlog
-- [ ] [#0089 Link @mentions and show backlinks on a person's page](../../issues/0089-mentions-and-backlinks.md) — backlog
 - [ ] [#0090 Create recurring issues with loopboard recur](../../issues/0090-recurring-issues-with-loopboard-recur.md) — backlog (human: questions)
 
-### Phase 3 — Dependencies and overview
+### Phase 3 — Dependencies and navigation
 
-Goal: blockers cross projects and harnesses, and one Overview shows the whole tree with its connections and what was last done where; the switcher and ⌘K follow the tree.
+Goal: blockers cross projects and harnesses, a folder of harnesses registers in one step, and ⌘K reaches every harness.
 
 - [ ] [#0091 Block an issue on several issues, also in other harnesses](../../issues/0091-blocked-by-across-harnesses.md) — backlog
-- [ ] [#0092 See every harness on one Overview page](../../issues/0092-overview-page.md) — backlog
-- [ ] [#0093 Show how harnesses depend on each other on the Overview](../../issues/0093-connections-on-the-overview.md) — backlog
-- [ ] [#0109 Keep a log at the top of the tree of what was done where](../../issues/0109-log-of-what-was-done-where.md) — backlog (human: questions)
-- [ ] [#0094 Show the workspace switcher as a tree](../../issues/0094-workspace-switcher-as-a-tree.md) — backlog
 - [ ] [#0095 Register a whole folder tree in one step](../../issues/0095-register-a-folder-tree.md) — backlog
 - [ ] [#0108 Add a folder tree from the switcher](../../issues/0108-add-a-folder-tree-from-the-switcher.md) — backlog
 - [ ] [#0096 Search every harness from ⌘K and jump to a qualified reference](../../issues/0096-command-palette-across-harnesses.md) — backlog
 
 ### Phase 4 — Documents
 
-Goal: the documents an issue points at open from the board, and every harness has a Home with its index and instructions.
+Goal: the documents an issue points at open from the board.
 
 - [ ] [#0097 Read linked markdown files inside loopboard and see which links are broken](../../issues/0097-open-documents-from-the-board.md) — backlog
 - [ ] [#0110 Open and reveal linked documents with the system's apps](../../issues/0110-open-and-reveal-linked-documents.md) — backlog
-- [ ] [#0098 Add a Home tab with INDEX.md, AGENTS.md and the identity](../../issues/0098-home-tab.md) — backlog
+
+### Moved out on 2026-10-14
+
+`wontfix`, each with a "Why rejected" section (ADR-0009):
+[#0081](../../issues/0081-register-index-nodes.md),
+[#0104](../../issues/0104-init-kind-index.md),
+[#0087](../../issues/0087-people-and-organisations-as-files.md),
+[#0106](../../issues/0106-browse-people-and-organisations.md),
+[#0089](../../issues/0089-mentions-and-backlinks.md),
+[#0092](../../issues/0092-overview-page.md),
+[#0093](../../issues/0093-connections-on-the-overview.md),
+[#0094](../../issues/0094-workspace-switcher-as-a-tree.md),
+[#0098](../../issues/0098-home-tab.md),
+[#0109](../../issues/0109-log-of-what-was-done-where.md).
 
 ## Activity log
+
+### 2026-10-14 — views over the tree moved out
+
+- The maintainer decided to keep loopboard a board per harness and to leave
+  views over a whole tree to tools built on the same files.
+  [ADR-0009](../../architecture/decisions/0009-views-over-a-tree-live-outside-loopboard.md)
+  records it and amends ADR-0007 (`kind: index` stays valid in the file but
+  is never registered, `--kind index` is gone, `objects` is kept and
+  ignored, the identity file is no second way into root detection) and
+  ADR-0008 (`@id` stays plain text).
+- Ten issues are `wontfix`: #0081, #0104, #0087, #0106, #0089, #0092, #0093,
+  #0094, #0098, #0109. Their text stays as the record.
+- Adjusted: #0079 (no tree, `objects` not resolved), #0083 (no top node, no
+  `@id`), #0084, #0086, #0088 (the value is shown as written, no object
+  lookup, no `check`; parent dropped), #0107 (the picker offers values
+  already used), #0090, #0091, #0095 (a scan skips index nodes), #0096
+  (parent is now #0084), #0078 and #0101 (wording), and the reserved-fields
+  table in both issues READMEs (`@id` stays text).
+- New: #0113 — stable URLs for a workspace, an issue and a project, and
+  `folder` and `url` in `workspaces --json`, so other tools link into the
+  board.
+- The PRD keeps every story number; moved ones are struck through. Its
+  title is now "Harnesses across folders"; the folder keeps its slug.
+- Question 1 is closed by the move; questions 7 and 8 stay with #0088.
 
 ### 2026-10-13 — review of init --kind docs
 
@@ -327,7 +365,7 @@ issues assume, so work can continue where nothing is blocked; overrule
 anything. Questions 2–4 were answered on 2026-10-13 and stay here for the
 record; nothing blocks #0078 any more.
 
-1. **A root log of what was done where (#0109).** You asked, as a maybe, for
+1. *Closed 2026-10-14: moved out with #0109 (ADR-0009).* **A root log of what was done where (#0109).** You asked, as a maybe, for
    a root memory file that keeps book whenever something was done somewhere.
    The product direction keeps a journal hook out of the product; the need
    itself is in. Assumed: the Overview shows a "Recent" list derived from

@@ -58,8 +58,9 @@ half the scaffold first**.
   identity file.
 - The identity file is written once: a flag that names another id, name or
   parent than the file holds stops the command.
-- Refused with one sentence until their issues land: `--kind index` (#0104),
-  and `--id`, `--name` or `--parent` without `--kind docs` (#0103). Also
+- Refused with one sentence: `--kind index` — index nodes aren't loopboard's
+  since ADR-0009 — and, until #0103 lands, `--id`, `--name` or `--parent`
+  without `--kind docs`. Also
   refused: `--with-extras` with `--kind docs`.
 - Beyond the criteria: where a `CLAUDE.md` was there before, the "Next:"
   line says to add `@AGENTS.md` to it — the docs scaffold has no SETUP.md to
@@ -165,7 +166,7 @@ which no test has:
   - **What counts as a code harness.** Also `.agents/skills`, `rules` and
     `design`; the sentence names what was found instead of a file that
     isn't there. A folder whose identity file says `kind: index` is left
-    alone until #0104.
+    alone (ADR-0009).
   - **Writing.** Every target is checked before the first write — a
     read-only file or folder, a folder where a file belongs — so a plan is
     applied whole or not at all, with one sentence naming the path. A

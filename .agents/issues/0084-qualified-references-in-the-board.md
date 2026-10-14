@@ -40,9 +40,8 @@ one click, without knowing where that harness lives**.
 - PRD story 20. Uses the parser from #0082, so the board and `check` agree on
   what a reference is.
 - This issue owns the harness index the PRD names under "Cross-harness reads
-  are light". The due list (#0086), blockers (#0091), the Overview (#0092),
-  the switcher (#0094) and ⌘K (#0096) extend it, so shape it as rows per
-  harness, not as link markup.
+  are light". The due list (#0086), blockers (#0091) and ⌘K (#0096) extend
+  it, so shape it as rows per harness, not as link markup.
 - Like the rest of phase 1 after #0078, this can follow the tree: a
   reference written before it lands is plain text, not broken — except in
   WIP notes and phase lists, which #0100 fixes.

@@ -16,27 +16,28 @@ created: 2026-10-13
 As a **maintainer of several harnesses**, I want **loopboard to take a
 harness's id, name, kind and parent from `.agents/harness.md`**, so that **a
 harness is the same harness wherever its folder sits, two folders with the
-same name can be told apart, and harnesses can form a tree**.
+same name can be told apart, and a harness can name the one it belongs
+to**.
 
 ## Acceptance criteria
 
-- [ ] One module reads and validates the identity file — `schema`, `id`, `name`, `kind`, `parent`, `created`, and the optional `aliases`, `type`, `objects` — as the PRD and the ADRs from #0101 define them. `id`, `parent` and `aliases` are read from the raw line, so a value like `true`, `null` or `2026` stays the text it is; unknown fields are ignored and survive every write loopboard makes to the file
+- [ ] One module reads and validates the identity file — `schema`, `id`, `name`, `kind`, `parent`, `created`, and the optional `aliases`, `type` and `objects` (kept, never resolved — ADR-0009) — as the PRD and the ADRs from #0101 define them. `id`, `parent` and `aliases` are read from the raw line, so a value like `true`, `null` or `2026` stays the text it is; unknown fields are ignored and survive every write loopboard makes to the file
 - [ ] The file is looked for at `.agents/harness.md` in the node's folder, also when the issue root is a legacy `ai/`; root detection is unchanged
 - [ ] Registering a folder with a valid file uses its `id` as the workspace id and its `name` as the display name; `kind`, `type`, `parent` and `aliases` come back with the workspace from the API. The file is read at registration and again on every load of the workspace
 - [ ] A folder that never had a valid identity file registers under its slug id and works as today
 - [ ] Once the registry has taken an id from the file, a missing, unreadable or invalid file keeps the last known id, name, kind and parent, which the registry remembers — it never falls back to the slug. A sync client's conflict copy of `harness.md` is ignored
 - [ ] Each of those problems — an invalid id, an unknown `kind`, an unreadable file, a conflict copy — is printed by `loopboard check` with the file and the reason, and listed in the board's skipped-files list from #0071
 - [ ] Two registered nodes can't share an id or an alias: the second registration is refused with a sentence naming both folders — no silent `-2` suffix
-- [ ] The registry can hold a per-machine name and parent for a node; where set, they win over the file for display and for the tree and are never written into the harness. Renaming a workspace in the board writes that override when the harness is a git repository, and the file's `name:` line otherwise; `loopboard workspaces set <id> --parent <id|none>` writes the parent override
-- [ ] The glossary gains harness id, index node and top node; spec § 7 is updated, "Rename and remove workspaces" included; Vitest covers a valid file, no file, an invalid id, a duplicate id, unknown fields kept, an unreadable file on a harness that was already identified, and the legacy `ai/` fixture with an identity file
+- [ ] The registry can hold a per-machine name and parent for a node; where set, they win over the file for display and in the API and are never written into the harness. Renaming a workspace in the board writes that override when the harness is a git repository, and the file's `name:` line otherwise; `loopboard workspaces set <id> --parent <id|none>` writes the parent override
+- [ ] The glossary gains harness id; spec § 7 is updated, "Rename and remove workspaces" included; Vitest covers a valid file, no file, an invalid id, a duplicate id, unknown fields kept, an unreadable file on a harness that was already identified, and the legacy `ai/` fixture with an identity file
 
 ## Out of scope
 
 - Writing the file for code harnesses, the migration for existing ones and this repo's own file — #0103
 - Following a harness that moved, treating a symlinked path as the same folder, and worktrees — #0080
-- Index nodes, which have no `issues/` folder — #0081
-- Showing the tree anywhere — the Overview and the switcher come in phase 3; here `parent` is only stored and returned
-- Resolving `objects:` — phase 2
+- Index nodes, which have no `issues/` folder — not loopboard's (ADR-0009); registering one keeps failing with today's "no issues/ found" sentence
+- Showing the tree anywhere — loopboard stores, validates and returns `parent` and draws no tree (ADR-0009)
+- Resolving `objects:` — not loopboard's (ADR-0009)
 
 ## Notes
 

@@ -6,7 +6,7 @@ status: backlog
 assignee: agent
 project: 04-harness-tree
 phase: 3
-parent: 0092
+parent: 0084
 labels: [ui, navigation]
 created: 2026-10-13
 ---
@@ -30,7 +30,6 @@ workspace first to find something**.
 ## Out of scope
 
 - Searching issue bodies across harnesses — titles, ids and labels only; body search is per workspace (#0075 moves it to the server)
-- Searching people and organisations from ⌘K — a small follow-up once their pages exist (#0106)
 - Actions on a foreign issue (change status, copy prompt) — open it first
 
 ## Notes

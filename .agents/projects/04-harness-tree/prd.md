@@ -1,6 +1,7 @@
-# A tree of harnesses — PRD
+# Harnesses across folders — PRD
 
 > Drafted: 2026-10-13
+> Narrowed: 2026-10-14 — views over a whole tree moved out ([ADR-0009](../../architecture/decisions/0009-views-over-a-tree-live-outside-loopboard.md))
 > Status: in-progress
 
 ## Problem statement
@@ -21,19 +22,24 @@ them.
 
 ## Solution
 
-One board for code, companies and private life. Every harness carries its own
-identity in a small file, so loopboard recognises it wherever the folder goes,
-and harnesses form a tree: a company above its two code repos, a "private"
-node above taxes and a wedding. A harness doesn't have to be a git repo or
-hold code — `loopboard init --kind docs` sets one up in a plain, cloud-synced
-folder. A reference like `shop#0412` points at an issue, project or file in
-another harness, and `loopboard check` says when it points nowhere. Issues can
-carry a due date, say who they're waiting on (a person or an organisation,
-each kept as a file every harness and every agent can read), depend on
-several issues anywhere in the tree, and recur. An Overview page shows the
-whole tree: what needs you, what's due, who you're waiting on, which projects
-are active, what was last done where and how harnesses depend on each other.
-Documents an issue links to open from the board.
+Boards for code and for documents that know each other. Every harness
+carries its own identity in a small file, so loopboard recognises it
+wherever the folder goes, and it can name the harness it belongs to — a
+company above its two code repos. A harness doesn't have to be a git repo or
+hold code — `loopboard init --kind docs` sets one up in a plain,
+cloud-synced folder. A reference like `shop#0412` points at an issue,
+project or file in another harness, and `loopboard check` says when it
+points nowhere. Issues can carry a due date, say who they're waiting on,
+depend on several issues in any harness, and recur. What's due in every
+workspace sits next to "Needs you", ⌘K searches every harness, and documents
+an issue links to open from the board.
+
+Views over a whole tree — an overview of every harness, people and
+organisations with their pages, a log of what was done where — are left to
+tools built on the same files
+([ADR-0009](../../architecture/decisions/0009-views-over-a-tree-live-outside-loopboard.md)).
+loopboard keeps those files readable for such tools and gives them stable
+URLs to link into the board (#0113).
 
 Everything stays plain files. Nothing here needs git, an account or a
 network.
@@ -47,7 +53,7 @@ network.
 3. As a **maintainer**, I want **a folder I reach through a symlink to stay one workspace**, so that **nothing is listed twice**.
 4. As a **maintainer with two folders of the same name** (two "taxes"), I want **each to have its own id and display name**, so that **I can tell them apart everywhere**.
 5. As a **maintainer**, I want **a harness to name its parent**, so that **a company can sit above its code repos without moving the repos**.
-6. As a **maintainer**, I want **a folder that only groups other harnesses to be registrable without an issues folder**, so that **the tree has inner nodes without fake boards**.
+6. ~~As a **maintainer**, I want **a folder that only groups other harnesses to be registrable without an issues folder**, so that **the tree has inner nodes without fake boards**.~~ *Moved out (ADR-0009).*
 7. As a **maintainer with running harnesses**, I want **the upgrade to add the identity file and keep my current id**, so that **nothing I bookmarked changes**.
 8. As a **developer whose agents work in git worktrees**, I want **a worktree or second clone of a registered repo to open without being refused or becoming a second harness**, so that **parallel checkouts keep their boards and references still point at one harness**.
 
@@ -82,15 +88,15 @@ network.
 26. As a **maintainer**, I want **running the command twice to create nothing twice**, so that **a scheduled task can call it as often as it likes**.
 27. As a **maintainer**, I want **loopboard's server never to create issues on its own**, so that **every file in my harness was written by me or by an agent I started**.
 
-**People and organisations**
+**People and organisations** — moved out (ADR-0009), except the field in stories 29 and 30
 
-28. As a **maintainer**, I want **a person or an organisation to be one markdown file with notes, usable from every harness**, so that **what I know about the accountant isn't scattered over issues in three places**.
-29. As a **maintainer**, I want **an issue to say `waiting-on: "@accountant"` and the board to show "Waiting on the accountant since 2 Oct"**, so that **I see who owes me a reply and for how long**.
+28. ~~As a **maintainer**, I want **a person or an organisation to be one markdown file with notes, usable from every harness**, so that **what I know about the accountant isn't scattered over issues in three places**.~~ *Moved out (ADR-0009).*
+29. As a **maintainer**, I want **an issue to say `waiting-on: "@accountant"` and the board to show "Waiting on accountant since 2 Oct"**, so that **I see who owes me a reply and for how long**.
 30. As a **maintainer**, I want **`waiting-on` to leave the assignee alone, and issues that wait on someone else to be listed apart from my own moves**, so that **"Needs you" keeps meaning "your move"**.
-31. As a **maintainer**, I want **`@accountant` in an issue to link to that person's page**, so that **I get from a mention to everything about them**.
-32. As a **maintainer**, I want **a person's page to list every issue that mentions them or waits on them, across harnesses**, so that **before a call I see all open threads**.
-33. As a **maintainer who names folders in my own language**, I want **loopboard to take an object's type from its frontmatter, not from the folder name**, so that **I can organise the objects folder however I like**.
-34. As an **agent**, I want **`loopboard resolve @accountant` to print that person's file from any harness of the tree**, so that **I read what is known before I write to someone, and add what I learned afterwards**.
+31. ~~As a **maintainer**, I want **`@accountant` in an issue to link to that person's page**, so that **I get from a mention to everything about them**.~~ *Moved out (ADR-0009).*
+32. ~~As a **maintainer**, I want **a person's page to list every issue that mentions them or waits on them, across harnesses**, so that **before a call I see all open threads**.~~ *Moved out (ADR-0009).*
+33. ~~As a **maintainer who names folders in my own language**, I want **loopboard to take an object's type from its frontmatter, not from the folder name**, so that **I can organise the objects folder however I like**.~~ *Moved out (ADR-0009).*
+34. ~~As an **agent**, I want **`loopboard resolve @accountant` to print that person's file from any harness of the tree**, so that **I read what is known before I write to someone, and add what I learned afterwards**.~~ *Moved out (ADR-0009).*
 
 **Dependencies**
 
@@ -99,13 +105,13 @@ network.
 37. As a **maintainer**, I want **an issue to show what it blocks elsewhere**, so that **I know what I unlock by finishing it**.
 38. As a **maintainer**, I want **a blocker loopboard can't reach to count as unknown, not as done**, so that **agents don't start work that is still blocked**.
 
-**Overview and navigation**
+**Overview and navigation** — the Overview and the tree moved out (ADR-0009)
 
-39. As a **maintainer**, I want **one Overview page with every harness as a tree**, so that **I see everything I run on one screen**.
-40. As a **maintainer**, I want **each harness to show what needs me, what's due, who I'm waiting on and its active projects with their last session**, so that **I know where to look next and where work last happened**.
-41. As a **maintainer**, I want **to see what was last done where — across every harness, also for work outside a project**, so that **I and my agents pick up the thread without opening each harness**.
-42. As a **maintainer**, I want **a Connections section listing dependencies between harnesses with both sides' status**, so that **I see what holds up what**.
-43. As a **maintainer**, I want **the workspace switcher to show the tree, tell same-named folders apart and count open issues**, so that **ten harnesses stay navigable**.
+39. ~~As a **maintainer**, I want **one Overview page with every harness as a tree**, so that **I see everything I run on one screen**.~~ *Moved out (ADR-0009).*
+40. ~~As a **maintainer**, I want **each harness to show what needs me, what's due, who I'm waiting on and its active projects with their last session**, so that **I know where to look next and where work last happened**.~~ *Moved out (ADR-0009).*
+41. ~~As a **maintainer**, I want **to see what was last done where — across every harness, also for work outside a project**, so that **I and my agents pick up the thread without opening each harness**.~~ *Moved out (ADR-0009).*
+42. ~~As a **maintainer**, I want **a Connections section listing dependencies between harnesses with both sides' status**, so that **I see what holds up what**.~~ *Moved out (ADR-0009).*
+43. ~~As a **maintainer**, I want **the workspace switcher to show the tree, tell same-named folders apart and count open issues**, so that **ten harnesses stay navigable**.~~ *Moved out (ADR-0009).*
 44. As a **maintainer**, I want **to register a whole folder tree in one step**, so that **I don't add ten harnesses by hand**.
 45. As a **user of an open-source tool**, I want **loopboard never to look into a folder I didn't name**, so that **it doesn't crawl my home directory**.
 46. As a **keyboard user**, I want **⌘K to find issues and projects in every harness and jump straight to `shop#0412`**, so that **I don't need to know where something lives**.
@@ -114,8 +120,12 @@ network.
 
 47. As a **person whose work results are documents**, I want **to open a linked PDF or spreadsheet from an issue**, so that **the issue is the way to the file**.
 48. As a **maintainer**, I want **a linked markdown file to open inside loopboard**, so that **reading it doesn't lose my place**.
-49. As a **maintainer**, I want **a Home tab with the harness's `INDEX.md`, `AGENTS.md` and identity**, so that **I see what a harness is and where things are without my editor**.
+49. ~~As a **maintainer**, I want **a Home tab with the harness's `INDEX.md`, `AGENTS.md` and identity**, so that **I see what a harness is and where things are without my editor**.~~ *Moved out (ADR-0009).*
 50. As a **developer**, I want **`loopboard check` to flag links to files that don't exist**, so that **an index doesn't send agents to dead paths**.
+
+**Linking in**
+
+51. As a **person who builds their own view over several harnesses**, I want **stable URLs for a workspace, an issue and a project, and the folder and URL of each workspace from the CLI**, so that **my tool links into the board instead of copying it** (#0113).
 
 ## Implementation decisions
 
@@ -132,21 +142,18 @@ worktrees. The contract can be written by hand: the board ignores the
 identity file and unknown frontmatter fields — only `init` reads the file,
 for `type`, `kind`, `id` and `parent` (#0078) — and qualified references are
 inert in issue bodies and for `check` (the one exception is #0100). The
-examples use one tree throughout:
+examples use one set of harnesses throughout, drawn by `parent`:
 
 ```text
-home         index     top node; names the objects folder
-├─ company   harness   docs
-│  ├─ shop   harness   code    a repo somewhere else on disk
-│  └─ site   harness   code
-└─ private   index
-   ├─ taxes    harness   docs
-   └─ wedding  harness   docs
+company   harness   docs
+├─ shop   harness   code    a repo somewhere else on disk
+└─ site   harness   code
+taxes     harness   docs
 ```
 
 ### The contract
 
-- **Identity file.** Every harness and every index node has
+- **Identity file.** Every harness has
   `.agents/harness.md`: YAML frontmatter plus one paragraph saying what the
   node is for. The file always sits at `.agents/harness.md` in the node's
   folder — also in a legacy harness whose issues live under `ai/`. Markdown
@@ -159,12 +166,12 @@ home         index     top node; names the objects folder
   | `schema` | integer; the version of this file format, `1` for now |
   | `id` | kebab-case ASCII; unique among the nodes you register; never changes. Lowercase letters, digits and hyphens, starting with a letter and ending with a letter or digit, 2 to 32 characters, and not a reserved word (ADR-0008) |
   | `name` | display name; any characters, quoted where YAML needs it |
-  | `kind` | `harness` or `index` |
+  | `kind` | `harness`. `index` stays valid for other tools; loopboard never registers it (ADR-0009) |
   | `parent` | the id of another node, or `null` for a top node |
   | `created` | `YYYY-MM-DD` |
   | `aliases` | optional; short ids that resolve like `id` |
   | `type` | optional; `code` or `docs`. **Assumed:** `code` when the field is missing — `init` relies on it since #0078, and ADR-0007 records it |
-  | `objects` | optional; path to an objects folder, relative to the node's folder. **Assumed:** it has to stay inside that folder |
+  | `objects` | optional; kept and ignored by loopboard (ADR-0009) |
 
   Any other field (say `access` or `related`) is preserved and ignored.
 
@@ -175,7 +182,7 @@ home         index     top node; names the objects folder
   name: Example Company Ltd.
   kind: harness
   type: docs
-  parent: home
+  parent: null
   aliases: [co]
   created: 2026-10-13
   ---
@@ -199,13 +206,14 @@ home         index     top node; names the objects folder
   parents in a public repo should be generic. **Assumed** (#0101, question
   5, still open): a name or a parent that is personal lives in the per-user
   registry as an override; the file's values are the defaults.
-- **Three node levels.** A **harness** has its own board (`issues/`,
-  `projects/`). An **index node** has an identity and an `INDEX.md`, no
-  `issues/`. Everything else is a plain folder. The tree is formed by
-  `parent`, not by folder nesting: code repos stay where they are and hang in
-  logically, so no `.git` or dependency folder ends up inside a synced folder.
-  The node with `parent: null` is the tree's **top node**; it can be an index
-  node or a harness.
+- **Harnesses, and nodes that aren't loopboard's.** A **harness** has its
+  own board (`issues/`, `projects/`). A folder whose identity file says
+  `kind: index` only groups harnesses, for other tools; loopboard neither
+  registers nor scaffolds it (ADR-0009). Everything else is a plain folder.
+  A tree is formed by `parent`, not by folder nesting: code repos stay where
+  they are and hang in logically, so no `.git` or dependency folder ends up
+  inside a synced folder. loopboard stores, validates and returns `parent`;
+  it draws no tree.
 - **Reference syntax.** Unqualified `#NNNN` stays local to the workspace.
 
   | Reference | Points at |
@@ -246,40 +254,22 @@ home         index     top node; names the objects folder
   verify command and without specs, and `issues/` and `projects/` with
   READMEs and templates worded for a harness without code — no skill copies
   by default, no symlinks, and no link to a file the scaffold didn't create.
-  `index` writes the identity file (`kind: index`) and an `INDEX.md`
-  (#0104). The flag names the scaffold, not the field, and maps onto the
-  file's `kind` and `type` (ADR-0007): `code` is `kind: harness` with
-  `type: code`, `docs` is `kind: harness` with `type: docs`, and `index` is
-  `kind: index` without a type.
-- **Objects.** Two types to start: `person` and `organisation`, one markdown
-  file each, with frontmatter `type`, `id`, `name` and, on a person, an
-  optional `org`. The body is free notes — what you and your agents know
-  about them, across every harness, private or business. They live in the
-  folder the tree's top node names in `objects:` (say `objects: .objects` on
-  `home`); loopboard takes the type from frontmatter, not from folder names,
-  so the folders below can be called anything in any language.
-  A reference is `@id`; people and organisations share one id namespace. In
-  frontmatter the value is quoted, because YAML doesn't allow a plain value
-  to start with `@`.
-
-  ```markdown
-  ---
-  type: person
-  id: accountant
-  name: The accountant
-  org: "@accounting-firm"
-  ---
-
-  Does the company's books. Prefers one email per topic and answers within
-  a week.
-  ```
+  There is no `index` scaffold (ADR-0009). The flag names the scaffold, not
+  the field, and maps onto the file's `kind` and `type` (ADR-0007): `code`
+  is `kind: harness` with `type: code`, and `docs` is `kind: harness` with
+  `type: docs`.
+- **People and organisations aren't loopboard's.** `@id` names a person or
+  an organisation that a tool built on the files may keep (ADR-0009). In a
+  body `@id` stays plain text; in `waiting-on` the value is shown as
+  written, without the `@`. In frontmatter the value is quoted, because YAML
+  doesn't allow a plain value to start with `@`.
 
 - **Reserved issue fields.** All optional.
 
   | Field | Value | Meaning |
   |---|---|---|
   | `due` | `YYYY-MM-DD` | the day it has to be finished |
-  | `waiting-on` | `"@id"` or a list of them | who owes a reply; the board shows "Waiting on the accountant since 2 Oct" |
+  | `waiting-on` | `"@id"` or a list of them | who owes a reply; the board shows "Waiting on accountant since 2 Oct" |
   | `blocked-by` | a list of references | every issue or project that must finish first; qualified references allowed |
   | `recurrence` | written by `loopboard recur` | which recurring duty and period this issue stands for |
 
@@ -321,18 +311,15 @@ home         index     top node; names the objects folder
   primary one. Without an identity file a workspace behaves as it does
   today.
 - **Root detection keeps its order.** `.agents/issues`, then `ai/issues`.
-  The identity file is a second way in only for a node that has neither: an
-  index node, or a harness whose `issues/` doesn't exist yet. It never wins
-  over an existing root.
-- **Cross-harness reads are light.** Reference links, the due list, the
-  Overview, the switcher's counts and ⌘K read one **harness index** — rows of
-  frontmatter fields per harness — never issue bodies, never one full
-  workspace load per harness. #0084 builds it; later issues add fields
-  instead of routes. Backlinks are the exception: mentions live in bodies,
-  so they need a body scan — one pass per harness, cached per file. The
+  The identity file is no second way in (ADR-0009): a harness needs its
+  `issues/` folder, as before.
+- **Cross-harness reads are light.** Reference links, the due list,
+  blockers and ⌘K read one **harness index** — rows of frontmatter fields
+  per harness — never issue bodies, never one full workspace load per
+  harness. #0084 builds it; later issues add fields instead of routes. The
   measurements behind this are in #0075.
 - **One reference parser.** Server, CLI and client share one parser for the
-  three qualified forms and `@id`, so `check`, `resolve` and the board agree
+  three qualified forms, so `check`, `resolve` and the board agree
   on what a reference is. It leaves code, links, URLs, email addresses and
   the `source:` line alone.
 - **Frontmatter is read from the raw line where YAML would bend it.** Lists
@@ -340,10 +327,6 @@ home         index     top node; names the objects folder
   loopboard's YAML reader turns `0042` into the octal number 34 (#0059) and
   `true` or `null` into a boolean or nothing, and stricter YAML 1.1 readers
   do the same to `yes`, `no`, `on` and `off`.
-- **Objects resolve through the top node.** A harness finds its objects by
-  walking `parent` up to the top node and reading that node's `objects:`
-  folder. A harness whose top node isn't registered has no objects, and
-  `@id` stays plain text.
 - **A due date is a day.** No time of day. An open issue is overdue when its
   date is before today in the local time zone, and "due soon" is the next 14
   days, everywhere.
@@ -380,8 +363,8 @@ home         index     top node; names the objects folder
   as an override — still assumed (#0101, question 5). ADR-0007 records both
   and amends ADR-0002.
 - **ADR-0003 rejected "a per-repo config file".** The identity file doesn't
-  name the root, and root detection keeps its order; it gains a second way
-  in for nodes that have an identity file and no `issues/` (#0081). It is one
+  name the root, and root detection keeps its order without a second way in
+  (ADR-0009). It is one
   more file per harness — accepted because an id that lives outside the
   harness can't survive a move; `init` and the migration write it, so nobody
   keeps it by hand (ADR-0007).
@@ -389,20 +372,13 @@ home         index     top node; names the objects folder
   multi-valued relation that can cross harnesses. `parent:` keeps working.
   The badge and toggle #0028 called "waiting" become "blocked by" and "Hide
   blocked", because "Waiting on" now names a person.
-- **Project 01, question 9, "keep the file count" in the switcher.** The
-  switcher shows open issues and "Needs you" instead; the harness index
-  makes that cheap, which was the reason against it.
-- **Spec § 7, "Open the last-used workspace".** With more than one node
-  registered, `/` opens the Overview; the last-used workspace is one click
-  away.
 - **Spec § 7, "Rename and remove workspaces".** Renaming used to change the
   registry only. With an identity file there are two places a name can live;
   which one the board writes is part of #0079.
 - **The glossary's "Harness".** No longer "in a repo": a harness is a folder
   with an identity, and it may come without skills.
 - **The glossary's "Root".** It keeps meaning the folder loopboard reads
-  (`.agents/`, or a legacy `ai/`). The top of the tree is the **top node**,
-  never "the root".
+  (`.agents/`, or a legacy `ai/`).
 - **PRD 01, "files and git are the sync layer".** Git becomes optional
   everywhere, and a cloud-synced folder is a supported home for a docs
   harness. loopboard itself still syncs nothing.
@@ -427,7 +403,7 @@ hand out the same number, `check` reports it and `renumber` fixes it.
   references, including URLs, email addresses, `github#1234` and code),
   `check` with two registered harnesses, the CLI commands run from a foreign
   working directory, due-date boundaries, recurrence period maths (month
-  ends, quarters, leap day), the object reader and the blocker index.
+  ends, quarters, leap day) and the blocker index.
 - **Real git where git is the point**: a `git worktree add` of a registered
   harness, including the dev server started from that worktree.
 - The legacy `ai/` fixture gets an identity file and must still show its
@@ -435,10 +411,9 @@ hand out the same number, `check` reports it and `renumber` fixes it.
 - **The docs scaffold is checked for dead ends**: a test walks every relative
   link in a freshly scaffolded docs folder.
 - Every test uses its own config directory; none touches the real registry.
-- **Playwright** gets a fixture tree — an index node above a docs harness and
-  a code harness, with an objects folder — for the Overview, the tree
-  switcher, reference links, object pages, due dates, waiting-on, the Home
-  tab and the document view. Every new scenario gets a spec row, and each
+- **Playwright** gets a second fixture harness — a docs harness next to the
+  code one, each referencing the other — for reference links, due dates,
+  waiting-on, the stable URLs (#0113) and the document view. Every new scenario gets a spec row, and each
   issue names the spec section it touches.
 - **Synced folders are simulated**: conflict-copy file names, an unreadable
   file, a watcher error. No sync client runs in CI, so the maintainer checks
@@ -447,13 +422,19 @@ hand out the same number, `check` reports it and `renumber` fixes it.
   leading out of the harness, a foreign origin, a missing origin, a file type
   that would run.
 - **The harness index is measured** against the generated large fixture
-  from #0075; the budget is written into the test (#0092).
+  from #0075; the budget is written into the test (#0084).
 - Prior art: `tests/workspaces.test.ts`, `tests/init.test.ts`,
   `tests/ids.test.ts`, `tests/cli.test.ts`, `tests/relations.test.ts`,
   `tests/e2e/07-workspaces.spec.ts`, `tests/e2e/cli.spec.ts`.
 
 ## Out of scope
 
+- **Views over a whole tree** (ADR-0009). An Overview of every harness, the
+  switcher as a tree, a Home tab, a list of connections between harnesses,
+  index nodes, people and organisations with pages and backlinks, and a log
+  of what was done where belong to tools built on the same files. Stories 6,
+  28, 31–34, 39–43 and 49 moved out with them, and so did #0081, #0087,
+  #0089, #0092, #0093, #0094, #0098, #0104, #0106 and #0109.
 - **Finding harnesses on its own.** No scan of the home directory or of any
   folder the user didn't name (ADR-0002 stands).
 - **Nesting code repos physically inside the tree.** `parent` builds the
@@ -466,12 +447,7 @@ hand out the same number, `check` reports it and `renumber` fixes it.
 - **Private glue.** A hook of one agent tool that writes a journal, a pointer
   file to the tree and a skill that routes a request to the right harness
   stay outside the product: they depend on one person's setup and agent
-  tool. The need behind the journal is in scope: the Overview's "Recent"
-  section shows what was last done where (#0092), and a written log at the
-  top node is an open question (#0109).
-- **More object types and an object graph.** Two types to start. No custom
-  types, no relations between objects beyond `org`, no graph view; the type
-  lives in frontmatter so more can follow without moving files.
+  tool.
 - **Calendars, reminders, notifications.** A due date is shown and sorted,
   nothing pings.
 - **Non-ASCII issue file names.** The file-name pattern stays; #0071 reports
@@ -484,9 +460,8 @@ hand out the same number, `check` reports it and `renumber` fixes it.
 
 ## Further notes
 
-- New terms land in the glossary with the spec updates: harness id, index
-  node, top node, docs harness, qualified reference, harness index, object,
-  waiting on, blocked by, due.
+- New terms land in the glossary with the spec updates: harness id, docs
+  harness, qualified reference, harness index, waiting on, blocked by, due.
 - Order, decided with the contract: before the maintainer creates a tree of
   harnesses, the CLI is callable from anywhere and the registry is clean
   (#0076, #0099), slugs transliterate umlauts (#0077), skipped files are
@@ -497,5 +472,6 @@ hand out the same number, `check` reports it and `renumber` fixes it.
   tree.
 - What the contract leaves open is listed as questions in
   [`wip.md`](./wip.md), each with the answer the issues assume.
-- If this PRD outgrows one project, deadlines, people and documents
-  (phases 2 and 4) are the natural part to split off.
+- Narrowed on 2026-10-14: what moved out, and why, is in ADR-0009 and in
+  the WIP's activity log. The stories keep their numbers, so "PRD story N"
+  in an issue stays valid.

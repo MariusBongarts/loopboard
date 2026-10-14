@@ -13,21 +13,22 @@ created: 2026-10-13
 
 ## User story
 
-As a **maintainer**, I want **to pick who an issue waits on from a list of
-names, and to filter the list view by it**, so that **I don't type ids into
-frontmatter and "everything waiting on the accountant" is one click**.
+As a **maintainer**, I want **to set who an issue waits on from the issue
+view, and to filter the list view by it**, so that **I don't edit
+frontmatter by hand and "everything waiting on the accountant" is one
+click**.
 
 ## Acceptance criteria
 
-- [ ] The issue view sets and clears `waiting-on` through a picker that lists the tree's people and organisations by name and filters as you type; the write changes only the lines it owns — `waiting-on` and, as question 1 in #0088 is answered, the since date
-- [ ] The picker writes the quoted form, handles one value and several, and keeps an id it can't resolve instead of dropping it
-- [ ] The list view filters by "Waiting on" — anyone, or one person or organisation; the filter lives in the URL, so it can be saved as a view
+- [ ] The issue view sets and clears `waiting-on` through a picker that offers the `waiting-on` values already used in this workspace, filters as you type and takes a new `@id`; the write changes only the lines it owns — `waiting-on` and, as question 1 in #0088 is answered, the since date
+- [ ] The picker writes the quoted form, handles one value and several, and adds the `@` when it is left out
+- [ ] The list view filters by "Waiting on" — anyone, or one value; the filter lives in the URL, so it can be saved as a view
 - [ ] Tests cover the picker's write (one value, a list, clearing) and the filter's query round-trip; an e2e test sets a person and finds the issue under the filter; spec § 4 and § 13 gain the scenarios
 
 ## Out of scope
 
 - Reading and showing the field, `check`, and the questions about "since" and "Needs you" — #0088
-- Creating a person from the picker — object files are written by agents and your editor (deferred in `wip.md`)
+- Names from people's files, and creating a person from the picker — loopboard has no people or organisations (ADR-0009)
 - Typing `@` in the editor to pick a person — a follow-up
 
 ## Notes
@@ -36,5 +37,5 @@ frontmatter and "everything waiting on the accountant" is one click**.
   and through it on the maintainer's answers there.
 - The inline property pickers (#0052) are the prior art for the control and
   for line-level writes.
-- In a harness without an objects folder the picker says so in one line
-  instead of showing an empty list.
+- In a workspace where no issue waits on anyone yet, the picker shows only
+  the text field.

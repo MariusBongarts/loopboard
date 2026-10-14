@@ -108,7 +108,7 @@ was not meant.
 
 - Any parser, reader or CLI change — #0078, #0079, #0082
 - The ADR for registering a folder tree — #0095
-- Where "since", recurring duties and a log file live — #0088, #0090, #0109
+- Where "since" and recurring duties live — #0088, #0090; a log file is not loopboard's (ADR-0009)
 
 ## Notes
 

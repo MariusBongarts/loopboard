@@ -48,7 +48,7 @@ place on disk.
 ## Out of scope
 
 - Weekly duties and the week numbering they need — month, quarter and year cover what is known today; deferred in `wip.md`
-- A "create now" button for upcoming duties on the Overview — deferred in `wip.md`
+- A "create now" button for upcoming duties — deferred in `wip.md`
 - Other schedules (cron expressions, "every second Tuesday")
 - Closing or rolling over last period's issue — it stays what it is
 - Starting an agent on the created issue — loopboard starts no agents

@@ -2,7 +2,7 @@
 id: 0087
 title: Keep people and organisations as files every harness can reach
 category: user-story
-status: backlog
+status: wontfix
 assignee: agent
 project: 04-harness-tree
 phase: 2
@@ -10,6 +10,17 @@ parent: 0081
 labels: [server, cli, data, conventions]
 created: 2026-10-13
 ---
+
+## Why rejected
+
+Moved out of loopboard on 2026-10-14
+([ADR-0009](../architecture/decisions/0009-views-over-a-tree-live-outside-loopboard.md)).
+People and organisations as files — like every view over a whole tree of harnesses — belong to a
+tool built on the same files, not to the board. loopboard stays a board per
+harness, for code and for documents, and keeps those files readable for
+such tools: the identity file, the reserved fields, `workspaces --json` and
+stable URLs (#0113). The text below stays as the record of what was
+planned.
 
 ## User story
 

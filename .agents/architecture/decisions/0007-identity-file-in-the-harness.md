@@ -1,6 +1,6 @@
 # A harness carries its identity in `.agents/harness.md`
 
-- **Status**: accepted, except the two points under "Still assumed" (#0101, questions 5 and 6) — `init --kind docs` writes the file and `init` reads it (#0078); not built yet: #0079, #0080, #0103, #0104
+- **Status**: accepted, except the two points under "Still assumed" (#0101, questions 5 and 6) — `init --kind docs` writes the file and `init` reads it (#0078); not built yet: #0079, #0080, #0103; index nodes and `objects` amended by [ADR-0009](0009-views-over-a-tree-live-outside-loopboard.md)
 - **Date**: 2026-10-13
 
 A workspace's id and name live only in the per-user registry
@@ -18,23 +18,22 @@ which becomes a map from id to path and remembers the last values it read.
 | `schema` | integer; the version of this format, `1` for now |
 | `id` | the harness id — pattern and reserved words in [ADR-0008](0008-harness-ids-and-qualified-references.md); unique among the registered nodes; never changes |
 | `name` | display name; any characters, quoted where YAML needs it |
-| `kind` | `harness` (has a board) or `index` (groups other nodes, has no `issues/`) |
+| `kind` | `harness` (has a board) or `index` (groups other nodes, has no `issues/`). loopboard registers only `harness`; `index` is kept for other tools (ADR-0009) |
 | `parent` | the id of another node, or `null` for a top node |
 | `created` | `YYYY-MM-DD` |
 | `aliases` | optional; a list of short ids that resolve like `id` — on one line (`[co, firm]`) or one `- co` per line |
 | `type` | optional; `code` or `docs`, in any case. Without it a harness is a code harness |
-| `objects` | optional; the path of an objects folder, relative to the node's folder |
+| `objects` | optional; the path of an objects folder, relative to the node's folder. Kept and ignored by loopboard (ADR-0009) |
 
 Any other field is kept and ignored. `id`, `parent` and `aliases` are read
 from the raw line, not through YAML, so a value keeps the text it has. A
 byte order mark or blank lines before the frontmatter don't hide the file.
 
 The file always sits at `.agents/harness.md` in the node's folder — also in
-a legacy harness whose issues live under `ai/`, and in an index node, which
-has no issue root at all. Root detection
+a legacy harness whose issues live under `ai/`. Root detection
 ([ADR-0003](0003-dot-agents-root-with-detection.md)) keeps its order,
-`.agents/issues` then `ai/issues`; the file is a second way in only for a
-node that has neither, and never wins over an existing root.
+`.agents/issues` then `ai/issues`, and the file is no second way in: a
+harness needs its `issues/` folder as before (ADR-0009).
 
 `loopboard init --kind` names the scaffold, not the field, and maps onto
 `kind` and `type`:
@@ -43,7 +42,6 @@ node that has neither, and never wins over an existing root.
 |---|---|---|---|
 | `code` (default) | `harness` | `code` | today's, plus the identity file (#0103) |
 | `docs` | `harness` | `docs` | issues and projects, no specs, skills or symlinks (#0078) |
-| `index` | `index` | not written | the identity file and an `INDEX.md` (#0104) |
 
 ## Still assumed
 
@@ -90,7 +88,8 @@ below until the maintainer decides otherwise.
 - `init` reads the file since #0078, the board and the registry don't yet
   (#0079). `init` takes `type` from it to keep a docs harness a docs
   harness, checks `id` and `parent` against ADR-0008 and never writes into
-  a file that exists; where it says `kind: index`, `init` stops until #0104.
+  a file that exists; where it says `kind: index`, `init` stops — index nodes
+  aren't loopboard's (ADR-0009).
   So a file written by hand has to hold a valid `id` already.
 - The kind must not hang on one line of one file: `init` also records the
   scaffold in `.agents/.loopboard/manifest.json`. A docs harness whose file

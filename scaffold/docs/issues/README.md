@@ -125,7 +125,7 @@ optional.
 | `<id>#NNNN` | An issue in another harness. | `shop#0412` |
 | `<id>#PNN` | A project in another harness, by its number. | `shop#P04` |
 | `<id>:<path>` | A file in another harness, relative to that harness's folder. A space in the path is written `%20`. | `company:contracts/lease.pdf` |
-| `@id` | A person or an organisation. | `@accountant` |
+| `@id` | A person or an organisation. loopboard leaves it as plain text; a tool that keeps people as files can resolve it. | `@accountant` |
 
 `<id>` is the id a harness carries in its `.agents/harness.md`: lowercase
 letters, digits and hyphens, 2 to 32 characters, starting with a letter and

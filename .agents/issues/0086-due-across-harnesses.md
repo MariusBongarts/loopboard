@@ -22,14 +22,14 @@ didn't open today can't hide**.
 
 - [ ] The cross-workspace page gains a "Due" section next to "Needs you": every open issue with a due date that is overdue or due within the next 14 days, from every registered harness, soonest first
 - [ ] Each row shows the harness, the id, the title, the date with the overdue or due-soon styling from #0085, and who drives it; agent-assigned issues are included — a deadline is a deadline
-- [ ] The section reads the harness index from #0084, extended by `due` and the assignee — no issue bodies, no second route; harnesses whose folder is missing are listed as skipped and index nodes are left out
+- [ ] The section reads the harness index from #0084, extended by `due` and the assignee — no issue bodies, no second route; harnesses whose folder is missing are listed as skipped
 - [ ] Clicking a row opens the issue in its workspace, selected, like a "Needs you" row does
 - [ ] The switcher entry reads "All workspaces · Needs you and due", and the page's heading and title read "Needs you and due"
 - [ ] A test for the index fields; e2e with two fixture workspaces, one with an overdue issue and one with a due-soon issue; spec § 7's "See what needs me across all workspaces" is updated
 
 ## Out of scope
 
-- The Overview page, which shows what's due per harness — #0092
+- What's due per harness on an overview of the tree — not loopboard's (ADR-0009)
 - Live-watching every harness — the page refetches on open and on window focus, as today
 - Changing the window from 14 days — a fixed number until someone needs another
 
