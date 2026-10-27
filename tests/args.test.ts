@@ -39,4 +39,9 @@ describe('parseArgs (#0076)', () => {
     expect(() => parse('--path', '--dry-run')).toThrow('Flag --path needs a value.');
     expect(() => parse('--path=')).toThrow('Flag --path needs a value.');
   });
+
+  it('takes a lone - as a value or a positional: stdin (#0116)', () => {
+    expect(parseArgs(['--note', '-'], { '--note': 'value' }, 'loopboard routines finish').values).toEqual({ '--note': '-' });
+    expect(parseArgs(['-'], {}, 'loopboard x').positionals).toEqual(['-']);
+  });
 });

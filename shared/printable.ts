@@ -18,3 +18,9 @@ export function quoted(text: string): string {
 export function printable(text: string): string {
   return UNSAFE.test(text) ? quoted(text) : text;
 }
+
+// One shell word: as it is when the shell leaves it alone, else in single
+// quotes (#0018, #0116).
+export function shellWord(text: string): string {
+  return /^[\w.@%+=:,/-]+$/.test(text) ? text : `'${text.replaceAll("'", `'\\''`)}'`;
+}

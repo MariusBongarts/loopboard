@@ -21,9 +21,9 @@ Goal: a routine is a folder in the harness, its schedule is understood in its ti
 
 - [x] [#0114 See a harness's routines and their next slot with loopboard routines list](../../issues/0114-routines-list-and-schedules.md) — done
 - [x] [#0115 loopboard check validates routines](../../issues/0115-check-validates-routines.md) — done
-- [ ] [#0116 Record runs with routines start and finish](../../issues/0116-record-runs-with-start-and-finish.md) — todo
-- [ ] [#0117 Ask what is due with loopboard routines due](../../issues/0117-routines-due.md) — todo
+- [x] [#0116 Record runs with routines start and finish](../../issues/0116-record-runs-with-start-and-finish.md) — done
 - [ ] [#0118 File the period's issue with a creates: issue routine](../../issues/0118-recurring-issues-from-routines.md) — todo
+- [ ] [#0117 Ask what is due with loopboard routines due](../../issues/0117-routines-due.md) — todo
 - [ ] [#0119 Brief each run and print the dispatcher prompt](../../issues/0119-briefs-and-dispatcher-prompt.md) — todo
 
 ### Phase 2 — Routines on the board
@@ -73,6 +73,13 @@ Goal: every harness gets the folder, the skill and the rule, existing ones throu
   routines. A problem now carries the file it is about. The names a
   registered workspace answers to moved from `init.ts` to
   `workspaceNames()` in `workspaces.ts`, shared with `check`.
+- #0116 done: `routines start` and `finish` append to `runs.md` under its
+  lock; the state of a routine (due, running, paused, pinned, expired, idle,
+  invalid) comes from one `evaluate()` in the new `server/dispatch.ts`, which
+  now also builds the summaries. #0118 moved before #0117: `due` files the
+  period's issue through the same path `start` uses. Small shared changes:
+  a lone `-` is a flag value (stdin), and `shellWord()` quotes paths for
+  printed commands (renumber's hint uses it too).
 
 ## Deferred / out of scope (added during execution)
 

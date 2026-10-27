@@ -6,7 +6,7 @@ status: todo
 assignee: agent
 project: 05-routines
 phase: 1
-parent: 0116
+parent: 0118
 labels: [cli, routines]
 created: 2026-10-27
 ---
@@ -29,7 +29,7 @@ routines that really have a slot to run**.
 
 ## Out of scope
 
-- Filing issues for `creates: issue` routines (#0118)
+- How a `creates: issue` routine files its issue (#0118) — `due` calls it
 
 ## Notes
 

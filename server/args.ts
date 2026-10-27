@@ -17,7 +17,7 @@ export function parseArgs(argv: string[], flags: Flags, command: string): Args {
   const args: Args = { positionals: [], switches: new Set(), values: {} };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
-    if (!arg.startsWith("-")) {
+    if (!arg.startsWith("-") || arg === "-") {
       args.positionals.push(arg);
       continue;
     }
@@ -32,9 +32,10 @@ export function parseArgs(argv: string[], flags: Flags, command: string): Args {
       args.switches.add(name);
       continue;
     }
-    // `--port 5181` or `--port=5181`; the next flag is not a value.
+    // `--port 5181` or `--port=5181`; the next flag is not a value, a lone
+    // `-` (stdin) is (#0116).
     const value = eq === -1 ? argv[++i] : arg.slice(eq + 1);
-    if (!value || (eq === -1 && value.startsWith("-"))) throw new UsageError(`Flag ${name} needs a value.`);
+    if (!value || (eq === -1 && value.startsWith("-") && value !== "-")) throw new UsageError(`Flag ${name} needs a value.`);
     args.values[name] = value;
   }
   return args;

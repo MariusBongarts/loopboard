@@ -117,3 +117,37 @@ export function lastRun(runs: Run[]): Run | null {
   for (let i = runs.length - 1; i >= 0; i--) if (RUN_STATES.includes(runs[i].status)) return runs[i];
   return null;
 }
+
+// ── Writing (#0116) ──────────────────────────────────────────────────
+
+export function runsHeader(title: string): string {
+  return [
+    `# Runs: ${title.replace(/\s+/g, " ")}`,
+    "",
+    "Written by `loopboard routines`, newest last. A later entry with the same",
+    "`started` replaces the earlier one. Don't edit by hand.",
+    "",
+  ].join("\n");
+}
+
+export interface NewEntry {
+  heading: string; // the local time, `2026-10-26 07:30`
+  status: RunStatus;
+  fields: [string, string | number | undefined][];
+  note?: string;
+}
+
+// The note is a block quote, so a `#` in it never starts an entry.
+export function renderEntry(entry: NewEntry): string {
+  const lines = [`## ${entry.heading} · ${entry.status}`];
+  for (const [key, value] of entry.fields) if (value !== undefined) lines.push(`- ${key}: ${value}`);
+  const note = entry.note?.trim();
+  if (note) lines.push("", ...note.split(/\r?\n/).map((l) => (l.trim() ? `> ${l.trimEnd()}` : ">")));
+  return lines.join("\n") + "\n";
+}
+
+// Appends to the end of a runs.md text (or a new one), one blank line apart.
+export function appendTo(existing: string | null, title: string, entries: NewEntry[]): string {
+  const base = existing ?? runsHeader(title);
+  return `${base.replace(/\s*$/, "\n")}${entries.map((e) => `\n${renderEntry(e)}`).join("")}`;
+}

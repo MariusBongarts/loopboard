@@ -3,7 +3,8 @@ import { mkdir, mkdtemp, realpath, rm, symlink, writeFile } from 'node:fs/promis
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { main } from '../server/cli';
-import { harnessesUnder, readRoutine, readRoutines, summarizeRoutine } from '../server/routines';
+import { summarizeRoutine } from '../server/dispatch';
+import { harnessesUnder, readRoutine, readRoutines } from '../server/routines';
 import { parseRuns } from '../server/runs';
 
 let tmp: string;
@@ -152,7 +153,7 @@ created: 2026-10-27`,
     const repo = await harness('site');
     const dir = await routine(repo, 'brief', 'schedule: "30 7 * * 1-5"\ntimezone: Europe/Berlin');
     const summary = summarizeRoutine(readRoutine(dir), Date.parse('2026-10-30T12:00:00Z'));
-    expect(summary).toMatchObject({ state: 'idle', words: 'Weekdays at 07:30', next: '2026-11-02T07:30:00+01:00' });
+    expect(summary).toMatchObject({ state: 'due', words: 'Weekdays at 07:30', next: '2026-11-02T07:30:00+01:00', slot: '2026-10-30T07:30:00+01:00' });
   });
 
   it('skips _templates and dot folders', async () => {

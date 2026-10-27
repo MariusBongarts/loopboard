@@ -20,6 +20,9 @@ detail in `tests/cron.test.ts` and `tests/routines.test.ts`. Status legend in
 | List the routines of a harness | ✅ | [`15-routines.spec.ts`](../../tests/e2e/15-routines.spec.ts): words, zone, next slot, last run, paused, invalid |
 | List the routines under a folder | ✅ | [`15-routines.spec.ts`](../../tests/e2e/15-routines.spec.ts): nested harnesses; skipped folders in `tests/routines.test.ts` |
 | A schedule keeps its local time across daylight saving | ❌ | Vitest: `tests/cron.test.ts` (Berlin, New York, Kolkata, Lord Howe) |
+| Record the start of a run | ✅ | [`15-routines.spec.ts`](../../tests/e2e/15-routines.spec.ts): the entry, the printed commands, a second start refused. Lock, abort and dry run in `tests/dispatch.test.ts` |
+| Finish a run with a note | ✅ | [`15-routines.spec.ts`](../../tests/e2e/15-routines.spec.ts): `--note -` from stdin, the block quote. Late finish and refusals in `tests/dispatch.test.ts` |
+| A one-time routine switches itself off | ❌ | Vitest: `tests/dispatch.test.ts` |
 | Check routines | 🟡 | [`15-routines.spec.ts`](../../tests/e2e/15-routines.spec.ts): a broken schedule fails, an unknown field warns. Every error and warning in `tests/routines.test.ts` |
 
 ### Scenario: Write a routine
@@ -109,5 +112,50 @@ AND warnings (!) don't fail it unless --strict: an unknown field, a
 AND the closing line counts the valid routines:
     "✓ no duplicate numbers, 3 routines valid"
 AND `routines list` shows a broken routine as "invalid" with the same lines
+```
+
+### Scenario: Record the start of a run
+
+```
+GIVEN a routine — its folder, or its slug with --path <repo>
+WHEN I run `loopboard routines start <routine>`
+THEN runs.md (created with a short header if it isn't there) ends with
+    ## 2026-10-27 07:30 · running
+    - started: 2026-10-27T07:30:04+01:00
+    - slot: 2026-10-27T07:30:00+01:00
+    - host: studio
+AND `slot` names the occurrence it runs for when the routine is due;
+    without one it is a manual run
+AND it prints the brief and finish commands for the run
+AND while a `running` entry of the routine is younger than its `timeout`
+    (default 2h) a second start is refused with the start time and host;
+    an older one is first recorded as `aborted`
+AND a paused, pinned (another `host:`) or invalid routine isn't started
+AND two starts at once record one run; --json prints the run, --dry-run
+    writes nothing
+```
+
+### Scenario: Finish a run with a note
+
+```
+GIVEN a run in progress
+WHEN I run `loopboard routines finish <routine> --status ok --note "…"`
+    (or --status failed; `--note -` reads the note from stdin)
+THEN runs.md gains the run's final entry with `started`, `finished`,
+    `slot` and `host`, and the note as a block quote below
+AND the run now reads as ok (or failed) everywhere; the running entry stays
+    in the file above it
+AND without a note, or without an open run, it is refused
+AND a run that was recorded as aborted after its timeout can still be
+    finished: the late result replaces it
+```
+
+### Scenario: A one-time routine switches itself off
+
+```
+GIVEN a routine with `at: 2026-11-03 09:00`
+WHEN its run finishes
+THEN routine.md gains `enabled: false`, and nothing else in it changes
+AND it is never due again
 ```
 

@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { readFile, rm, writeFile, mkdir } from "node:fs/promises";
 import { join, resolve } from "node:path";
-import { escapeControls, printable } from "../shared/printable";
+import { escapeControls, printable, shellWord } from "../shared/printable";
 import { parseArgs, UsageError, type Args, type Flags } from "./args";
 import { checkRoot, nextId, type IdKind } from "./ids";
 import { applyPlan, InitError, isNewHarness, nextStep, planInit, planScaffold, summarizePlan, type InitOptions } from "./init";
@@ -251,8 +251,7 @@ commands["next-id"] = {
 // name as one shell word. A name with control characters can't be typed.
 function renumberHint(id: string, name: string): string {
   if (printable(name) !== name) return "rename it by hand — its name holds control characters";
-  const word = /^[\w.@%+=:,/-]+$/.test(name) ? name : `'${name.replaceAll("'", `'\\''`)}'`;
-  return `loopboard renumber ${id} --file ${word}`;
+  return `loopboard renumber ${id} --file ${shellWord(name)}`;
 }
 
 commands.check = {

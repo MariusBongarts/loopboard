@@ -2,8 +2,6 @@ import { existsSync, readdirSync, readFileSync, type Dirent } from "node:fs";
 import { hostname } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import {
-  describeSchedule,
-  formatIso,
   isTimeZone,
   nextOccurrence,
   parseAt,
@@ -16,7 +14,7 @@ import {
 import { frontmatterInner, readAnyList, readField, splitFrontmatter } from "../shared/frontmatter";
 import { idProblem, readIdentity } from "./identity";
 import { ALL_STATUSES, ASSIGNEES } from "./issues";
-import { lastRun, parseRuns, type Run, type RunsProblem } from "./runs";
+import { parseRuns, type Run, type RunsProblem } from "./runs";
 import { slugify } from "./workspaces";
 
 // Routines (#0114, ADR-0010): one folder per routine under <root>/scheduled/,
@@ -327,89 +325,4 @@ export function harnessesUnder(dir: string): Harness[] {
   };
   walk(resolve(dir), 0);
   return out;
-}
-
-// ── Summaries (`list --json`, the board) ─────────────────────────────
-
-export type RoutineState = "invalid" | "paused" | "running" | "idle";
-
-export interface RoutineSummary {
-  slug: string;
-  dir: string;
-  title: string;
-  kind: "agent" | "issue";
-  enabled: boolean;
-  state: RoutineState;
-  schedule: string | null;
-  at: string | null;
-  timezone: string;
-  words: string;
-  expiresAfter: string | null;
-  timeout: string;
-  host: string | null;
-  writesTo: string[];
-  created: string | null;
-  creates: IssueSpec | null;
-  next: string | null;
-  lastRun: Run | null;
-  runs: Run[];
-  problems: RoutineProblem[];
-  body: string;
-}
-
-export function routineState(routine: Routine): RoutineState {
-  if (!isValid(routine)) return "invalid";
-  if (!routine.enabled) return "paused";
-  if (lastRun(routine.runs)?.status === "running") return "running";
-  return "idle";
-}
-
-export function summarizeRoutine(routine: Routine, now: number): RoutineSummary {
-  const state = routineState(routine);
-  const next = routine.parsed && state !== "paused" ? nextOccurrence(routine.parsed, now, routine.timezone) : null;
-  return {
-    slug: routine.slug,
-    dir: routine.dir,
-    title: routine.title,
-    kind: routine.creates ? "issue" : "agent",
-    enabled: routine.enabled,
-    state,
-    schedule: routine.schedule,
-    at: routine.at,
-    timezone: routine.timezone,
-    words: routine.parsed ? describeSchedule(routine.parsed) : "invalid schedule",
-    expiresAfter: routine.expiresAfter,
-    timeout: routine.timeout,
-    host: routine.host,
-    writesTo: routine.writesTo,
-    created: routine.created,
-    creates: routine.creates,
-    next: next === null ? null : formatIso(next, routine.timezone),
-    lastRun: lastRun(routine.runs),
-    runs: routine.runs,
-    problems: routine.problems,
-    body: routine.body,
-  };
-}
-
-export interface HarnessRoutines extends Harness {
-  routines: RoutineSummary[];
-}
-
-export const ROUTINES_JSON_VERSION = 1;
-
-export interface RoutinesList {
-  version: number;
-  host: string;
-  now: string;
-  harnesses: HarnessRoutines[];
-}
-
-export function listRoutines(harnesses: Harness[], now = Date.now()): RoutinesList {
-  return {
-    version: ROUTINES_JSON_VERSION,
-    host: machineName(),
-    now: formatIso(now, systemTimeZone()),
-    harnesses: harnesses.map((h) => ({ ...h, routines: readRoutines(h.root, now).map((r) => summarizeRoutine(r, now)) })),
-  };
 }

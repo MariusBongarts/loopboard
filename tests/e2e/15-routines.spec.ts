@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { loopboard, repo, sandbox } from './cli';
 
@@ -76,5 +77,31 @@ test.describe('§ 15 routines on the command line', () => {
     const failed = loopboard(['check'], app, box.config);
     expect(failed.status).toBe(1);
     expect(failed.stdout).toContain('✗ scheduled/broken/routine.md: schedule "0 25 * * *": hour "25" is out of range (0–23)');
+  });
+
+  test('record the start of a run and finish it with a note from stdin', () => {
+    const app = repo(box.dir, 'shop');
+    const dir = routine(app, 'hourly', 'title: Hourly check\nschedule: "@hourly"');
+    const started = loopboard(['routines', 'start', 'hourly', '--path', app], box.dir, box.config);
+    expect(started.status).toBe(0);
+    expect(started.stdout).toMatch(/^started hourly — slot \S+/);
+    expect(started.stdout).toContain(`finish: loopboard routines finish ${dir} --status ok --note "…"`);
+    const again = loopboard(['routines', 'start', dir], box.dir, box.config);
+    expect(again.status).toBe(1);
+    expect(again.stderr).toMatch(/hourly is running since today \d\d:\d\d/);
+
+    const bin = join(process.cwd(), 'bin', 'loopboard.js');
+    const finished = spawnSync(process.execPath, [bin, 'routines', 'finish', dir, '--status', 'failed', '--note', '-'], {
+      input: 'The API was down.\nNext run: try again.\n',
+      env: { ...process.env, LOOPBOARD_CONFIG_DIR: box.config },
+      encoding: 'utf8',
+    });
+    expect(finished.stdout.trim()).toBe('finished hourly: failed');
+    const runs = readFileSync(join(dir, 'runs.md'), 'utf8');
+    expect(runs).toMatch(/^# Runs: Hourly check\n/);
+    expect(runs).toMatch(/## \S+ \S+ · running\n- started: \S+\n- slot: \S+\n- host: \S+\n/);
+    expect(runs).toMatch(/## \S+ \S+ · failed\n- started: \S+\n- finished: \S+\n- slot: \S+\n- host: \S+\n\n> The API was down\.\n> Next run: try again\.\n$/);
+    const json = JSON.parse(loopboard(['routines', '--json'], app, box.config).stdout);
+    expect(json.harnesses[0].routines[0].lastRun).toMatchObject({ status: 'failed', note: 'The API was down.\nNext run: try again.' });
   });
 });

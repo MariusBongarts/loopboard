@@ -6,7 +6,7 @@ status: todo
 assignee: agent
 project: 05-routines
 phase: 1
-parent: 0117
+parent: 0116
 labels: [cli, routines, workflow]
 created: 2026-10-27
 ---
@@ -21,7 +21,7 @@ file it, and the dispatcher can ask as often as it likes** (supersedes #0090).
 ## Acceptance criteria
 
 - [ ] `period` (`day`, `week`, `month`, `quarter`, `year`) labels the slot's local day: `2026-11-03`, `2026-W45` (ISO), `2026-11`, `2026-Q4`, `2026`; `{period}`, `{previous}` and `{date}` fill `issue-title` and the body
-- [ ] `due` (and `start`) file the issue with the next free number, the `issue-` fields, `due:` from `issue-due-after`, `recurrence: <slug>@<period>` and `created:`, and record an `ok` run whose note names it; a one-time routine then switches itself off
+- [ ] `start` (and `due`, #0117) file the issue with the next free number, the `issue-` fields, `due:` from `issue-due-after`, `recurrence: <slug>@<period>` and `created:`, and record an `ok` run whose note names it; a one-time routine then switches itself off
 - [ ] An issue with the same `recurrence:` in `issues/` or `issues/_archive/` means nothing is filed; the run is still `ok` and names that issue
 - [ ] Missed periods are recorded as `missed`, never back-filled; `--dry-run` names the issue it would file
 - [ ] `loopboard check` reports two issues with the same `recurrence:` as an error
