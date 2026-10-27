@@ -4,6 +4,7 @@ import { describeSchedule, formatIso, formatLocal, formatWhen, nextOccurrence, o
 import { frontmatterInner, setLine } from "../shared/frontmatter";
 import { withFileLock, writeFileAtomic } from "./files";
 import { isValid, machineName, parseDuration, readRoutine, readRoutines, ROUTINE_FILE, RUNS_FILE, type Harness, type IssueSpec, type Routine, type RoutineProblem } from "./routines";
+import { fileIssue, type FiledIssue } from "./recurrence";
 import { appendTo, lastRun, type NewEntry, type Run } from "./runs";
 
 // What a dispatcher asks and records (#0116, #0117, ADR-0010): when a slot
@@ -137,20 +138,75 @@ export interface Started {
   aborted: Run | null;
 }
 
+// A `creates: issue` routine runs without an agent: its run is the filing.
+export interface Filed {
+  kind: "filed";
+  run: Run;
+  slot: number | null;
+  missed: number;
+  aborted: Run | null;
+  issue: FiledIssue | null; // null when filing failed; the run says why
+}
+
+function refuse(routine: Routine, ev: Evaluation, now: number, host: string): void {
+  if (ev.state === "invalid") throw new RoutineRefusal(`${routine.slug} is invalid — \`loopboard check\` says why.`);
+  if (ev.state === "paused") throw new RoutineRefusal(`${routine.slug} is paused — set \`enabled: true\` to run it.`);
+  if (ev.state === "pinned") throw new RoutineRefusal(`${routine.slug} runs on ${routine.host} only; this machine is ${host}.`);
+  if (ev.state === "running" && ev.open) {
+    const since = formatWhen(Date.parse(ev.open.at), routine.timezone, now);
+    throw new RoutineRefusal(`${routine.slug} is running since ${since}${ev.open.host ? ` on ${ev.open.host}` : ""}; its timeout is ${routine.timeout}.`);
+  }
+}
+
+function filedNote(issue: FiledIssue): string {
+  return issue.existing
+    ? `#${issue.id} for ${issue.period} is there already (${issue.file}); nothing filed.`
+    : `Filed #${issue.id} ${issue.title} (${issue.file}).`;
+}
+
+// Files the period's issue and records the run as ok — or failed, with why.
+async function fileRun(routine: Routine, ev: Evaluation, now: number, host: string, dryRun: boolean): Promise<Filed> {
+  const spec = routine.creates;
+  if (!spec) throw new Error("fileRun needs a creates: issue routine");
+  const due = ev.state === "due" ? ev.slot : null;
+  const entries: NewEntry[] = [];
+  if (ev.stale && ev.open) entries.push(abortedEntry(routine, ev.open, now));
+  if (due !== null && ev.missed.length) entries.push(missedEntry(routine, ev.missed, now));
+  let issue: FiledIssue | null = null;
+  let note: string;
+  try {
+    issue = await fileIssue(routine, spec, due ?? now, now, dryRun);
+    note = filedNote(issue);
+  } catch (err) {
+    note = `Filing the issue failed: ${err instanceof Error ? err.message : String(err)}`;
+  }
+  const run: Run = {
+    status: issue ? "ok" : "failed",
+    at: iso(routine, now),
+    started: iso(routine, now),
+    finished: iso(routine, now),
+    ...(due !== null && { slot: iso(routine, due) }),
+    host,
+    note,
+  };
+  entries.push({ heading: formatLocal(now, routine.timezone), status: run.status, fields: [["started", run.started], ["finished", run.finished], ["slot", run.slot], ["host", host]], note });
+  if (!dryRun) {
+    await appendEntries(routine, entries);
+    await switchOff(routine);
+  }
+  return { kind: "filed", run, slot: due, missed: due === null ? 0 : ev.missed.length, aborted: ev.stale ? ev.open : null, issue };
+}
+
 // `routines start` (#0116): records the start of a run. A slot is filled in
-// when the routine is due; otherwise it's a manual run.
-export async function startRun(dir: string, now = Date.now(), opts: { dryRun?: boolean; host?: string } = {}): Promise<Started> {
+// when the routine is due; otherwise it's a manual run. A `creates: issue`
+// routine files the period's issue instead (#0118).
+export async function startRun(dir: string, now = Date.now(), opts: { dryRun?: boolean; host?: string } = {}): Promise<Started | Filed> {
   const host = opts.host ?? machineName();
   return withRoutineLock(dir, async () => {
     const routine = readRoutine(dir, now);
     const ev = evaluate(routine, now, host);
-    if (ev.state === "invalid") throw new RoutineRefusal(`${routine.slug} is invalid — \`loopboard check\` says why.`);
-    if (ev.state === "paused") throw new RoutineRefusal(`${routine.slug} is paused — set \`enabled: true\` to run it.`);
-    if (ev.state === "pinned") throw new RoutineRefusal(`${routine.slug} runs on ${routine.host} only; this machine is ${host}.`);
-    if (ev.state === "running" && ev.open) {
-      const since = formatWhen(Date.parse(ev.open.at), routine.timezone, now);
-      throw new RoutineRefusal(`${routine.slug} is running since ${since}${ev.open.host ? ` on ${ev.open.host}` : ""}; its timeout is ${routine.timeout}.`);
-    }
+    refuse(routine, ev, now, host);
+    if (routine.creates) return fileRun(routine, ev, now, host, !!opts.dryRun);
     const entries: NewEntry[] = [];
     if (ev.stale && ev.open) entries.push(abortedEntry(routine, ev.open, now));
     const slot = ev.state === "due" ? ev.slot : null;

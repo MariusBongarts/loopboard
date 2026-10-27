@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { loopboard, repo, sandbox } from './cli';
 
@@ -103,5 +103,30 @@ test.describe('§ 15 routines on the command line', () => {
     expect(runs).toMatch(/## \S+ \S+ · failed\n- started: \S+\n- finished: \S+\n- slot: \S+\n- host: \S+\n\n> The API was down\.\n> Next run: try again\.\n$/);
     const json = JSON.parse(loopboard(['routines', '--json'], app, box.config).stdout);
     expect(json.harnesses[0].routines[0].lastRun).toMatchObject({ status: 'failed', note: 'The API was down.\nNext run: try again.' });
+  });
+
+  test("file the period's issue, once, and report a duplicate", () => {
+    const app = repo(box.dir, 'books');
+    const dir = routine(
+      app,
+      'monthly-books',
+      'title: Monthly books\nschedule: "0 6 1 * *"\ncreates: issue\nperiod: month\nissue-title: "Books for {previous}"\nissue-assignee: human\nissue-due-after: 9d',
+      'Send the {previous} books to the accountant.\n',
+    );
+    const filed = loopboard(['routines', 'start', dir], box.dir, box.config);
+    expect(filed.status).toBe(0);
+    expect(filed.stdout).toMatch(/^filed #0002 Books for \d{4}-\d{2} \(issues\/0002-books-for-\d{4}-\d{2}\.md\) for monthly-books/);
+    const issues = join(app, '.agents', 'issues');
+    const name = readdirSync(issues).find((f) => f.startsWith('0002-'))!;
+    const text = readFileSync(join(issues, name), 'utf8');
+    expect(text).toMatch(/^---\nid: 0002\ntitle: Books for \d{4}-\d{2}\ncategory: task\nstatus: todo\nassignee: human\nlabels: \[\]\ndue: \d{4}-\d{2}-10\nrecurrence: monthly-books@\d{4}-\d{2}\ncreated: \S+\n---\n\nSend the \d{4}-\d{2} books to the accountant\.\n$/);
+    const again = loopboard(['routines', 'start', dir], box.dir, box.config);
+    expect(again.stdout).toContain('is there already');
+    expect(readdirSync(issues).filter((f) => f.endsWith('.md')).length).toBe(2);
+
+    writeFileSync(join(issues, '0003-twin.md'), text.replace('id: 0002', 'id: 0003'));
+    const check = loopboard(['check'], app, box.config);
+    expect(check.status).toBe(1);
+    expect(check.stdout).toMatch(/✗ duplicate recurrence monthly-books@\d{4}-\d{2}:\n {4}issues\/0002-books-for-\S+\n {4}issues\/0003-twin\.md/);
   });
 });

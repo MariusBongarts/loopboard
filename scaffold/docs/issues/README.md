@@ -106,11 +106,20 @@ column on loopboard's board (1 = top, lower = higher priority). It is
 chosen vertical position; issues without the field sort below prioritized
 ones, by id ascending.
 
+## Recurrence
+
+`recurrence: <routine>@<period>` marks the issue a routine with
+`creates: issue` filed for one period, e.g. `monthly-books@2026-11`.
+loopboard writes it and finds the issue by it, so a period's issue is filed
+once — also after it was closed or archived. Never set or change it by hand;
+`loopboard check` reports two issues with the same value. Routines live in
+`.agents/scheduled/`.
+
 ## Reserved fields and references
 
 Reserved: loopboard reads the fields and references below from a later
 release. Until then it leaves the fields alone and shows the references as
-plain text, so what you write today stays valid. All four fields are
+plain text, so what you write today stays valid. All three fields are
 optional.
 
 | Field | Meaning | Example |
@@ -118,7 +127,6 @@ optional.
 | `due` | The day the issue has to be finished. | `due: 2026-11-30` |
 | `waiting-on` | Who owes a reply: a person or an organisation, or a list of them. Quoted, because YAML doesn't let a plain value start with `@`. | `waiting-on: "@accountant"` |
 | `blocked-by` | Every issue or project that must finish first: a list on one line, a local issue as bare digits (` #` would start a comment). `parent:` stays the single local blocker. | `blocked-by: [0029, shop#0412]` |
-| `recurrence` | Which recurring duty and period the issue stands for. `loopboard recur` writes it; never set it by hand. | — |
 
 | Reference | Points at | Example |
 |---|---|---|

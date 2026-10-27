@@ -5,7 +5,8 @@
   this repo or absolute). Legacy repos use `ai/`.
 - **Issue** — one markdown file at `<root>/issues/NNNN-slug.md` with YAML
   frontmatter (`id`, `title`, `category`, `status`, `assignee`, optional
-  `project`, `phase`, `parent`, `labels`, `source`, `created`, `priority`).
+  `project`, `phase`, `parent`, `labels`, `source`, `created`, `priority`,
+  and `recurrence` on an issue a routine filed).
   The filename's four digits are the canonical ID. Format:
   [`../issues/README.md`](../issues/README.md).
 - **Archived issue** — an issue moved to `<root>/issues/_archive/`. It has

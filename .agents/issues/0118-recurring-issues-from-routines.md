@@ -2,7 +2,7 @@
 id: 0118
 title: "File the period's issue with a creates: issue routine"
 category: user-story
-status: todo
+status: done
 assignee: agent
 project: 05-routines
 phase: 1
@@ -20,13 +20,13 @@ file it, and the dispatcher can ask as often as it likes** (supersedes #0090).
 
 ## Acceptance criteria
 
-- [ ] `period` (`day`, `week`, `month`, `quarter`, `year`) labels the slot's local day: `2026-11-03`, `2026-W45` (ISO), `2026-11`, `2026-Q4`, `2026`; `{period}`, `{previous}` and `{date}` fill `issue-title` and the body
-- [ ] `start` (and `due`, #0117) file the issue with the next free number, the `issue-` fields, `due:` from `issue-due-after`, `recurrence: <slug>@<period>` and `created:`, and record an `ok` run whose note names it; a one-time routine then switches itself off
-- [ ] An issue with the same `recurrence:` in `issues/` or `issues/_archive/` means nothing is filed; the run is still `ok` and names that issue
-- [ ] Missed periods are recorded as `missed`, never back-filled; `--dry-run` names the issue it would file
-- [ ] `loopboard check` reports two issues with the same `recurrence:` as an error
-- [ ] The issues README (both scaffolds) moves `recurrence` out of the reserved fields; the glossary's Issue entry names the field; spec § 15 gains the scenarios
-- [ ] Vitest: the 31st and `L` in February, 29 February, quarter starts, ISO weeks 52/53 and `{previous}` at the turn of the year, idempotence across live and archived issues, the duplicate in `check`
+- [x] `period` (`day`, `week`, `month`, `quarter`, `year`) labels the slot's local day: `2026-11-03`, `2026-W45` (ISO), `2026-11`, `2026-Q4`, `2026`; `{period}`, `{previous}` and `{date}` fill `issue-title` and the body
+- [x] `start` files the issue (`due` calls the same in #0117) with the next free number, the `issue-` fields, `due:` from `issue-due-after`, `recurrence: <slug>@<period>` and `created:`, and record an `ok` run whose note names it; a one-time routine then switches itself off
+- [x] An issue with the same `recurrence:` in `issues/` or `issues/_archive/` means nothing is filed; the run is still `ok` and names that issue
+- [x] Missed periods are recorded as `missed`, never back-filled; `--dry-run` names the issue it would file
+- [x] `loopboard check` reports two issues with the same `recurrence:` as an error
+- [x] The issues README (both scaffolds) moves `recurrence` out of the reserved fields; the glossary's Issue entry names the field; spec § 15 gains the scenarios
+- [x] Vitest: the 31st and `L` in February, 29 February, quarter starts, ISO weeks 52/53 and `{previous}` at the turn of the year, idempotence across live and archived issues, the duplicate in `check`
 
 ## Out of scope
 

@@ -8,6 +8,7 @@ import { applyPlan, InitError, isNewHarness, nextStep, planInit, planScaffold, s
 import { readBoard } from "./issues";
 import { matchName } from "./names";
 import { applyRenumber, planRenumber, RenumberError } from "./renumber";
+import { duplicateRecurrences } from "./recurrence";
 import { checkRoutines } from "./routines";
 import { ROUTINES_FLAGS, ROUTINES_SUMMARY, ROUTINES_USAGE, runRoutines } from "./routinesCli";
 import { openBrowser } from "./open";
@@ -278,7 +279,13 @@ commands.check = {
     // A broken routine never runs, so it fails the check (#0115).
     const known = new Set((await loadRegistry(configDir())).workspaces.flatMap(workspaceNames));
     const routines = checkRoutines(root, known);
-    const routineErrors = routines.problems.filter((p) => p.level === "error");
+    // Two devices on a synced folder can each file the period's issue (#0118).
+    const doubles = duplicateRecurrences(root);
+    for (const d of doubles) {
+      console.log(`✗ duplicate recurrence ${printable(d.value)}:`);
+      for (const file of d.files) console.log(`    ${printable(file)}`);
+    }
+    const routineErrors = [...routines.problems.filter((p) => p.level === "error"), ...doubles];
     const routineWarnings = routines.problems.filter((p) => p.level === "warning");
     for (const p of routines.problems) console.log(`${p.level === "error" || strict ? "✗" : "!"} ${printable(p.path)}: ${escapeControls(p.message)}`);
     const warnings = report.dangling.length + skipped.length + routineWarnings.length;

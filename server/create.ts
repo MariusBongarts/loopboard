@@ -19,6 +19,10 @@ export interface NewIssue {
   assignee?: Assignee;
   project?: string;
   labels?: string[];
+  // A routine's issue (#0118): its own body, a due day and the period it stands for.
+  body?: string;
+  due?: string;
+  recurrence?: string;
 }
 
 const FALLBACK_BODY: Record<string, string> = {
@@ -43,7 +47,7 @@ export function skeletonBody(template: string): string {
   return sections.map((sec) => (sec.checklist ? `${sec.heading}\n\n- [ ] \n` : `${sec.heading}\n`)).join("\n");
 }
 
-function slugFor(title: string): string {
+export function slugFor(title: string): string {
   return slugify(title).slice(0, 60).replace(/-+$/, "") || "untitled";
 }
 
@@ -59,9 +63,10 @@ export async function createIssue(root: string, input: NewIssue, today = todayIs
     throw new CreateError(`unknown project: ${input.project}`);
   }
   const template = join(root, "issues", "_templates", `${category}.md`);
-  const body = skeletonBody(
-    existsSync(template) ? stripFrontmatter(readFileSync(template, "utf8")) : FALLBACK_BODY[category] ?? FALLBACK_BODY.task,
-  );
+  const body =
+    input.body !== undefined
+      ? `${input.body.trim()}\n`
+      : skeletonBody(existsSync(template) ? stripFrontmatter(readFileSync(template, "utf8")) : FALLBACK_BODY[category] ?? FALLBACK_BODY.task);
   const id = nextId(root, "issue");
   const filename = `${id}-${slugFor(title)}.md`;
   const labels = (input.labels ?? []).map((l) => yamlScalar(l.trim())).filter(Boolean);
@@ -74,6 +79,8 @@ export async function createIssue(root: string, input: NewIssue, today = todayIs
     `assignee: ${assignee}`,
     ...(input.project ? [`project: ${input.project}`] : []),
     `labels: [${labels.join(", ")}]`,
+    ...(input.due ? [`due: ${input.due}`] : []),
+    ...(input.recurrence ? [`recurrence: ${input.recurrence}`] : []),
     `created: ${today}`,
     "---",
   ].join("\n");

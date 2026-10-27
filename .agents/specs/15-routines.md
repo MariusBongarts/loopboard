@@ -23,6 +23,8 @@ detail in `tests/cron.test.ts` and `tests/routines.test.ts`. Status legend in
 | Record the start of a run | ✅ | [`15-routines.spec.ts`](../../tests/e2e/15-routines.spec.ts): the entry, the printed commands, a second start refused. Lock, abort and dry run in `tests/dispatch.test.ts` |
 | Finish a run with a note | ✅ | [`15-routines.spec.ts`](../../tests/e2e/15-routines.spec.ts): `--note -` from stdin, the block quote. Late finish and refusals in `tests/dispatch.test.ts` |
 | A one-time routine switches itself off | ❌ | Vitest: `tests/dispatch.test.ts` |
+| File the period's issue | ✅ | [`15-routines.spec.ts`](../../tests/e2e/15-routines.spec.ts): fields, due day, recurrence, a second start files nothing. Periods at their edges in `tests/recurrence.test.ts` |
+| Two issues for one period are reported | ✅ | [`15-routines.spec.ts`](../../tests/e2e/15-routines.spec.ts) |
 | Check routines | 🟡 | [`15-routines.spec.ts`](../../tests/e2e/15-routines.spec.ts): a broken schedule fails, an unknown field warns. Every error and warning in `tests/routines.test.ts` |
 
 ### Scenario: Write a routine
@@ -157,5 +159,45 @@ GIVEN a routine with `at: 2026-11-03 09:00`
 WHEN its run finishes
 THEN routine.md gains `enabled: false`, and nothing else in it changes
 AND it is never due again
+```
+
+### Scenario: File the period's issue
+
+```
+GIVEN a routine
+    ---
+    title: Monthly books
+    schedule: "0 6 1 * *"
+    creates: issue
+    period: month
+    issue-title: "Books for {previous}"
+    issue-assignee: human
+    issue-due-after: 9d
+    ---
+    Send the {previous} books to the accountant.
+WHEN its slot on 1 January 2027 is due (or I run `loopboard routines start`)
+THEN loopboard files the issue itself, without an agent: the next free
+    number, "Books for 2026-12", the `issue-` fields, `due: 2027-01-10`,
+    `recurrence: monthly-books@2027-01`, today as `created`, and the body
+    with its placeholders filled in
+AND the run is recorded as ok, its note naming the issue
+AND `period` is day, week, month, quarter or year, labelled 2027-01-01,
+    2026-W53 (ISO), 2027-01, 2027-Q1, 2027; `{period}` is the slot's period,
+    `{previous}` the one before, `{date}` the slot's day
+AND when an issue in issues/ or issues/_archive/ carries that recurrence
+    already, nothing is filed and the run's note names it
+AND after a gap the latest period is filed and the others are recorded as
+    one `missed` entry — never back-filled
+AND a run that can't file (an `issue-project` that's gone) is recorded as
+    failed with the reason; --dry-run names the number it would take
+```
+
+### Scenario: Two issues for one period are reported
+
+```
+GIVEN two issues — live or archived — with the same `recurrence:` value,
+    as two devices on one synced folder can file before the sync catches up
+WHEN I run `loopboard check`
+THEN it lists the value and both files, and fails
 ```
 

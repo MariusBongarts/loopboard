@@ -148,6 +148,14 @@ async function start(args: Args): Promise<number> {
   if (started.aborted) console.log(`${dryRun ? "would record" : "recorded"} the run started ${started.aborted.at} as aborted: it outlived its timeout`);
   const slot = started.run.slot ? ` — slot ${started.run.slot}` : " — a manual run";
   const missed = started.missed ? ` (${started.missed} earlier ${started.missed === 1 ? "slot" : "slots"} recorded as missed)` : "";
+  if (started.kind === "filed") {
+    // No agent: the run is the filing, recorded as ok or failed (#0118).
+    const issue = started.issue;
+    if (!issue) console.error(`${slug}: ${started.run.note}`);
+    else if (issue.existing) console.log(`${slug}${slot}: ${started.run.note}${missed}`);
+    else console.log(`${dryRun ? "would file" : "filed"} #${issue.id} ${printable(issue.title)}${issue.file ? ` (${issue.file})` : ""} for ${slug}${slot}${missed}`);
+    return issue ? 0 : 1;
+  }
   console.log(`${dryRun ? "would start" : "started"} ${slug}${slot}${missed}`);
   console.log(`  brief:  loopboard routines prompt ${shellWord(dir)}`);
   console.log(`  finish: ${finishCommand(dir, "ok")}`);
