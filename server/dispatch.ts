@@ -334,3 +334,82 @@ export function listRoutines(harnesses: Harness[], now = Date.now(), host = mach
   };
 }
 
+
+// ── due (#0117) ──────────────────────────────────────────────────────
+
+export interface DueRef {
+  harness: { id: string; name: string; path: string };
+  slug: string;
+  dir: string;
+  title: string;
+}
+
+export interface DueReport {
+  version: number;
+  host: string;
+  now: string;
+  dryRun: boolean;
+  // Agent routines to run now, one after another: start, prompt, finish.
+  run: (DueRef & { slot: string; missed: number })[];
+  // `creates: issue` routines `due` ran itself (#0118); `issue` is null when filing failed.
+  filed: (DueRef & { slot: string; status: "ok" | "failed"; issue: FiledIssue | null; note: string })[];
+  expired: (DueRef & { slot: string; late: string })[];
+  aborted: (DueRef & { started: string; host: string | null })[];
+  running: (DueRef & { started: string; host: string | null })[];
+  problems: (DueRef & { problems: RoutineProblem[] })[];
+}
+
+// `loopboard routines due` (#0117): what is due now, with the bookkeeping
+// that needs no agent written — aborted runs, expired slots, the period's
+// issue — unless `dryRun`.
+export async function dueAll(harnesses: Harness[], now = Date.now(), opts: { dryRun?: boolean; host?: string } = {}): Promise<DueReport> {
+  const host = opts.host ?? machineName();
+  const dryRun = !!opts.dryRun;
+  const report: DueReport = {
+    version: ROUTINES_JSON_VERSION,
+    host,
+    now: formatIso(now, systemTimeZone()),
+    dryRun,
+    run: [],
+    filed: [],
+    expired: [],
+    aborted: [],
+    running: [],
+    problems: [],
+  };
+  for (const h of harnesses) {
+    for (const dir of readRoutines(h.root, now).map((r) => r.dir)) {
+      await withRoutineLock(dir, async () => {
+        const routine = readRoutine(dir, now);
+        const ref: DueRef = { harness: { id: h.id, name: h.name, path: h.path }, slug: routine.slug, dir, title: routine.title };
+        const ev = evaluate(routine, now, host);
+        if (ev.state === "invalid") {
+          report.problems.push({ ...ref, problems: routine.problems.filter((p) => p.level === "error") });
+          return;
+        }
+        if (ev.state === "running" && ev.open) {
+          report.running.push({ ...ref, started: ev.open.at, host: ev.open.host ?? null });
+          return;
+        }
+        if (ev.stale && ev.open) report.aborted.push({ ...ref, started: ev.open.at, host: ev.open.host ?? null });
+        if (ev.slot !== null && ev.state === "due" && routine.creates) {
+          const filed = await fileRun(routine, ev, now, host, dryRun);
+          report.filed.push({ ...ref, slot: iso(routine, ev.slot), status: filed.issue ? "ok" : "failed", issue: filed.issue, note: filed.run.note });
+          return;
+        }
+        const entries: NewEntry[] = [];
+        if (ev.stale && ev.open) entries.push(abortedEntry(routine, ev.open, now));
+        if (ev.slot !== null && ev.state === "expired") {
+          if (ev.missed.length) entries.push(missedEntry(routine, ev.missed, now));
+          entries.push(expiredEntry(routine, ev.slot, now));
+          report.expired.push({ ...ref, slot: iso(routine, ev.slot), late: spell(now - ev.slot) });
+        }
+        if (ev.slot !== null && ev.state === "due") report.run.push({ ...ref, slot: iso(routine, ev.slot), missed: ev.missed.length });
+        if (dryRun) return;
+        await appendEntries(routine, entries);
+        if (ev.state === "expired") await switchOff(routine);
+      });
+    }
+  }
+  return report;
+}

@@ -129,4 +129,24 @@ test.describe('§ 15 routines on the command line', () => {
     expect(check.status).toBe(1);
     expect(check.stdout).toMatch(/✗ duplicate recurrence monthly-books@\d{4}-\d{2}:\n {4}issues\/0002-books-for-\S+\n {4}issues\/0003-twin\.md/);
   });
+
+  test('ask what is due', () => {
+    const app = repo(box.dir, 'shop');
+    routine(app, 'hourly', 'schedule: "@hourly"');
+    routine(app, 'books', 'schedule: "@monthly"\ncreates: issue\nperiod: month');
+    routine(app, 'paused', 'schedule: "@hourly"\nenabled: false');
+    routine(app, 'broken', 'schedule: "61 * * * *"');
+    const dry = loopboard(['routines', 'due', '--dry-run'], app, box.config);
+    expect(dry.status).toBe(0);
+    expect(dry.stdout).toContain('Dry run — nothing was written.');
+    expect(dry.stdout).toMatch(/run\s+shop\/hourly\s+slot /);
+    expect(dry.stdout).toMatch(/filed\s+shop\/books\s+Filed #0002 books \d{4}-\d{2}/);
+    expect(dry.stdout).toMatch(/invalid\s+shop\/broken/);
+    expect(dry.stdout).not.toContain('paused');
+    expect(readdirSync(join(app, '.agents', 'issues'))).toEqual(['0001-first.md']);
+
+    const json = JSON.parse(loopboard(['routines', 'due', '--json'], app, box.config).stdout);
+    expect(json).toMatchObject({ version: 1, dryRun: false, run: [{ slug: 'hourly', missed: 0 }], filed: [{ slug: 'books', status: 'ok', issue: { id: '0002' } }], problems: [{ slug: 'broken' }] });
+    expect(loopboard(['routines', 'due', '--json'], app, box.config).stdout).toContain('"filed": []');
+  });
 });

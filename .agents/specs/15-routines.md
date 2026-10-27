@@ -20,6 +20,10 @@ detail in `tests/cron.test.ts` and `tests/routines.test.ts`. Status legend in
 | List the routines of a harness | ✅ | [`15-routines.spec.ts`](../../tests/e2e/15-routines.spec.ts): words, zone, next slot, last run, paused, invalid |
 | List the routines under a folder | ✅ | [`15-routines.spec.ts`](../../tests/e2e/15-routines.spec.ts): nested harnesses; skipped folders in `tests/routines.test.ts` |
 | A schedule keeps its local time across daylight saving | ❌ | Vitest: `tests/cron.test.ts` (Berlin, New York, Kolkata, Lord Howe) |
+| Ask what is due | ✅ | [`15-routines.spec.ts`](../../tests/e2e/15-routines.spec.ts): run, filed, invalid, `--json`, `--dry-run`. Every state in `tests/dispatch.test.ts` |
+| Missed slots are caught up once | ❌ | Vitest: `tests/dispatch.test.ts` (the `missed` entry, `created`) |
+| A late slot expires | ❌ | Vitest: `tests/dispatch.test.ts` |
+| A run that never finishes is aborted | ❌ | Vitest: `tests/dispatch.test.ts` |
 | Record the start of a run | ✅ | [`15-routines.spec.ts`](../../tests/e2e/15-routines.spec.ts): the entry, the printed commands, a second start refused. Lock, abort and dry run in `tests/dispatch.test.ts` |
 | Finish a run with a note | ✅ | [`15-routines.spec.ts`](../../tests/e2e/15-routines.spec.ts): `--note -` from stdin, the block quote. Late finish and refusals in `tests/dispatch.test.ts` |
 | A one-time routine switches itself off | ❌ | Vitest: `tests/dispatch.test.ts` |
@@ -199,5 +203,60 @@ GIVEN two issues — live or archived — with the same `recurrence:` value,
     as two devices on one synced folder can file before the sync catches up
 WHEN I run `loopboard check`
 THEN it lists the value and both files, and fails
+```
+
+### Scenario: Ask what is due
+
+```
+GIVEN routines in a harness, or in every harness under a folder
+WHEN I (or a dispatcher) run `loopboard routines due [path]` or
+    `routines due --under <dir>`
+THEN it lists the agent routines to run now with their slot, the issues it
+    filed itself (§ "File the period's issue"), the slots that expired, the
+    runs it recorded as aborted, the runs still in progress and the routines
+    that are invalid — or "Nothing is due."
+AND a routine is due when it is enabled, valid, not pinned to another
+    `host:`, nothing of it is running, and its slot — the latest occurrence
+    up to now — is later than its newest run start or expired entry
+AND paused routines and routines pinned to another machine aren't listed
+AND --json prints `version: 1` with run, filed, expired, aborted, running
+    and problems, each naming the harness, the routine's slug, folder and
+    title (docs/routines.md)
+AND --dry-run writes nothing and says so
+```
+
+### Scenario: Missed slots are caught up once
+
+```
+GIVEN an hourly routine whose last run was at 08:00, and a machine that
+    slept until 12:10
+WHEN `routines due` runs
+THEN the routine is due once, for 12:00
+AND its `start` records the 09:00, 10:00 and 11:00 slots as one `missed`
+    entry (from, to, slots: 3) before its running entry
+AND no slot before the day in `created:` counts, so a routine written on
+    Wednesday for Mondays waits for next Monday
+```
+
+### Scenario: A late slot expires
+
+```
+GIVEN `expires-after: 6h` and a slot at 07:30
+WHEN `routines due` runs at 15:02
+THEN the slot is recorded as `expired` ("7h 32m after the slot; expires-after
+    is 6h.") and not run
+AND the routine is due again at its next slot; a one-time routine switches
+    itself off
+```
+
+### Scenario: A run that never finishes is aborted
+
+```
+GIVEN a `running` entry older than the routine's `timeout`
+WHEN `routines due` (or `start`) runs
+THEN the run is recorded as `aborted` with a note, and the routine is
+    evaluated again — due if a newer slot is waiting
+AND a run younger than its timeout is listed as running and blocks the
+    routine
 ```
 

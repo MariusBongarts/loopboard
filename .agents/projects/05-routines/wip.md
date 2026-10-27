@@ -23,7 +23,7 @@ Goal: a routine is a folder in the harness, its schedule is understood in its ti
 - [x] [#0115 loopboard check validates routines](../../issues/0115-check-validates-routines.md) — done
 - [x] [#0116 Record runs with routines start and finish](../../issues/0116-record-runs-with-start-and-finish.md) — done
 - [x] [#0118 File the period's issue with a creates: issue routine](../../issues/0118-recurring-issues-from-routines.md) — done
-- [ ] [#0117 Ask what is due with loopboard routines due](../../issues/0117-routines-due.md) — todo
+- [x] [#0117 Ask what is due with loopboard routines due](../../issues/0117-routines-due.md) — done
 - [ ] [#0119 Brief each run and print the dispatcher prompt](../../issues/0119-briefs-and-dispatcher-prompt.md) — todo
 
 ### Phase 2 — Routines on the board
@@ -86,6 +86,10 @@ Goal: every harness gets the folder, the skill and the rule, existing ones throu
   or failed; a gap files the latest period and records the rest as missed.
   `check` reports duplicate recurrences. The issues READMEs (both
   scaffolds) moved `recurrence` out of the reserved fields.
+- #0117 done: `routines due [path]` / `--under <dir>` lists what to run and
+  writes the bookkeeping that needs no agent — aborted runs, expired slots
+  (a one-time routine switches off), the period's issues — or nothing with
+  `--dry-run`; `--json` is the `version: 1` shape the dispatcher reads.
 
 ## Deferred / out of scope (added during execution)
 

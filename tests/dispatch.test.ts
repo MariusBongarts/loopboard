@@ -4,8 +4,8 @@ import { mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promi
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { main } from '../server/cli';
-import { evaluate, finishRun, RoutineRefusal, startRun } from '../server/dispatch';
-import { readRoutine } from '../server/routines';
+import { dueAll, evaluate, finishRun, RoutineRefusal, startRun } from '../server/dispatch';
+import { harnessesUnder, harnessFor, readRoutine } from '../server/routines';
 import { parseRuns } from '../server/runs';
 
 let tmp: string;
@@ -182,3 +182,118 @@ describe('loopboard routines start and finish (#0116)', () => {
     expect((await run('routines', 'start', 'brief', '--under', repo)).err).toBe('Unknown flag --under: `loopboard routines start` takes --path, --json, --dry-run.');
   });
 });
+
+const here = () => [harnessFor(repo, join(repo, '.agents'))];
+
+describe('when a routine is due (#0117)', () => {
+  it('is due at its latest slot until a run handles it', async () => {
+    const dir = await routine('brief', WEEKDAYS);
+    expect(evaluate(readRoutine(dir), t('2026-10-27T06:00:00Z'), HOST)).toMatchObject({ state: 'due', slot: t('2026-10-26T06:30:00Z') });
+    await startRun(dir, t('2026-10-27T06:31:00Z'), { host: HOST });
+    await finishRun(dir, 'ok', 'Done.', t('2026-10-27T06:35:00Z'));
+    expect(evaluate(readRoutine(dir), t('2026-10-27T12:00:00Z'), HOST).state).toBe('idle');
+    expect(evaluate(readRoutine(dir), t('2026-10-28T06:30:00Z'), HOST)).toMatchObject({ state: 'due', slot: t('2026-10-28T06:30:00Z') });
+  });
+
+  it('counts no slot before the day it was created', async () => {
+    const dir = await routine('weekly', 'schedule: "30 7 * * 1"\ntimezone: Europe/Berlin\ncreated: 2026-10-28');
+    expect(evaluate(readRoutine(dir), t('2026-10-29T12:00:00Z'), HOST).state).toBe('idle');
+    expect(evaluate(readRoutine(dir), t('2026-11-02T06:31:00Z'), HOST).state).toBe('due');
+    const today = await routine('today', 'schedule: "30 7 * * *"\ntimezone: Europe/Berlin\ncreated: 2026-10-28');
+    expect(evaluate(readRoutine(today), t('2026-10-28T12:00:00Z'), HOST)).toMatchObject({ state: 'due', missed: [] });
+  });
+
+  it('catches up once and records the slots it covers as missed', async () => {
+    const dir = await routine('hourly', 'schedule: "0 * * * *"\ntimezone: UTC', `# Runs: hourly
+
+## 2026-10-27 08:00 · ok
+- started: 2026-10-27T08:00:05+00:00
+- finished: 2026-10-27T08:01:00+00:00
+- slot: 2026-10-27T08:00:00+00:00
+- host: studio
+
+> Fine.
+`);
+    const report = await dueAll(here(), t('2026-10-27T12:10:00Z'), { host: HOST });
+    expect(report.run).toEqual([expect.objectContaining({ slug: 'hourly', slot: '2026-10-27T12:00:00+00:00', missed: 3 })]);
+    await startRun(dir, t('2026-10-27T12:10:05Z'), { host: HOST });
+    const runs = await runsOf(dir);
+    expect(runs.map((r) => r.status)).toEqual(['ok', 'missed', 'running']);
+    expect(runs[1]).toMatchObject({ from: '2026-10-27T09:00:00+00:00', to: '2026-10-27T11:00:00+00:00', slots: 3, note: "3 earlier slots weren't run; the next run covers them." });
+  });
+
+  it('records a slot older than expires-after as expired instead of running it', async () => {
+    const dir = await routine('brief', `${WEEKDAYS}\nexpires-after: 6h`);
+    const report = await dueAll(here(), t('2026-10-27T14:02:00Z'), { host: HOST });
+    expect(report.run).toEqual([]);
+    expect(report.expired).toEqual([expect.objectContaining({ slug: 'brief', slot: '2026-10-27T07:30:00+01:00', late: '7h 32m' })]);
+    expect((await runsOf(dir)).at(-1)).toMatchObject({ status: 'expired', recorded: '2026-10-27T15:02:00+01:00', note: '7h 32m after the slot; expires-after is 6h.' });
+    expect((await dueAll(here(), t('2026-10-27T15:00:00Z'), { host: HOST })).expired).toEqual([]);
+  });
+
+  it('switches an expired one-time routine off', async () => {
+    const dir = await routine('reminder', 'at: 2026-11-03 09:00\ntimezone: UTC\nexpires-after: 1h');
+    await dueAll(here(), t('2026-11-03T12:00:00Z'), { host: HOST });
+    expect(await readFile(join(dir, 'routine.md'), 'utf8')).toContain('enabled: false');
+  });
+
+  it('leaves a run younger than its timeout alone and aborts an older one', async () => {
+    const dir = await routine('brief', `${WEEKDAYS}\ntimeout: 1h`);
+    await startRun(dir, t('2026-10-27T06:30:04Z'), { host: HOST });
+    const young = await dueAll(here(), t('2026-10-27T07:00:00Z'), { host: HOST });
+    expect(young.running).toEqual([expect.objectContaining({ slug: 'brief', started: '2026-10-27T07:30:04+01:00', host: HOST })]);
+    expect(young.run).toEqual([]);
+    const old = await dueAll(here(), t('2026-10-28T06:31:00Z'), { host: HOST });
+    expect(old.aborted).toEqual([expect.objectContaining({ slug: 'brief', started: '2026-10-27T07:30:04+01:00' })]);
+    expect(old.run).toEqual([expect.objectContaining({ slug: 'brief', slot: '2026-10-28T07:30:00+01:00', missed: 0 })]);
+    expect((await runsOf(dir)).map((r) => r.status)).toEqual(['aborted']);
+  });
+
+  it('skips paused routines and routines pinned to another host, and reports invalid ones', async () => {
+    await routine('paused', `${WEEKDAYS}\nenabled: false`);
+    await routine('pinned', `${WEEKDAYS}\nhost: laptop`);
+    await routine('broken', 'schedule: "61 * * * *"');
+    const report = await dueAll(here(), t('2026-10-27T07:00:00Z'), { host: HOST });
+    expect(report.run).toEqual([]);
+    expect(report.problems).toEqual([expect.objectContaining({ slug: 'broken', problems: [expect.objectContaining({ message: 'schedule "61 * * * *": minute "61" is out of range (0–59)' })] })]);
+    const onLaptop = await dueAll(here(), t('2026-10-27T07:00:00Z'), { host: 'laptop' });
+    expect(onLaptop.run.map((r) => r.slug)).toEqual(['pinned']);
+  });
+
+  it('files issues and covers every harness under a folder; --dry-run writes nothing', async () => {
+    const company = join(repo, 'company');
+    await mkdir(join(company, '.agents', 'issues'), { recursive: true });
+    await mkdir(join(company, '.agents', 'scheduled', 'books'), { recursive: true });
+    await writeFile(join(company, '.agents', 'scheduled', 'books', 'routine.md'), '---\nschedule: "0 6 1 * *"\ntimezone: UTC\ncreates: issue\nperiod: month\n---\n\nBooks.\n');
+    await routine('brief', WEEKDAYS);
+    const dry = await dueAll(harnessesUnder(repo), t('2026-11-02T07:00:00Z'), { host: HOST, dryRun: true });
+    expect(dry).toMatchObject({ dryRun: true, run: [{ slug: 'brief', harness: { id: 'shop' } }], filed: [{ slug: 'books', status: 'ok', harness: { id: 'company' }, issue: { id: '0001', existing: false } }] });
+    expect(existsSync(join(company, '.agents', 'scheduled', 'books', 'runs.md'))).toBe(false);
+    const real = await dueAll(harnessesUnder(repo), t('2026-11-02T07:00:00Z'), { host: HOST });
+    expect(real.filed[0]).toMatchObject({ note: 'Filed #0001 books 2026-11 (issues/0001-books-2026-11.md).' });
+    expect(existsSync(join(company, '.agents', 'issues', '0001-books-2026-11.md'))).toBe(true);
+    expect((await dueAll(harnessesUnder(repo), t('2026-11-02T08:00:00Z'), { host: HOST })).filed).toEqual([]);
+  });
+});
+
+describe('loopboard routines due (#0117)', () => {
+  it('prints what is due and the JSON shape', async () => {
+    await routine('hourly', 'schedule: "@hourly"');
+    await routine('broken', 'schedule: "61 * * * *"');
+    const text = await run('routines', 'due', repo, '--dry-run');
+    expect(text.code).toBe(0);
+    expect(text.out).toContain('Dry run — nothing was written.');
+    expect(text.out).toMatch(/run\s+shop\/hourly\s+slot (today|yesterday) \d\d:00/);
+    expect(text.out).toMatch(/invalid\s+shop\/broken\s+schedule "61 \* \* \* \*"/);
+    expect(text.out).toContain('Run each, one after another');
+    const json = JSON.parse((await run('routines', 'due', repo, '--json')).out);
+    expect(Object.keys(json)).toEqual(['version', 'host', 'now', 'dryRun', 'run', 'filed', 'expired', 'aborted', 'running', 'problems']);
+    expect(json.run[0]).toEqual({ harness: { id: 'shop', name: 'shop', path: repo }, slug: 'hourly', dir: join(repo, '.agents', 'scheduled', 'hourly'), title: 'hourly', slot: expect.any(String), missed: 0 });
+  });
+
+  it('says when nothing is due', async () => {
+    await routine('paused', 'schedule: "@hourly"\nenabled: false');
+    expect((await run('routines', 'due', repo)).out).toBe('Nothing is due.');
+  });
+});
+

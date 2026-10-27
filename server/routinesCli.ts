@@ -3,7 +3,7 @@ import { basename, dirname, join, relative, resolve } from "node:path";
 import { formatWhen, systemTimeZone } from "../shared/cron";
 import { printable, shellWord } from "../shared/printable";
 import type { Args, Flags } from "./args";
-import { FINISH_STATUSES, finishRun, listRoutines, RoutineRefusal, startRun, type FinishStatus, type HarnessRoutines, type RoutineSummary } from "./dispatch";
+import { dueAll, FINISH_STATUSES, finishRun, listRoutines, RoutineRefusal, startRun, type DueRef, type FinishStatus, type HarnessRoutines, type RoutineSummary } from "./dispatch";
 import { harnessesUnder, harnessFor, machineName, ROUTINE_FILE, SCHEDULED_DIR, type Harness } from "./routines";
 import { detectRoot } from "./workspaces";
 
@@ -12,6 +12,7 @@ import { detectRoot } from "./workspaces";
 
 const SUBCOMMANDS: Record<string, { usage: string; does: string; flags: string[] }> = {
   list: { usage: "routines [list] [path]", does: "schedule in words, next slot, last run (--under <dir>, --json)", flags: ["--under", "--json"] },
+  due: { usage: "routines due [path]", does: "what is due now; files issues, records expired and aborted (--under <dir>, --json, --dry-run)", flags: ["--under", "--json", "--dry-run"] },
   start: { usage: "routines start <routine>", does: "record the start of a run (--path <repo>, --json, --dry-run)", flags: ["--path", "--json", "--dry-run"] },
   finish: {
     usage: "routines finish <routine> --status ok|failed --note <text|->",
@@ -162,6 +163,35 @@ async function start(args: Args): Promise<number> {
   return 0;
 }
 
+async function due(args: Args): Promise<number> {
+  const now = Date.now();
+  const dryRun = args.switches.has("--dry-run");
+  const report = await dueAll(scope(args, args.positionals[1]), now, { dryRun });
+  if (args.switches.has("--json")) {
+    console.log(JSON.stringify(report, null, 2));
+    return 0;
+  }
+  const zone = systemTimeZone();
+  const at = (iso: string) => when(iso, zone, now);
+  const name = (r: DueRef) => printable(`${r.harness.id}/${r.slug}`);
+  const rows: string[][] = [
+    ...report.run.map((r) => ["run", name(r), `slot ${at(r.slot)}${r.missed ? ` · ${r.missed} earlier ${r.missed === 1 ? "slot" : "slots"} missed` : ""}`]),
+    ...report.filed.map((r) => [r.status === "ok" ? "filed" : "failed", name(r), printable(r.note)]),
+    ...report.expired.map((r) => ["expired", name(r), `slot ${at(r.slot)}, ${r.late} late`]),
+    ...report.aborted.map((r) => ["aborted", name(r), `started ${at(r.started)}${r.host ? ` on ${r.host}` : ""}`]),
+    ...report.running.map((r) => ["running", name(r), `since ${at(r.started)}${r.host ? ` on ${r.host}` : ""}`]),
+    ...report.problems.map((r) => ["invalid", name(r), printable(r.problems[0]?.message ?? "")]),
+  ];
+  if (dryRun) console.log("Dry run — nothing was written.");
+  if (!rows.length) console.log("Nothing is due.");
+  else table(rows).forEach((line) => console.log(line));
+  if (report.run.length) {
+    console.log("\nRun each, one after another: `loopboard routines start <dir>`, a sub-agent with");
+    console.log("`loopboard routines prompt <dir>` as its brief, then `routines finish` (`--json` lists the dirs).");
+  }
+  return 0;
+}
+
 async function readStdin(): Promise<string> {
   if (process.stdin.isTTY) throw new RoutinesUsage("--note - reads the note from stdin; pipe it in.");
   const chunks: Buffer[] = [];
@@ -183,7 +213,7 @@ async function finish(args: Args): Promise<number> {
   return 0;
 }
 
-const RUN: Record<string, (args: Args) => Promise<number>> = { list, start, finish };
+const RUN: Record<string, (args: Args) => Promise<number>> = { list, due, start, finish };
 
 export async function runRoutines(args: Args): Promise<number> {
   const [first] = args.positionals;
