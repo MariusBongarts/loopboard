@@ -8,12 +8,13 @@ import { applyPlan, InitError, isNewHarness, nextStep, planInit, planScaffold, s
 import { readBoard } from "./issues";
 import { matchName } from "./names";
 import { applyRenumber, planRenumber, RenumberError } from "./renumber";
+import { checkRoutines } from "./routines";
 import { ROUTINES_FLAGS, ROUTINES_SUMMARY, ROUTINES_USAGE, runRoutines } from "./routinesCli";
 import { openBrowser } from "./open";
 import { configDir, packageRoot, packageVersion } from "./paths";
 import { createAppServer, listen } from "./serve";
 import { viewsFile } from "./views";
-import { detectRoot, loadRegistry, registerWorkspace, removeWorkspaces, summarize } from "./workspaces";
+import { detectRoot, loadRegistry, registerWorkspace, removeWorkspaces, summarize, workspaceNames } from "./workspaces";
 
 export type Command = (args: Args) => Promise<number>;
 
@@ -256,7 +257,7 @@ function renumberHint(id: string, name: string): string {
 
 commands.check = {
   usage: "check [path]",
-  summary: "Find duplicate numbers, dangling references and files the board skips (--branches, --strict)",
+  summary: "Find duplicate numbers, dangling references, files the board skips and broken routines (--branches, --strict)",
   flags: { "--branches": "switch", "--strict": "switch" },
   async run({ positionals, switches }) {
     const root = rootFor(positionals[0]);
@@ -275,13 +276,22 @@ commands.check = {
     // The board's own list of files it can't show (#0071).
     const { skipped } = await readBoard(root);
     for (const f of skipped) console.log(`${strict ? "✗" : "!"} ${printable(f.file)}: skipped — ${escapeControls(f.reason)}`);
-    const failed = report.duplicates.length > 0 || (strict && report.dangling.length + skipped.length > 0);
+    // A broken routine never runs, so it fails the check (#0115).
+    const known = new Set((await loadRegistry(configDir())).workspaces.flatMap(workspaceNames));
+    const routines = checkRoutines(root, known);
+    const routineErrors = routines.problems.filter((p) => p.level === "error");
+    const routineWarnings = routines.problems.filter((p) => p.level === "warning");
+    for (const p of routines.problems) console.log(`${p.level === "error" || strict ? "✗" : "!"} ${printable(p.path)}: ${escapeControls(p.message)}`);
+    const warnings = report.dangling.length + skipped.length + routineWarnings.length;
+    const failed = report.duplicates.length > 0 || routineErrors.length > 0 || (strict && warnings > 0);
     if (!failed) {
       const notes = [
         ...(report.dangling.length ? [`${report.dangling.length} dangling reference warnings`] : []),
         ...(skipped.length ? [`${skipped.length} skipped ${skipped.length === 1 ? "file" : "files"}`] : []),
+        ...(routineWarnings.length ? [`${routineWarnings.length} routine ${routineWarnings.length === 1 ? "warning" : "warnings"}`] : []),
       ];
-      console.log(`✓ no duplicate numbers${notes.length ? ` (${notes.join(", ")})` : ""}`);
+      const counted = routines.count ? `, ${routines.count} ${routines.count === 1 ? "routine" : "routines"} valid` : "";
+      console.log(`✓ no duplicate numbers${counted}${notes.length ? ` (${notes.join(", ")})` : ""}`);
     }
     return failed ? 1 : 0;
   },

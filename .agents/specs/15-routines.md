@@ -20,6 +20,7 @@ detail in `tests/cron.test.ts` and `tests/routines.test.ts`. Status legend in
 | List the routines of a harness | ✅ | [`15-routines.spec.ts`](../../tests/e2e/15-routines.spec.ts): words, zone, next slot, last run, paused, invalid |
 | List the routines under a folder | ✅ | [`15-routines.spec.ts`](../../tests/e2e/15-routines.spec.ts): nested harnesses; skipped folders in `tests/routines.test.ts` |
 | A schedule keeps its local time across daylight saving | ❌ | Vitest: `tests/cron.test.ts` (Berlin, New York, Kolkata, Lord Howe) |
+| Check routines | 🟡 | [`15-routines.spec.ts`](../../tests/e2e/15-routines.spec.ts): a broken schedule fails, an unknown field warns. Every error and warning in `tests/routines.test.ts` |
 
 ### Scenario: Write a routine
 
@@ -85,3 +86,28 @@ AND a time the clocks skip (02:30 on the last Sunday of March) runs once, an
 AND a time that happens twice (02:30 on the last Sunday of October) runs
     once, the first time
 ```
+
+### Scenario: Check routines
+
+```
+GIVEN routines in <root>/scheduled/
+WHEN I run `loopboard check`
+THEN a routine that can't run fails the check with ✗ and exit code 1, the
+    file and the reason on one line: a folder without routine.md or
+    frontmatter, neither or both of `schedule` and `at`, a cron expression
+    that doesn't parse (the field and why) or never occurs, an `at` that
+    isn't `YYYY-MM-DD HH:MM`, an unknown zone, a bad duration, `enabled`
+    other than true or false, `creates` other than `issue`, a missing or
+    unknown `period`, an `issue-` field outside its vocabulary, an
+    `issue-due-after` that isn't whole days, a `writes-to` id that breaks
+    the id rule
+AND warnings (!) don't fail it unless --strict: an unknown field, a
+    `writes-to` id that no registered harness answers to (by its workspace
+    id, identity id or alias), an `issue-project` that doesn't exist, an
+    `issue-` field without `creates: issue`, an entry of runs.md that can't
+    be read
+AND the closing line counts the valid routines:
+    "✓ no duplicate numbers, 3 routines valid"
+AND `routines list` shows a broken routine as "invalid" with the same lines
+```
+

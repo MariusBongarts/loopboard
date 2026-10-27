@@ -134,7 +134,7 @@ created: 2026-10-27`,
       creates: null,
       body: 'Check the inbox.',
     });
-    expect(r.problems).toEqual([{ level: 'warning', message: 'runs.md line 26: unknown status "nonsense"' }]);
+    expect(r.problems).toEqual([{ level: 'warning', file: 'runs.md', message: 'line 26: unknown status "nonsense"' }]);
     expect(summarizeRoutine(r, Date.parse('2026-10-28T12:00:00Z'))).toMatchObject({ state: 'paused', words: 'Every 15 minutes on weekdays', next: null });
   });
 
@@ -202,7 +202,7 @@ describe('loopboard routines list (#0114)', () => {
     expect(r.out).toMatch(/weekly\s+Mondays at 07:30 · Pacific\/Auckland\s+.+07:30\s+ok · .+19:30/);
     expect(r.out).toMatch(/paused\s+Every day at 00:00\s+paused/);
     expect(r.out).toMatch(/broken\s+—\s+invalid/);
-    expect(r.out).toContain('✗ schedule "61 * * * *": minute "61" is out of range (0–59)');
+    expect(r.out).toContain('✗ routine.md: schedule "61 * * * *": minute "61" is out of range (0–59)');
     expect(r.out).toMatch(/This machine: \S+/);
     expect((await run('routines', 'list', repo)).out).toBe(r.out);
   });
@@ -238,5 +238,89 @@ describe('loopboard routines list (#0114)', () => {
     const r = await run('routines', 'list', repo, '--under');
     expect(r.code).toBe(1);
     expect(r.err).toBe('Flag --under needs a value.');
+  });
+});
+
+describe('loopboard check (#0115)', () => {
+  it('fails on a broken routine and names the file and the reason', async () => {
+    const repo = await harness('shop');
+    await mkdir(join(repo, '.agents', 'scheduled', 'empty'), { recursive: true });
+    const dir = join(repo, '.agents', 'scheduled', 'plain');
+    await mkdir(dir, { recursive: true });
+    await writeFile(join(dir, 'routine.md'), 'No frontmatter here.\n');
+    await routine(repo, 'neither', 'title: Nothing');
+    await routine(repo, 'both', 'schedule: "@daily"\nat: 2026-11-03 09:00');
+    await routine(repo, 'cron', 'schedule: "0 25 * * *"');
+    await routine(repo, 'never', 'schedule: "0 0 31 4 *"');
+    await routine(repo, 'at', 'at: 3 Nov 2026');
+    await routine(repo, 'zone', 'schedule: "@daily"\ntimezone: Mars/Olympus');
+    await routine(repo, 'durations', 'schedule: "@daily"\nexpires-after: soon\ntimeout: 0m');
+    await routine(repo, 'enabled', 'schedule: "@daily"\nenabled: yes');
+    await routine(repo, 'creates', 'schedule: "@daily"\ncreates: report');
+    await routine(repo, 'period', 'schedule: "@monthly"\ncreates: issue');
+    await routine(repo, 'fields', 'schedule: "@monthly"\ncreates: issue\nperiod: fortnight\nissue-category: chore\nissue-status: open\nissue-assignee: bot\nissue-due-after: 36h');
+    await routine(repo, 'ids', 'schedule: "@daily"\nwrites-to: [Leben, 2026-taxes]');
+    const r = await run('check', repo);
+    expect(r.code).toBe(1);
+    for (const line of [
+      "✗ scheduled/empty/routine.md: doesn't exist — every routine folder needs one",
+      '✗ scheduled/plain/routine.md: has no frontmatter',
+      '✗ scheduled/neither/routine.md: has neither `schedule` nor `at`',
+      '✗ scheduled/both/routine.md: has both `schedule` and `at` — keep one',
+      '✗ scheduled/cron/routine.md: schedule "0 25 * * *": hour "25" is out of range (0–23)',
+      '✗ scheduled/never/routine.md: schedule "0 0 31 4 *" never occurs',
+      '✗ scheduled/at/routine.md: at: "3 Nov 2026" is no time — write YYYY-MM-DD HH:MM',
+      '✗ scheduled/zone/routine.md: timezone "Mars/Olympus" is no IANA time zone, such as Europe/Berlin',
+      '✗ scheduled/durations/routine.md: expires-after "soon" is no duration — write 30m, 6h, 2d or 1h30m',
+      '✗ scheduled/durations/routine.md: timeout "0m" is no duration — write 30m, 6h, 2d or 1h30m',
+      '✗ scheduled/enabled/routine.md: enabled is true or false, not "yes"',
+      '✗ scheduled/creates/routine.md: creates is "issue" or left out, not "report"',
+      '✗ scheduled/period/routine.md: creates: issue needs `period:` — day, week, month, quarter or year',
+      '✗ scheduled/fields/routine.md: period is day, week, month, quarter or year, not "fortnight"',
+      '✗ scheduled/fields/routine.md: issue-category is task, user-story, bug, not "chore"',
+      '✗ scheduled/fields/routine.md: issue-status is backlog, todo, in-progress, in-review, done, blocked, wontfix, not "open"',
+      '✗ scheduled/fields/routine.md: issue-assignee is agent, human, not "bot"',
+      '✗ scheduled/fields/routine.md: issue-due-after "36h" is whole days, like 10d',
+      '✗ scheduled/ids/routine.md: writes-to "Leben" doesn\'t fit the pattern — it names a harness by its id',
+      '✗ scheduled/ids/routine.md: writes-to "2026-taxes" starts with a digit — it names a harness by its id',
+    ]) {
+      expect(r.out).toContain(line);
+    }
+    expect(r.out).not.toContain('✓');
+    const list = await run('routines', repo);
+    expect(list.out).toMatch(/cron\s+—\s+invalid/);
+  });
+
+  it('warns about unknown fields, harnesses and projects, and unreadable runs; --strict fails on them', async () => {
+    const repo = await harness('shop');
+    await mkdir(join(tmp, 'config'), { recursive: true });
+    const leben = await harness('leben');
+    await writeFile(join(leben, '.agents', 'harness.md'), '---\nschema: 1\nid: leben\nname: Leben\naliases: [life]\n---\n');
+    await writeFile(join(tmp, 'config', 'workspaces.json'), JSON.stringify({ workspaces: [{ id: 'my-life', name: 'leben', repoPath: leben, root: join(leben, '.agents') }] }));
+    await routine(repo, 'weekly', 'schedule: "@weekly"\nexpire-after: 6h\nwrites-to: [leben, life, my-life, steuern]', 'x\n', RUNS);
+    await routine(repo, 'books', 'schedule: "@monthly"\ncreates: issue\nperiod: month\nissue-project: 09-nothing');
+    await routine(repo, 'stray', 'schedule: "@daily"\nissue-title: Report');
+    const r = await run('check', repo);
+    expect(r.code).toBe(0);
+    for (const line of [
+      '! scheduled/weekly/routine.md: unknown field "expire-after"',
+      '! scheduled/weekly/routine.md: writes-to "steuern" is no registered harness here',
+      '! scheduled/weekly/runs.md: line 26: unknown status "nonsense"',
+      '! scheduled/books/routine.md: issue-project "09-nothing" is no project in this harness',
+      '! scheduled/stray/routine.md: issue-title only counts with creates: issue',
+    ]) {
+      expect(r.out).toContain(line);
+    }
+    expect(r.out).not.toContain('"leben" is no registered');
+    expect(r.out).not.toContain('"life" is no registered');
+    expect(r.out).toContain('✓ no duplicate numbers, 3 routines valid (5 routine warnings)');
+    const strict = await run('check', repo, '--strict');
+    expect(strict.code).toBe(1);
+    expect(strict.out).toContain('✗ scheduled/weekly/routine.md: unknown field "expire-after"');
+  });
+
+  it('says nothing about routines in a harness without them', async () => {
+    const repo = await harness('shop');
+    expect((await run('check', repo)).out).toBe('✓ no duplicate numbers');
   });
 });

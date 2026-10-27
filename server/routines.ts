@@ -42,6 +42,7 @@ export const ISSUE_CATEGORIES = ["task", "user-story", "bug"] as const;
 
 export interface RoutineProblem {
   level: "error" | "warning";
+  file: typeof ROUTINE_FILE | typeof RUNS_FILE;
   message: string;
 }
 
@@ -106,16 +107,16 @@ const TOP_KEY = /^([A-Za-z][\w-]*)[ \t]*:/gm;
 export function readRoutine(dir: string, now = Date.now()): Routine {
   const root = dirname(dirname(dir));
   const problems: RoutineProblem[] = [];
-  const error = (message: string) => problems.push({ level: "error", message });
-  const warn = (message: string) => problems.push({ level: "warning", message });
+  const error = (message: string) => problems.push({ level: "error", file: ROUTINE_FILE, message });
+  const warn = (message: string) => problems.push({ level: "warning", file: ROUTINE_FILE, message });
   let text: string | null = null;
   try {
     text = readFileSync(join(dir, ROUTINE_FILE), "utf8").replace(/^﻿/, "");
   } catch {
-    error(`has no ${ROUTINE_FILE}`);
+    error("doesn't exist — every routine folder needs one");
   }
   const inner = text === null ? "" : frontmatterInner(text);
-  if (inner === null) error(`${ROUTINE_FILE} has no frontmatter`);
+  if (inner === null) error("has no frontmatter");
   const fm = inner ?? "";
   const field = (key: string) => {
     const value = readField(fm, key);
@@ -205,7 +206,7 @@ export function readRoutine(dir: string, now = Date.now()): Routine {
   } catch {
     // No runs yet.
   }
-  for (const p of runsProblems) warn(`${RUNS_FILE} line ${p.line}: ${p.message}`);
+  for (const p of runsProblems) problems.push({ level: "warning", file: RUNS_FILE, message: `line ${p.line}: ${p.message}` });
 
   return {
     slug: basename(dir),
@@ -250,6 +251,27 @@ export function readRoutines(root: string, now = Date.now()): Routine[] {
 
 export function isValid(routine: Routine): boolean {
   return !routine.problems.some((p) => p.level === "error");
+}
+
+export interface RoutineCheck extends RoutineProblem {
+  path: string; // relative to the root, e.g. scheduled/weekly/routine.md
+}
+
+// What `loopboard check` reports about a root's routines (#0115). `known`
+// is every name a registered harness answers to: a `writes-to` id outside
+// it is a warning, since that harness may live on another machine.
+export function checkRoutines(root: string, known: Set<string>, now = Date.now()): { count: number; problems: RoutineCheck[] } {
+  const routines = readRoutines(root, now);
+  const problems: RoutineCheck[] = [];
+  for (const r of routines) {
+    const path = (file: string) => `${SCHEDULED_DIR}/${r.slug}/${file}`;
+    for (const p of r.problems) problems.push({ ...p, path: path(p.file) });
+    for (const id of r.writesTo) {
+      if (idProblem(id) || known.has(id)) continue;
+      problems.push({ level: "warning", file: ROUTINE_FILE, path: path(ROUTINE_FILE), message: `writes-to "${id}" is no registered harness here` });
+    }
+  }
+  return { count: routines.length, problems };
 }
 
 // ── Harnesses ────────────────────────────────────────────────────────

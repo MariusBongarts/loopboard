@@ -20,7 +20,7 @@ briefs — so a dispatcher can run them before the board shows anything. Next:
 Goal: a routine is a folder in the harness, its schedule is understood in its time zone, and a dispatcher can ask what's due, record runs, file the period's issue and hand each run a brief.
 
 - [x] [#0114 See a harness's routines and their next slot with loopboard routines list](../../issues/0114-routines-list-and-schedules.md) — done
-- [ ] [#0115 loopboard check validates routines](../../issues/0115-check-validates-routines.md) — todo
+- [x] [#0115 loopboard check validates routines](../../issues/0115-check-validates-routines.md) — done
 - [ ] [#0116 Record runs with routines start and finish](../../issues/0116-record-runs-with-start-and-finish.md) — todo
 - [ ] [#0117 Ask what is due with loopboard routines due](../../issues/0117-routines-due.md) — todo
 - [ ] [#0118 File the period's issue with a creates: issue routine](../../issues/0118-recurring-issues-from-routines.md) — todo
@@ -67,6 +67,12 @@ Goal: every harness gets the folder, the skill and the rule, existing ones throu
   with `--under` and `--json`. Spec § 15 started. The list reader for
   `aliases` moved to `shared/frontmatter.ts` (`readAnyList`) and now also
   reads `writes-to` and `issue-labels`.
+- #0115 done: `check` lists every routine problem as
+  `scheduled/<slug>/routine.md` (or `runs.md`) with its reason; errors fail
+  the check, warnings only with `--strict`; the closing line counts valid
+  routines. A problem now carries the file it is about. The names a
+  registered workspace answers to moved from `init.ts` to
+  `workspaceNames()` in `workspaces.ts`, shared with `check`.
 
 ## Deferred / out of scope (added during execution)
 

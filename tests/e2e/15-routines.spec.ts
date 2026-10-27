@@ -35,7 +35,7 @@ test.describe('§ 15 routines on the command line', () => {
     expect(text.stdout).toMatch(/weekly-report\s+Mondays at 07:30 · Pacific\/Auckland\s+.+07:30\s+ok · .+07:30/);
     expect(text.stdout).toMatch(/paused\s+Every day at 00:00\s+paused/);
     expect(text.stdout).toMatch(/broken\s+—\s+invalid/);
-    expect(text.stdout).toContain('✗ schedule "61 * * * *": minute "61" is out of range (0–59)');
+    expect(text.stdout).toContain('✗ routine.md: schedule "61 * * * *": minute "61" is out of range (0–59)');
 
     const json = JSON.parse(loopboard(['routines', 'list', '--json'], app, box.config).stdout);
     expect(json.version).toBe(1);
@@ -63,5 +63,18 @@ test.describe('§ 15 routines on the command line', () => {
     expect(r.stdout).toContain(`tree · ${top}`);
     expect(r.stdout).toContain(`company · ${company}`);
     expect(r.stdout).toMatch(/books\s+On the 1st of every month at 00:00/);
+  });
+
+  test('check routines', () => {
+    const app = repo(box.dir, 'shop');
+    routine(app, 'weekly', 'schedule: "30 7 * * 1"\nexpire-after: 6h');
+    const warned = loopboard(['check'], app, box.config);
+    expect(warned.status).toBe(0);
+    expect(warned.stdout).toContain('! scheduled/weekly/routine.md: unknown field "expire-after"');
+    expect(warned.stdout).toContain('✓ no duplicate numbers, 1 routine valid (1 routine warning)');
+    routine(app, 'broken', 'schedule: "0 25 * * *"');
+    const failed = loopboard(['check'], app, box.config);
+    expect(failed.status).toBe(1);
+    expect(failed.stdout).toContain('✗ scheduled/broken/routine.md: schedule "0 25 * * *": hour "25" is out of range (0–23)');
   });
 });

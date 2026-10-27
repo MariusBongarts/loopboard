@@ -17,6 +17,7 @@ against temp git repos; edge cases in `tests/ids.test.ts`. Status legend in [`_s
 | Find files the board skips | ✅ | [`cli.spec.ts`](../../tests/e2e/cli.spec.ts): warning per file, `--strict` fails, a mis-named file and folder keep their number. Unreadable files, a mis-named twin and escaped names in `tests/cli.test.ts`; stray files in `projects/` in `tests/ids.test.ts` |
 | Renumber an issue | 🟡 | [`cli.spec.ts`](../../tests/e2e/cli.spec.ts): file, `id:`, next free number, `--path`. Reference rewriting and `--dry-run` in `tests/ids.test.ts` |
 | Renumber one of two twins | ✅ | [`cli.spec.ts`](../../tests/e2e/cli.spec.ts): refuses without `--file`, moves only the named file. A mis-named twin and a `--file` without the number in `tests/cli.test.ts` and `tests/ids.test.ts` |
+| Find broken routines | 🟡 | [`15-routines.spec.ts`](../../tests/e2e/15-routines.spec.ts) — the scenario lives in § 15 ("Check routines") |
 | Renumber a project | ✅ | [`cli.spec.ts`](../../tests/e2e/cli.spec.ts): folder, `project:` and links; `--dry-run` writes nothing |
 
 ### Scenario: Get the next number
@@ -61,6 +62,14 @@ AND mentions inside code (fenced blocks or `inline`) are examples, not
 AND what counts as a mention is the rule of § 2: `shop#0099`, `café#0099`
     and `**shop**#0099` belong to another harness, and `#0001/#0099` is two
     mentions
+```
+
+### Scenario: Find broken routines
+
+```
+GIVEN a routine in <root>/scheduled/ that can't run
+WHEN I run `loopboard check`
+THEN it is listed with ✗ and the check fails — see § 15, "Check routines"
 ```
 
 ### Scenario: Find files the board skips

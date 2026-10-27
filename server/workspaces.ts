@@ -2,6 +2,7 @@ import { existsSync, readdirSync, statSync } from "node:fs";
 import { mkdir, readFile } from "node:fs/promises";
 import { basename, dirname, join, resolve } from "node:path";
 import { serialized, withFileLock, writeFileAtomic } from "./files";
+import { readIdentity } from "./identity";
 import { matchName } from "./names";
 
 // One running loopboard remembers many repos (ADR-0002, #0008).
@@ -202,4 +203,11 @@ export function summarize(workspace: Workspace): WorkspaceSummary {
     }
   }
   return { ...workspace, available, issueCount };
+}
+
+// Every name a registered workspace answers to: its registry id, and the id
+// and aliases of its identity file, which the registry reads from #0079 on.
+export function workspaceNames(workspace: Workspace): string[] {
+  const identity = readIdentity(workspace.repoPath);
+  return [workspace.id, ...(identity?.id ? [identity.id] : []), ...(identity?.aliases ?? [])];
 }

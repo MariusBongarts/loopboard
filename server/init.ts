@@ -7,7 +7,7 @@ import { todayIso } from "./files";
 import { ID_RULE, IDENTITY_FILE, idProblem, readIdentity, renderIdentity, type IdentityLines } from "./identity";
 import { latestMigration, MIGRATION_RE } from "./migrations";
 import { matchName } from "./names";
-import { detectRoot, loadRegistry, samePath, slugify, type Workspace } from "./workspaces";
+import { detectRoot, loadRegistry, samePath, slugify, workspaceNames } from "./workspaces";
 
 // `loopboard init` / `init --upgrade` (#0011, #0012). Everything is planned
 // first, so --dry-run and tests see exactly what a real run would do.
@@ -262,13 +262,6 @@ function pickScaffold(opts: InitOptions): Scaffold {
   return scaffold;
 }
 
-// Every name a registered workspace answers to: its registry id, and the id
-// and aliases of its identity file, which the registry reads from #0079 on.
-function namesOf(workspace: Workspace): string[] {
-  const identity = readIdentity(workspace.repoPath);
-  return [workspace.id, ...(identity?.id ? [identity.id] : []), ...(identity?.aliases ?? [])];
-}
-
 // A registered folder keeps its workspace id, any other gets its slug. An id
 // that breaks ADR-0008 or is taken stops `init` before anything is written.
 async function settleId(opts: InitOptions): Promise<string> {
@@ -286,7 +279,7 @@ async function settleId(opts: InitOptions): Promise<string> {
   if (problem) {
     throw new InitError(`${quoted(id)}, this folder's ${here ? "workspace id" : "slug"}, ${problem} — pass --id with ${ID_RULE}.`);
   }
-  const owner = registry.find((w) => !mine.includes(w) && namesOf(w).includes(id));
+  const owner = registry.find((w) => !mine.includes(w) && workspaceNames(w).includes(id));
   if (owner) {
     throw new InitError(`The id ${quoted(id)} already belongs to the workspace at ${printable(owner.repoPath)} — pass --id with another one (${ID_RULE}).`);
   }
