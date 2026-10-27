@@ -58,10 +58,11 @@ Matt Pocock's videos and writing.
 - **`AGENTS.md`** — a managed *Workflow* block (the session loop, which docs
   to load when) plus your own project rules and build commands.
 - **`.agents/skills/`** — grill-me, grill-with-docs, to-prd, to-issues,
-  implement, triage, issue-grooming and upgrade-harness (linked into
-  `.claude/skills`).
-- **`.agents/`** — issues, projects, specs, architecture, rules and design,
-  each with a README that explains its format.
+  implement, triage, issue-grooming, upgrade-harness and routine (linked
+  into `.claude/skills`).
+- **`.agents/`** — issues, projects, routines (`scheduled/`), specs,
+  architecture, rules and design, each with a README that explains its
+  format.
 
 Not a code repo? `npx loopboard init --kind docs` sets up the same loop in a
 folder of documents — a company's paperwork, taxes, a move — with issues and

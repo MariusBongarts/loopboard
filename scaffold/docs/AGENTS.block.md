@@ -11,6 +11,11 @@ this folder is: its id, its name and what it is for.
 work has several decisions to lock up-front (it gets a PRD). A single task →
 a standalone issue in `.agents/issues/`.
 
+**Recurring work.** Anything that should happen on a schedule or at a set
+time — a report, a check, a reminder — becomes a routine in
+`.agents/scheduled/` ([how](.agents/scheduled/README.md)), never a scheduled
+task of an agent platform.
+
 **Conventions live next to the work — load only when needed:**
 
 - [`.agents/projects/README.md`](.agents/projects/README.md) — project

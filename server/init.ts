@@ -25,6 +25,7 @@ export const CORE_SKILLS = [
   "triage",
   "issue-grooming",
   "upgrade-harness",
+  "routine",
 ] as const;
 export const EXTRA_SKILLS = ["tdd", "diagnose", "improve-codebase-architecture", "write-a-skill"] as const;
 
@@ -119,7 +120,8 @@ function shippedFiles(opts: InitOptions, installedSkills: Set<string>): Shipped[
     for (const f of listFiles(dir)) add(f, join(".agents", "skills", skill, relative(dir, f)));
   }
   add(join(pkg, ".agents", "skills", "CREDITS.md"), ".agents/skills/CREDITS.md");
-  for (const area of ["issues", "projects"]) {
+  // Routines (#0122) ship like issues and projects: a README and a template.
+  for (const area of ["issues", "projects", "scheduled"]) {
     add(join(pkg, ".agents", area, "README.md"), `.agents/${area}/README.md`);
     const tpl = join(pkg, ".agents", area, "_templates");
     for (const f of listFiles(tpl)) add(f, join(".agents", area, "_templates", relative(tpl, f)));
@@ -146,7 +148,7 @@ function seedFiles(opts: InitOptions): Shipped[] {
 // skills and specs it doesn't have (#0078).
 function docsFiles(opts: InitOptions): Shipped[] {
   const files: Shipped[] = [];
-  for (const area of ["issues", "projects"]) {
+  for (const area of ["issues", "projects", "scheduled"]) {
     const dir = join(scaffoldDir(opts.packageRoot, "docs"), area);
     for (const f of listFiles(dir)) {
       files.push({ path: join(".agents", area, relative(dir, f)).split("\\").join("/"), content: readFileSync(f, "utf8") });

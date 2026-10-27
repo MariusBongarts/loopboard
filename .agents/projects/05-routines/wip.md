@@ -37,7 +37,7 @@ Goal: a read-only Routines view per workspace with a contribution graph per rout
 
 Goal: every harness gets the folder, the skill and the rule, existing ones through an upgrade, and the docs say how to set up a dispatcher.
 
-- [ ] [#0122 Scaffold routines, add the routine skill and the AGENTS rule, migrate with M003](../../issues/0122-scaffold-skill-rule-and-migration.md) — todo
+- [x] [#0122 Scaffold routines, add the routine skill and the AGENTS rule, migrate with M003](../../issues/0122-scaffold-skill-rule-and-migration.md) — done
 - [ ] [#0123 Document routines for users](../../issues/0123-document-routines.md) — todo
 
 ## Activity log
@@ -108,6 +108,13 @@ Goal: every harness gets the folder, the skill and the rule, existing ones throu
   shades are tokens (`--graph-1`…`--graph-4`, `--graph-empty`), all at 3:1
   or more against the background in both themes. `GRAPH_WEEKS` and
   `graphStart` live in `shared/cron.ts` for both sides. Phase 2 is done.
+- #0122 done: `.agents/scheduled/README.md` and `_templates/routine.md` in a
+  code and a docs version, the core skill `routine` (also linked in this
+  repo), the "Recurring work" rule in both AGENTS blocks, migration M003;
+  this repo's block is at M003. Tests that pin the docs scaffold's file
+  list count the two new files. The README, Help → Set up, the folder map
+  and the workflow doc name the skill and the folder. The full E2E run's
+  only failures are the two inbox baselines of #0112, as before.
 
 ## Deferred / out of scope (added during execution)
 

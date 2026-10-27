@@ -10,11 +10,11 @@ const PARTS = [
   },
   {
     name: '.agents/skills/',
-    text: 'grill-me, grill-with-docs, to-prd, to-issues, implement, triage, issue-grooming and upgrade-harness, linked into .claude/skills (and .cursor/skills).',
+    text: 'grill-me, grill-with-docs, to-prd, to-issues, implement, triage, issue-grooming, upgrade-harness and routine, linked into .claude/skills (and .cursor/skills).',
   },
   {
     name: '.agents/',
-    text: 'issues, projects, specs, architecture, rules and design — each with a README that explains its format.',
+    text: 'issues, projects, routines (scheduled/), specs, architecture, rules and design — each with a README that explains its format.',
   },
 ];
 

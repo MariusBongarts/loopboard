@@ -32,7 +32,7 @@ const paths = (actions: Action[], kind: Action['kind']) => actions.filter((a) =>
 // A copy of what the package ships, so a test can change it.
 async function fakePackage(): Promise<string> {
   const pkg = join(repo, '..', `${basename(repo)}-pkg`);
-  for (const p of ['.agents/skills', '.agents/issues/README.md', '.agents/issues/_templates', '.agents/projects/README.md', '.agents/projects/_templates', 'scaffold', 'MIGRATIONS.md']) {
+  for (const p of ['.agents/skills', '.agents/issues/README.md', '.agents/issues/_templates', '.agents/projects/README.md', '.agents/projects/_templates', '.agents/scheduled/README.md', '.agents/scheduled/_templates', 'scaffold', 'MIGRATIONS.md']) {
     await cp(join(PKG, p), join(pkg, p), { recursive: true });
   }
   return pkg;
@@ -169,6 +169,8 @@ describe('loopboard init --kind docs', () => {
     '.agents/projects/README.md',
     '.agents/projects/_templates/prd.md',
     '.agents/projects/_templates/wip.md',
+    '.agents/scheduled/README.md',
+    '.agents/scheduled/_templates/routine.md',
     'AGENTS.md',
     'CLAUDE.md',
   ];
@@ -707,6 +709,40 @@ describe('loopboard init --kind docs', () => {
     }
     expect(links.length).toBeGreaterThan(10);
     expect(links).toContain('AGENTS.md → .agents/harness.md');
+    // A docs harness has no skills: its routine rule points at the folder's README (#0122).
+    expect(links).toContain('AGENTS.md → .agents/scheduled/README.md');
+  });
+});
+
+describe('routines in the scaffold (#0122)', () => {
+  it('ships the scheduled folder, the routine skill and the rule in a code harness', async () => {
+    const actions = await init();
+    expect(paths(actions, 'create')).toEqual(expect.arrayContaining(['.agents/scheduled/README.md', '.agents/scheduled/_templates/routine.md', '.agents/skills/routine/SKILL.md']));
+    expect((await lstat(join(repo, '.claude/skills/routine'))).isSymbolicLink()).toBe(true);
+    expect(await read('.agents/scheduled/README.md')).toContain('[`routine`](../skills/routine/SKILL.md)');
+    const agents = (await read('AGENTS.md')).replace(/\s+/g, ' ');
+    expect(agents).toContain('**Recurring work.** Anything that should happen on a schedule or at a set time');
+    expect(agents).toContain('(skill [`routine`](.agents/skills/routine/SKILL.md)), never a scheduled task of an agent platform.');
+    expect(JSON.parse(await read('.agents/.loopboard/manifest.json')).files['.agents/scheduled/README.md']).toBeTruthy();
+  });
+
+  it('adds them to a harness set up before routines', async () => {
+    await init();
+    await rm(join(repo, '.agents/scheduled'), { recursive: true });
+    await rm(join(repo, '.agents/skills/routine'), { recursive: true });
+    await rm(join(repo, '.claude/skills/routine'));
+    const actions = await init({ upgrade: true });
+    expect(paths(actions, 'create')).toEqual(['.agents/skills/routine/SKILL.md', '.agents/scheduled/README.md', '.agents/scheduled/_templates/routine.md']);
+    expect(paths(actions, 'link')).toEqual(['.claude/skills/routine']);
+  });
+
+  it('a routine copied from the template checks clean once it has a day', async () => {
+    await init();
+    const template = await read('.agents/scheduled/_templates/routine.md');
+    await mkdir(join(repo, '.agents/scheduled/report'), { recursive: true });
+    await writeFile(join(repo, '.agents/scheduled/report/routine.md'), template.replace('created: YYYY-MM-DD', 'created: 2026-10-27'));
+    const { checkRoutines } = await import('../server/routines');
+    expect(checkRoutines(join(repo, '.agents'), new Set()).problems).toEqual([]);
   });
 });
 

@@ -34,6 +34,8 @@
     ".agents/issues/_templates",
     ".agents/projects/README.md",
     ".agents/projects/_templates",
+    ".agents/scheduled/README.md",
+    ".agents/scheduled/_templates",
     "LICENSE",
     "README.md",
     "CREDITS.md",

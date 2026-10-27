@@ -35,6 +35,7 @@ detail in `tests/cron.test.ts` and `tests/routines.test.ts`. Status legend in
 | Open a routine | ✅ | [`15-routines.spec.ts`](../../tests/e2e/15-routines.spec.ts): settings, rendered steps, runs with notes newest first, a live update |
 | See a year of runs as a graph | 🟡 | [`15-routines.spec.ts`](../../tests/e2e/15-routines.spec.ts): the workspace graph's cells, a failed and an ok day, the hover text, a routine's own graph. Day states in `tests/graph.test.ts`, layout in `tests/routineView.test.ts`; contrast in `pnpm verify` |
 | A harness without routines | ✅ | [`15-routines.spec.ts`](../../tests/e2e/15-routines.spec.ts): no rail entry, ⌘K, the empty state |
+| Agents write routines, not platform tasks | ❌ | Vitest: `tests/init.test.ts` (scaffold, rule, skill, upgrade, docs harness). The skill's behaviour is an agent's, not loopboard's |
 | Check routines | 🟡 | [`15-routines.spec.ts`](../../tests/e2e/15-routines.spec.ts): a broken schedule fails, an unknown field warns. Every error and warning in `tests/routines.test.ts` |
 
 ### Scenario: Write a routine
@@ -362,5 +363,23 @@ AND hovering or focusing a day shows its date and runs below the graph:
 AND a legend names the shades, Failed and Missed; the colors pass the
     contrast check at 3:1 in both themes
 AND on a narrow pane the graph scrolls, starting at today
+```
+
+### Scenario: Agents write routines, not platform tasks
+
+```
+GIVEN a harness set up or upgraded with `loopboard init`
+THEN it has .agents/scheduled/ with a README (format, schedules in words,
+    how a run works, the rules every run follows) and
+    _templates/routine.md
+AND a code harness has the `routine` skill (create, change, pause, show;
+    words → cron and back; asks for steps, expiry and writes-to; validates
+    with `loopboard check`), linked like the other skills
+AND the AGENTS.md block says: recurring work and reminders become routines
+    in .agents/scheduled/ — with the skill, or in a docs harness the
+    folder's README —, never scheduled tasks of an agent platform
+AND `init --upgrade` adds the folder, the template, the skill and its link
+    to a harness set up before; migration M003 tells upgrade-harness the
+    rest, and asks before moving platform tasks into routines
 ```
 

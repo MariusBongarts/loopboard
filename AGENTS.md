@@ -10,7 +10,7 @@ folder. This repo is also the reference example of that workflow: its own
 The block below is exactly what `loopboard init` puts into other repos.
 
 <!-- loopboard:start — managed by `loopboard init` / upgrade-harness; edit outside these markers -->
-<!-- loopboard:migration M002 -->
+<!-- loopboard:migration M003 -->
 ## Workflow
 
 Issues, PRDs and specs live in `.agents/` as markdown; `npx loopboard` shows
@@ -20,6 +20,11 @@ them on a board.
 work has several decisions to lock up-front (it gets a PRD). Single fixes or
 chores → a standalone issue in `.agents/issues/`. Move issues with the
 [`triage`](.agents/skills/triage/SKILL.md) skill.
+
+**Recurring work.** Anything that should happen on a schedule or at a set
+time — a report, a check, a reminder — becomes a routine in
+`.agents/scheduled/` (skill [`routine`](.agents/skills/routine/SKILL.md)),
+never a scheduled task of an agent platform.
 
 **Conventions live next to the work — load only when needed:**
 

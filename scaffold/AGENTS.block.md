@@ -10,6 +10,11 @@ work has several decisions to lock up-front (it gets a PRD). Single fixes or
 chores → a standalone issue in `.agents/issues/`. Move issues with the
 [`triage`](.agents/skills/triage/SKILL.md) skill.
 
+**Recurring work.** Anything that should happen on a schedule or at a set
+time — a report, a check, a reminder — becomes a routine in
+`.agents/scheduled/` (skill [`routine`](.agents/skills/routine/SKILL.md)),
+never a scheduled task of an agent platform.
+
 **Conventions live next to the work — load only when needed:**
 
 - [`.agents/projects/README.md`](.agents/projects/README.md) — project

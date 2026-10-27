@@ -30,14 +30,16 @@ against temp repos; edge cases in `tests/init.test.ts`. Status legend in [`_spec
 ```
 GIVEN a repo without .agents/
 WHEN I run `npx loopboard init`
-THEN .agents/ gets issues/ and projects/ (README + templates), specs/,
-    architecture/, rules/ and design/ (starter READMEs), and the core skills
-    grill-me, grill-with-docs, to-prd, to-issues, implement, triage,
-    issue-grooming and upgrade-harness with their CREDITS.md
+THEN .agents/ gets issues/, projects/ and scheduled/ (README + templates),
+    specs/, architecture/, rules/ and design/ (starter READMEs), and the core
+    skills grill-me, grill-with-docs, to-prd, to-issues, implement, triage,
+    issue-grooming, upgrade-harness and routine with their CREDITS.md
 AND .claude/skills links each skill (and .cursor/skills when the repo has
     .cursor/); where links aren't allowed, the skills are copied
-AND AGENTS.md is created with the managed workflow block, the latest
-    migration marker and an empty "Build & test"; CLAUDE.md imports it
+AND AGENTS.md is created with the managed workflow block — with its rule
+    that recurring work becomes a routine, never a task of an agent
+    platform —, the latest migration marker and an empty "Build & test";
+    CLAUDE.md imports it
 AND .agents/SETUP.md tells the agent how to finish: fill in the overview and
     commands, keep existing instructions, ask before importing old TODOs
 AND the command lists every created and linked path and suggests the next step

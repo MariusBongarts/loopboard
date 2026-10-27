@@ -101,15 +101,15 @@ describe('init --kind docs (#0078)', () => {
     const r = await run('init', '--kind', 'docs');
 
     expect(r).toMatchObject({ code: 0, err: '' });
-    expect(r.out).toContain('created (11):\n  .agents/harness.md\n');
+    expect(r.out).toContain('created (13):\n  .agents/harness.md\n');
     expect(r.out).toContain('Next: say what this folder is for in .agents/harness.md and AGENTS.md, then run `loopboard` — opening the folder is what keeps its id from going to another one.');
     expect((await readdir(plain)).sort()).toEqual(['.agents', 'AGENTS.md', 'CLAUDE.md']);
-    expect((await readdir(join(plain, '.agents'))).sort()).toEqual(['.loopboard', 'harness.md', 'issues', 'projects']);
+    expect((await readdir(join(plain, '.agents'))).sort()).toEqual(['.loopboard', 'harness.md', 'issues', 'projects', 'scheduled']);
     expect(await identity(plain)).toContain(`\nid: plain\nname: plain\nkind: harness\ntype: docs\nparent: null\ncreated: ${todayIso()}\n---\n`);
     // Setting up registers nothing.
     expect(existsSync(config)).toBe(false);
 
-    expect((await run('init')).out).toBe('11 file(s) already in place.\nNothing to do — the workflow is already set up.');
+    expect((await run('init')).out).toBe('13 file(s) already in place.\nNothing to do — the workflow is already set up.');
   });
 
   it('takes a value for --kind, --id, --name and --parent', async () => {
@@ -133,7 +133,7 @@ describe('init --kind docs (#0078)', () => {
 
     const r = await run('init', papers, '--kind', 'docs');
 
-    expect(r.out).toContain('created (10):');
+    expect(r.out).toContain('created (12):');
     expect(r.out).toContain('Next: say what this folder is for in .agents/harness.md and AGENTS.md, add the line `@AGENTS.md` to your CLAUDE.md, then run `loopboard` — opening the folder is what keeps its id from going to another one.');
     expect(await readFile(join(papers, 'CLAUDE.md'), 'utf8')).toBe('Be brief.\n');
   });
@@ -164,14 +164,14 @@ describe('init --kind docs (#0078)', () => {
     const plain = join(tmp, 'plain');
 
     const first = await run('init', plain, '--kind', 'docs', '--upgrade');
-    expect(first.out).toContain('created (11):');
+    expect(first.out).toContain('created (13):');
     expect(first.out).toContain('\nNext: say what this folder is for');
     expect(await readFile(join(plain, 'AGENTS.md'), 'utf8')).not.toContain('loopboard:migration M000');
 
     await writeFile(join(plain, '.agents', 'issues', 'README.md'), '# Mine\n');
     const again = await run('init', plain, '--upgrade');
     expect(again.out).toBe(
-      'skipped (edited locally) (1):\n  .agents/issues/README.md — edited locally\n10 file(s) already in place.\n\n' +
+      'skipped (edited locally) (1):\n  .agents/issues/README.md — edited locally\n12 file(s) already in place.\n\n' +
         'Edited files were left alone. To see the shipped version of one, move yours aside and run `loopboard init` again.',
     );
     expect(await readFile(join(plain, '.agents', 'issues', 'README.md'), 'utf8')).toBe('# Mine\n');
@@ -185,7 +185,7 @@ describe('init --kind docs (#0078)', () => {
 
     expect(r).toMatchObject({ code: 0, err: '' });
     expect(r.out.split('\n')).toEqual([
-      'would be created (11):',
+      'would be created (13):',
       '  .agents/harness.md',
       '  .agents/issues/README.md',
       '  .agents/issues/_templates/bug.md',
@@ -194,6 +194,8 @@ describe('init --kind docs (#0078)', () => {
       '  .agents/projects/README.md',
       '  .agents/projects/_templates/prd.md',
       '  .agents/projects/_templates/wip.md',
+      '  .agents/scheduled/README.md',
+      '  .agents/scheduled/_templates/routine.md',
       '  .agents/issues/_archive/.gitkeep',
       '  CLAUDE.md',
       '  AGENTS.md',

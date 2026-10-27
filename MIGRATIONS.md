@@ -87,3 +87,50 @@ the maintainer works through when they choose.
    maintainer picks / none). Human-assigned ones stay; list those without a
    `## Review` section. Change only the `status:` line, and never set
    `reviewed:`.
+
+---
+
+## M003 — Routines in `.agents/scheduled/`
+
+*2026-10-27 · #0122, project 05, ADR-0010*
+
+**Changed**
+
+- Recurring and one-time agent work lives in the harness: one folder per
+  routine in `.agents/scheduled/` (`routine.md` + `runs.md`), run by one
+  dispatcher per place (`loopboard routines …`).
+- `.agents/scheduled/README.md` and `scheduled/_templates/routine.md`; in a
+  code harness the new core skill `routine`.
+- The AGENTS.md block gains the "Recurring work" rule: routines, never
+  scheduled tasks of an agent platform.
+- The issues README: `recurrence:` is no longer a reserved field — a routine
+  with `creates: issue` writes it — and has its own "Recurrence" section.
+
+**Why** — scheduled tasks lived in one platform's config, outside the
+harness they worked for, without a shared record of what each run did. An
+agent asked to "remind me on Friday" created yet another one.
+
+**Apply**
+
+1. Add `.agents/scheduled/README.md` and `.agents/scheduled/_templates/routine.md`
+   (`loopboard init --upgrade` adds them where they're missing; a docs
+   harness takes them from `scaffold/docs/scheduled/`).
+2. In a code harness, add the `routine` skill and its links in
+   `.claude/skills/` (and `.cursor/skills/` where used) — `init --upgrade`
+   does both.
+3. Merge the "Recurring work" paragraph into the AGENTS.md block, keeping
+   the harness's own wording elsewhere.
+4. Issues README: merge the "Recurrence" section and drop `recurrence` from
+   the reserved fields' table.
+5. If the harness has a glossary: add Routine, Slot, Run, Dispatcher and
+   Brief.
+6. **Platform tasks (Confirm first).** List the scheduled tasks of the agent
+   platforms the maintainer uses that work in this harness (in Claude Code,
+   the `SKILL.md` files under `~/.claude/scheduled-tasks/` that name its
+   folder). For each, offer to turn it into a routine with the `routine`
+   skill. Switch a platform task off only after its routine has run once;
+   never delete one without asking.
+7. **Dispatcher (Confirm first).** If the harness has routines and no
+   dispatcher runs this place yet, show
+   `loopboard routines dispatcher-prompt` and docs/routines.md; setting up
+   the one platform task is the maintainer's step.

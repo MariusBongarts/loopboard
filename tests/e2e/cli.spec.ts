@@ -220,10 +220,10 @@ test.describe('§ 8 setup and upgrades', () => {
 
     const r = loopboard(['init', '--kind', 'docs'], office, box.config);
     expect(r.status).toBe(0);
-    expect(r.stdout).toContain('created (11):');
+    expect(r.stdout).toContain('created (13):');
     expect(r.stdout).toContain('Next: say what this folder is for in .agents/harness.md and AGENTS.md, then run `loopboard` — opening the folder is what keeps its id from going to another one.');
     expect(readdirSync(office).sort()).toEqual(['.agents', 'AGENTS.md', 'CLAUDE.md', 'lease.txt']);
-    expect(readdirSync(join(office, '.agents')).sort()).toEqual(['.loopboard', 'harness.md', 'issues', 'projects']);
+    expect(readdirSync(join(office, '.agents')).sort()).toEqual(['.loopboard', 'harness.md', 'issues', 'projects', 'scheduled']);
     expect(readFileSync(join(office, '.agents/harness.md'), 'utf8')).toMatch(
       /^---\nschema: 1\nid: buero-unterlagen\nname: Büro Unterlagen\nkind: harness\ntype: docs\nparent: null\ncreated: \d{4}-\d{2}-\d{2}\n---\n/,
     );
@@ -263,7 +263,7 @@ test.describe('§ 8 setup and upgrades', () => {
     expect(refused.status).toBe(1);
     expect(refused.stderr).toMatch(/^"2026-taxes", this folder's slug, starts with a digit — pass --id with lowercase letters, [^\n]+\.\n$/);
     const dry = loopboard(['init', '--kind', 'docs', '--id', 'taxes', '--dry-run'], taxes, box.config);
-    expect(dry.stdout).toContain('would be created (11):\n  .agents/harness.md\n');
+    expect(dry.stdout).toContain('would be created (13):\n  .agents/harness.md\n');
     expect(readdirSync(taxes)).toEqual([]);
     expect(loopboard(['init', '--kind', 'docs', '--id', 'taxes'], taxes, box.config).status).toBe(0);
     expect(readFileSync(join(taxes, '.agents/harness.md'), 'utf8')).toContain('\nid: taxes\nname: "2026-taxes"\n');
