@@ -6,12 +6,17 @@
 
 ## Current focus
 
-Kickoff on 2026-10-27, from the grill of the same day: the PRD, ADR-0010 and
-the glossary entries are written, #0090 is closed as superseded, and ten
-issues cut the work into three phases. Phase 1 builds routines end to end on
-the command line — files, schedules, runs, `due`, recurring issues and the
-briefs — so a dispatcher can run them before the board shows anything. Next:
-[#0114](../../issues/0114-routines-list-and-schedules.md).
+All ten issues are `done` (2026-10-27): routines are files in
+`.agents/scheduled/`, `loopboard routines list|due|start|finish|prompt|dispatcher-prompt`
+run them end to end, `check` validates them, recurring issues file
+themselves (#0090 is superseded), the board has a read-only Routines view
+with contribution graphs, and `init`, the `routine` skill, the AGENTS rule
+and M003 bring them to every harness. What's left for the ship gate is the
+maintainer's: a look at the Routines view and a first real dispatcher run
+on a platform, then an issue-grooming run that archives #0114–#0123. Later,
+in other sessions: the private dashboard reads `routines list --json`
+(documented in `docs/routines.md`), and existing platform tasks move into
+routines (M003, step 6).
 
 ## Phases
 
@@ -38,7 +43,7 @@ Goal: a read-only Routines view per workspace with a contribution graph per rout
 Goal: every harness gets the folder, the skill and the rule, existing ones through an upgrade, and the docs say how to set up a dispatcher.
 
 - [x] [#0122 Scaffold routines, add the routine skill and the AGENTS rule, migrate with M003](../../issues/0122-scaffold-skill-rule-and-migration.md) — done
-- [ ] [#0123 Document routines for users](../../issues/0123-document-routines.md) — todo
+- [x] [#0123 Document routines for users](../../issues/0123-document-routines.md) — done
 
 ## Activity log
 
@@ -115,10 +120,22 @@ Goal: every harness gets the folder, the skill and the rule, existing ones throu
   list count the two new files. The README, Help → Set up, the folder map
   and the workflow doc name the skill and the folder. The full E2E run's
   only failures are the two inbox baselines of #0112, as before.
+- #0123 done: `docs/routines.md` is the full guide — format, schedules,
+  when a routine runs, `runs.md`, commands, the dispatcher's three setups —
+  and documents `list --json`, `due --json` and `start --json` field by
+  field; a test keeps the documented fields equal to what the commands
+  print. `start --json` now gives `slot` as an ISO time like everything
+  else. The README's CLI table, Help → Set up and Help → Reference (the
+  guide without its JSON part, headings one level down) and the CHANGELOG
+  name routines.
 
 ## Deferred / out of scope (added during execution)
 
-- None yet.
+- A visual baseline for the Routines view — the graph depends on today's
+  date; it needs a fixed clock in `visual.spec.ts` first. The view is
+  covered by `15-routines.spec.ts` and was checked by eye in both themes.
+- Pausing or running a routine from the board — the PRD keeps the view
+  read-only; the skill and the files are the editors.
 
 ## Ship summary
 

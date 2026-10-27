@@ -19,7 +19,7 @@ export const HELP_PAGES = [
   { id: 'learn', path: '/help/learn', title: 'Working with AI agents', blurb: 'Why the workflow works, chapter by chapter, with short videos' },
   { id: 'setup', path: '/help/setup', title: 'Set up a repo', blurb: 'One prompt for your agent, and what it creates' },
   { id: 'upgrade', path: '/help/upgrade', title: 'Upgrade a harness', blurb: 'Bring older repos up to the latest conventions' },
-  { id: 'reference', path: '/help/reference', title: 'Reference', blurb: 'The loop, folders, statuses and keyboard shortcuts' },
+  { id: 'reference', path: '/help/reference', title: 'Reference', blurb: 'The loop, folders, statuses, routines and keyboard shortcuts' },
 ] as const;
 
 export type HelpPageId = (typeof HELP_PAGES)[number]['id'];
@@ -36,6 +36,7 @@ export const HELP_SECTIONS: Partial<Record<HelpPageId, HelpSection[]>> = {
     { id: 'loop', title: 'The loop' },
     { id: 'folders', title: 'What lives where' },
     { id: 'statuses', title: 'Statuses and fields' },
+    { id: 'routines', title: 'Routines' },
     { id: 'shortcuts', title: 'Keyboard shortcuts' },
   ],
 };

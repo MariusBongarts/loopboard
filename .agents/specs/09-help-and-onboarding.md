@@ -35,9 +35,10 @@ THEN the Help Center opens at /help with a sidebar: Overview, Working with
     AI agents, Set up a repo, Upgrade a harness, Reference
 AND the page I'm on lists its sections under it in the sidebar, marking the
     one in view; clicking one scrolls to it
-AND Reference shows The loop, What lives where, Statuses and fields and
-    Keyboard shortcuts; the shortcut table lists exactly the shortcuts the
-    app handles
+AND Reference shows The loop, What lives where, Statuses and fields,
+    Routines (docs/routines.md without its JSON contract) and Keyboard
+    shortcuts; the shortcut table lists exactly the shortcuts the app
+    handles
 WHEN I click "← Back to the board" on any Help page
 THEN I'm back on the workspace I came from
 ```

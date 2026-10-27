@@ -2,7 +2,7 @@
 id: 0123
 title: Document routines for users
 category: task
-status: todo
+status: done
 assignee: agent
 project: 05-routines
 phase: 3
@@ -27,10 +27,10 @@ found.
 
 ## Acceptance criteria
 
-- [ ] `docs/routines.md` covers the format, the commands, the dispatcher with its three setups, and documents `list --json` and `due --json` (`version: 1`) field by field
-- [ ] The README's CLI table has a row per `routines` command; `docs/folder-map.md` shows `scheduled/`; Help → Reference renders the guide's overview; Help → Set up lists the commands
-- [ ] CHANGELOG `[Unreleased]` has a Routines section
-- [ ] A test keeps the documented JSON keys in step with what `list --json` prints
+- [x] `docs/routines.md` covers the format, the commands, the dispatcher with its three setups, and documents `list --json` and `due --json` (`version: 1`) field by field
+- [x] The README's CLI table has a row per `routines` command; `docs/folder-map.md` shows `scheduled/`; Help → Reference renders the guide's overview; Help → Set up lists the commands
+- [x] CHANGELOG `[Unreleased]` has a Routines section
+- [x] A test keeps the documented JSON keys in step with what `list --json` prints
 
 ## Out of scope
 

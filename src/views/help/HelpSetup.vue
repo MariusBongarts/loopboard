@@ -24,7 +24,9 @@ const COMMANDS = [
   { cmd: 'npx loopboard init --kind docs', does: 'Sets up a folder without code: issues and projects, no specs, skills or links, no git needed.' },
   { cmd: 'npx loopboard', does: 'Opens the board for this repo; a running board adds it to the switcher.' },
   { cmd: 'npx loopboard next-id issue', does: 'The next free issue number across every branch and worktree.' },
-  { cmd: 'npx loopboard check --branches', does: 'Finds duplicate numbers, dangling references and files the board skips.' },
+  { cmd: 'npx loopboard check --branches', does: 'Finds duplicate numbers, dangling references, files the board skips and broken routines.' },
+  { cmd: 'npx loopboard routines', does: 'Lists the routines in .agents/scheduled/ with their schedule in words, next slot and last run.' },
+  { cmd: 'npx loopboard routines dispatcher-prompt', does: 'Prints the prompt for the one scheduled task that runs every routine of this repo.' },
 ];
 </script>
 

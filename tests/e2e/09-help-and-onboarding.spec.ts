@@ -26,10 +26,11 @@ test('open Help from anywhere, move between its pages, and go back', async ({ pa
     'The loop',
     'What lives where',
     'Statuses and fields',
+    'Routines',
     'Keyboard shortcuts',
   ]);
   await expect(page.locator('.keys kbd')).toHaveText(['⌘K', 'C', '/', 'j', 'k', '[', '?', 'Esc']);
-  await expect(page.getByRole('list', { name: 'Reference sections' }).getByRole('link')).toHaveCount(4);
+  await expect(page.getByRole('list', { name: 'Reference sections' }).getByRole('link')).toHaveCount(5);
 
   await page.getByRole('link', { name: '← Back to the board' }).click();
   await expect(page).toHaveURL(/\/w\/legacy-repo$/);

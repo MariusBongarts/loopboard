@@ -93,6 +93,10 @@ change, and ask before any bulk edits.
 | `npx loopboard init [path]` | Sets up the workflow. `--with-extras` adds tdd, diagnose, improve-codebase-architecture and write-a-skill. |
 | `npx loopboard init --upgrade` | Refreshes shipped files you haven't edited. `--force` overwrites edited ones, `--dry-run` only reports. |
 | `npx loopboard init --kind docs [path]` | Sets up a folder without code — paperwork, taxes, a move: issues and projects, no specs, no skills, no links, no git needed. Writes the folder's id and name to `.agents/harness.md`; `--id`, `--name` and `--parent` set them. |
+| `npx loopboard routines [path]` | Lists the harness's [routines](docs/routines.md) — recurring or one-time work in `.agents/scheduled/` — with the schedule in words, the next slot and the last run. `--under <dir>` covers every harness under a folder, `--json` prints them as data. |
+| `npx loopboard routines due` | What is due now, for the one dispatcher per place. Files the period's issue of a `creates: issue` routine and records expired slots and aborted runs; `--json`, `--dry-run`. |
+| `npx loopboard routines start <routine>` / `finish <routine> --status ok\|failed --note "…"` | Record a run's start and how it ended, in the routine's `runs.md`. |
+| `npx loopboard routines prompt <routine>` / `dispatcher-prompt` | Print the brief for a run's sub-agent, or the dispatcher prompt to schedule on your agent platform. |
 | `npx loopboard workspaces` | Lists the registered workspaces: id, name, path and whether the folder still exists. `--json` prints them as data. `workspaces forget <id>…` removes entries from the list, never a repo's files. |
 
 Requires Node 20 or newer. The server binds to `127.0.0.1` and refuses

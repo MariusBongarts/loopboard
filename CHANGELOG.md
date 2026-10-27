@@ -5,6 +5,30 @@ must apply are numbered in [MIGRATIONS.md](MIGRATIONS.md).
 
 ## [Unreleased]
 
+### Routines
+- Recurring and one-time agent work lives in the harness: one folder per
+  routine in `.agents/scheduled/`, `routine.md` (five-field cron or a
+  one-time `at`, in a time zone, and the steps) and an append-only
+  `runs.md`. One dispatcher per place — a scheduled task of any agent
+  platform, or cron with `claude -p` — runs whatever is due; loopboard
+  never starts an agent ([docs/routines.md](docs/routines.md), ADR-0010).
+- `loopboard routines` lists routines with their schedule in words, next
+  slot and last run; `routines due` says what to run now — catching up
+  missed slots once, recording late ones as expired and stale runs as
+  aborted; `start` and `finish` record runs with a note; `prompt` prints a
+  run's brief with the last three notes; `dispatcher-prompt` prints the
+  dispatcher. `--under <dir>` covers every harness under a folder, and
+  `--json` is a documented contract.
+- A routine with `creates: issue` files the period's issue itself, once,
+  with its due date and `recurrence: <slug>@<period>`; `loopboard check`
+  validates routines and reports duplicate recurrences. This replaces the
+  planned `loopboard recur` (#0090).
+- A read-only Routines view per workspace with a GitHub-style graph of the
+  last 12 months, per routine and for the workspace.
+- `loopboard init` adds `.agents/scheduled/`, the `routine` skill and the
+  AGENTS.md rule that recurring work becomes a routine, never a task of an
+  agent platform; migration M003 brings them to existing harnesses.
+
 ### Run anywhere
 - `npx loopboard [path]` starts a local board for any repo with an `.agents/`
   (or legacy `ai/`) folder; a second repo joins the running server.

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { marked } from 'marked';
 import folderMap from '../../../docs/folder-map.md?raw';
+import routines from '../../../docs/routines.md?raw';
 import statuses from '../../../docs/statuses.md?raw';
 import theLoop from '../../../docs/the-loop.md?raw';
 import { SHORTCUTS } from '../../shortcuts';
@@ -15,6 +16,8 @@ const SECTIONS = [
   { id: 'loop', title: 'The loop', html: render(theLoop) },
   { id: 'folders', title: 'What lives where', html: render(folderMap) },
   { id: 'statuses', title: 'Statuses and fields', html: render(statuses) },
+  // The guide without its JSON contract, which is for tools (#0123).
+  { id: 'routines', title: 'Routines', html: render(routines.split('## For other tools')[0].replace(/^(#{2,3}) /gm, '#$1 ')) },
 ];
 </script>
 
@@ -49,6 +52,7 @@ const SECTIONS = [
 .ref-prose :deep(table + table) { margin-top: 22px; }
 .ref-prose :deep(th), .ref-prose :deep(td) { padding: 7px 10px 7px 0; border-bottom: 1px solid var(--border-subtle); text-align: left; vertical-align: top; }
 .ref-prose :deep(pre) { overflow-x: auto; }
+.ref-prose :deep(td:first-child) { white-space: nowrap; }
 .keys { border-collapse: collapse; font-size: 13.5px; }
 .keys td { padding: 6px 16px 6px 0; border-bottom: 1px solid var(--border-subtle); }
 .keys kbd { padding: 1px 7px; border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 5px; background: var(--bg); font-family: var(--mono); font-size: 12px; }

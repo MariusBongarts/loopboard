@@ -146,7 +146,9 @@ async function start(args: Args): Promise<number> {
   const dryRun = args.switches.has("--dry-run");
   const started = await startRun(dir, Date.now(), { dryRun });
   if (args.switches.has("--json")) {
-    console.log(JSON.stringify({ version: 1, action: started.kind, dryRun, dir, ...started }, null, 2));
+    const issue = started.kind === "filed" ? { issue: started.issue } : {};
+    const json = { version: 1, action: started.kind, dryRun, dir, run: started.run, slot: started.run.slot ?? null, missed: started.missed, aborted: started.aborted, ...issue };
+    console.log(JSON.stringify(json, null, 2));
     return 0;
   }
   const slug = printable(basename(dir));
