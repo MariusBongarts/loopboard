@@ -16,6 +16,8 @@ import { mutateIssue, type IssuePatch } from "./mutate";
 import { readMigrations, workspaceHarness } from "./migrations";
 import { packageRoot, packageVersion } from "./paths";
 import { guardRequest } from "./security";
+import { listRoutines } from "./dispatch";
+import { harnessFor, routineDirs } from "./routines";
 import { readAllSpecs } from "./specs";
 import { loadViews, saveViews, validViews } from "./views";
 import { watchHub, type WatchEvent } from "./watch";
@@ -187,7 +189,7 @@ route("GET", /^\/api\/w\/([^/]+)\/data$/, async (ctx, _req, res, m) => {
   const workspace = await findWorkspace(ctx, m.params[0]);
   const summary = summarize(workspace);
   if (!summary.available) {
-    json(res, 200, { workspace: summary, issues: [], projects: [], specs: [], skipped: [] });
+    json(res, 200, { workspace: summary, issues: [], projects: [], specs: [], skipped: [], routineCount: 0 });
     return;
   }
   const [{ issues, projects, skipped }, specs] = await Promise.all([
@@ -195,7 +197,14 @@ route("GET", /^\/api\/w\/([^/]+)\/data$/, async (ctx, _req, res, m) => {
     readAllSpecs(workspace.root),
   ]);
   await setLastUsed(ctx.configDir, workspace.id);
-  json(res, 200, { workspace: summary, issues, projects, specs, skipped });
+  json(res, 200, { workspace: summary, issues, projects, specs, skipped, routineCount: routineDirs(workspace.root).length });
+});
+
+// The Routines view (#0120): what `routines list --json` says for this harness.
+route("GET", /^\/api\/w\/([^/]+)\/routines$/, async (ctx, _req, res, m) => {
+  const workspace = await findWorkspace(ctx, m.params[0]);
+  const list = listRoutines([harnessFor(workspace.repoPath, workspace.root)]);
+  json(res, 200, { version: list.version, host: list.host, now: list.now, routines: list.harnesses[0].routines });
 });
 
 // Server-Sent Events: "change" whenever files under the root change (#0010),

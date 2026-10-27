@@ -31,6 +31,9 @@ detail in `tests/cron.test.ts` and `tests/routines.test.ts`. Status legend in
 | Two issues for one period are reported | ✅ | [`15-routines.spec.ts`](../../tests/e2e/15-routines.spec.ts) |
 | Brief a run | 🟡 | [`15-routines.spec.ts`](../../tests/e2e/15-routines.spec.ts): steps, earlier notes, rules and finish command. Every part in `tests/brief.test.ts` |
 | Print the dispatcher prompt | ✅ | [`15-routines.spec.ts`](../../tests/e2e/15-routines.spec.ts): one harness and `--under` |
+| See routines on the board | ✅ | [`15-routines.spec.ts`](../../tests/e2e/15-routines.spec.ts): rail entry, rows, paused, issue routines |
+| Open a routine | ✅ | [`15-routines.spec.ts`](../../tests/e2e/15-routines.spec.ts): settings, rendered steps, runs with notes newest first, a live update |
+| A harness without routines | ✅ | [`15-routines.spec.ts`](../../tests/e2e/15-routines.spec.ts): no rail entry, ⌘K, the empty state |
 | Check routines | 🟡 | [`15-routines.spec.ts`](../../tests/e2e/15-routines.spec.ts): a broken schedule fails, an unknown field warns. Every error and warning in `tests/routines.test.ts` |
 
 ### Scenario: Write a routine
@@ -296,5 +299,44 @@ THEN it prints docs/dispatcher-prompt.md with the scope filled in: run
     never commit
 AND docs/routines.md shows how to run it as a Claude Code scheduled task,
     with Codex and from cron with `claude -p`
+```
+
+### Scenario: See routines on the board
+
+```
+GIVEN a workspace whose harness has routines
+WHEN I open it
+THEN the rail lists "Routines" under Workspace with their number
+AND /w/:ws/routines lists each routine: its title (with the slug, or its
+    first problem), the schedule in words (with its zone when that isn't
+    mine), the next slot — or "Due since …", "Running since …" — and the
+    last run's status and time; a paused, invalid, pinned or due routine
+    says so, and a `creates: issue` routine says it files an issue
+AND on a narrow pane the schedule and next slot move under the title
+AND nothing in the view writes: routines are edited as files, through the
+    `routine` skill
+```
+
+### Scenario: Open a routine
+
+```
+GIVEN the Routines view
+WHEN I click a routine (or pick it in ⌘K)
+THEN /w/:ws/routines/:slug shows its schedule in words, its problems, its
+    settings — schedule, zone, next slot, expires after, timeout, the
+    machine it runs on, the harnesses it writes to, the issue it files,
+    created, its folder —, its steps rendered as markdown, and every run
+    newest first with status, time, slot, duration, host and note (the
+    newest 30, then "Show all N runs")
+AND a run recorded while the page is open appears without a reload
+AND the back arrow returns to the list
+```
+
+### Scenario: A harness without routines
+
+```
+GIVEN a workspace whose harness has no routines
+THEN the rail has no Routines entry
+AND ⌘K "Go to Routines" opens the view, which says how to create one
 ```
 

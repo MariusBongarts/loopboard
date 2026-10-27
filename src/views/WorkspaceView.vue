@@ -2,7 +2,7 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { provideIssueActions } from '../actions';
-import { fetchData, fetchViews, fetchWorkspaces, patchIssue, reorderColumn, storeViews, type SavedView } from '../api';
+import { fetchData, fetchRoutines, fetchViews, fetchWorkspaces, patchIssue, reorderColumn, storeViews, type SavedView } from '../api';
 import type { Command } from '../commands';
 import BacklogDrawer from '../components/BacklogDrawer.vue';
 import CommandPalette from '../components/CommandPalette.vue';
@@ -32,6 +32,7 @@ import {
   type ColumnKey,
   type Issue,
   type Project,
+  type RoutinesData,
   type SkippedFile,
   type Spec,
   ALL_STATUSES,
@@ -48,6 +49,8 @@ const workspace = ref<WorkspaceSummary | null>(null);
 const issues = ref<Issue[]>([]);
 const projects = ref<Project[]>([]);
 const views = ref<SavedView[]>([]);
+const routineCount = ref(0);
+const routines = ref<RoutinesData | null>(null);
 provideWorkspace({
   id: workspaceId,
   rootName: computed(() => (workspace.value ? rootNameOf(workspace.value) : '.agents')),
@@ -63,6 +66,24 @@ provideWorkspace({
       errorMsg.value = (e as Error).message;
     }
   },
+  routineCount,
+  routines,
+});
+
+// The Routines view's data (#0120): fetched while it is open, again on
+// every live change.
+const routinesOpen = computed(() => props.view === 'routines' || props.view === 'routine');
+async function loadRoutines() {
+  const id = workspaceId.value;
+  try {
+    const data = await fetchRoutines(id);
+    if (id === workspaceId.value) routines.value = data;
+  } catch (e) {
+    errorMsg.value = (e as Error).message;
+  }
+}
+watch(routinesOpen, (open) => {
+  if (open) void loadRoutines();
 });
 
 async function loadViews() {
@@ -112,6 +133,8 @@ async function load() {
     projects.value = data.projects;
     specs.value = data.specs ?? [];
     skipped.value = data.skipped ?? [];
+    routineCount.value = data.routineCount ?? 0;
+    if (routinesOpen.value) void loadRoutines();
     if (pendingOpenId) {
       const created = data.issues.find((i) => i.id === pendingOpenId && !i.archived);
       if (created) {
@@ -178,6 +201,8 @@ watch(workspaceId, () => {
   skipped.value = [];
   skippedOpen.value = false;
   views.value = [];
+  routineCount.value = 0;
+  routines.value = null;
   load();
   void loadViews();
 });
@@ -367,6 +392,7 @@ const commands = computed<Command[]>(() => {
     { id: 'go-specs', title: 'Go to Specs', group: 'Actions', run: () => router.push(`/w/${ws}/specs`) },
     { id: 'go-issues', title: 'Go to Issues (list)', group: 'Actions', keywords: 'list table', run: () => router.push(`/w/${ws}/issues`) },
     { id: 'go-projects', title: 'Go to Projects', group: 'Actions', keywords: 'overview progress', run: () => router.push(`/w/${ws}/projects`) },
+    { id: 'go-routines', title: 'Go to Routines', group: 'Actions', keywords: 'scheduled recurring cron runs dispatcher', run: () => router.push(`/w/${ws}/routines`) },
     { id: 'theme', title: `Theme: ${themeChoice.value} → ${themeChoice.value === 'system' ? 'dark' : themeChoice.value === 'dark' ? 'light' : 'system'}`, group: 'Actions', keywords: 'dark light mode appearance', run: () => toast(`Theme: ${cycleTheme()}`) },
     { id: 'settings', title: 'Settings', group: 'Actions', keywords: 'preferences theme editor vscode cursor', run: () => (settingsOpen.value = true) },
     { id: 'go-help', title: 'Open Help', group: 'Actions', hint: SHORTCUTS.help.display, run: () => router.push({ path: '/help', query: { from: ws } }) },
@@ -401,6 +427,9 @@ const commands = computed<Command[]>(() => {
   }
   for (const v of views.value) {
     list.push({ id: `view-${v.id}`, title: v.name, group: 'Views', run: () => router.push({ path: `/w/${ws}/issues`, query: { ...v.query, view: v.id } }) });
+  }
+  for (const r of routines.value?.routines ?? []) {
+    list.push({ id: `routine-${r.slug}`, title: r.title, group: 'Routines', hint: r.words, keywords: r.slug, run: () => router.push(`/w/${ws}/routines/${encodeURIComponent(r.slug)}`) });
   }
   for (const sp of specs.value) {
     list.push({ id: `spec-${sp.id}`, title: sp.title, group: 'Specs', run: () => router.push({ path: `/w/${ws}/specs`, query: { spec: sp.id } }) });

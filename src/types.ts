@@ -177,6 +177,76 @@ export interface ApiData {
   projects: Project[];
   specs: Spec[];
   skipped: SkippedFile[];
+  routineCount?: number;
+}
+
+// Routines (#0120): the shapes of `routines list --json`, as server/runs.ts
+// and server/dispatch.ts define them.
+export type RunStatus = 'running' | 'ok' | 'failed' | 'aborted' | 'expired' | 'missed';
+
+export interface Run {
+  status: RunStatus;
+  at: string;
+  started?: string;
+  finished?: string;
+  slot?: string;
+  host?: string;
+  recorded?: string;
+  from?: string;
+  to?: string;
+  slots?: number;
+  note: string;
+}
+
+export type RoutineState = 'invalid' | 'paused' | 'pinned' | 'running' | 'due' | 'expired' | 'idle';
+
+export interface RoutineProblem {
+  level: 'error' | 'warning';
+  file: string;
+  message: string;
+}
+
+export interface RoutineIssueSpec {
+  period: string;
+  title: string;
+  category: string;
+  status: string;
+  assignee: string;
+  labels: string[];
+  project: string | null;
+  dueAfter: string | null;
+}
+
+export interface RoutineSummary {
+  slug: string;
+  dir: string;
+  title: string;
+  kind: 'agent' | 'issue';
+  enabled: boolean;
+  state: RoutineState;
+  schedule: string | null;
+  at: string | null;
+  timezone: string;
+  words: string;
+  expiresAfter: string | null;
+  timeout: string;
+  host: string | null;
+  writesTo: string[];
+  created: string | null;
+  creates: RoutineIssueSpec | null;
+  next: string | null;
+  slot: string | null;
+  lastRun: Run | null;
+  runs: Run[];
+  problems: RoutineProblem[];
+  body: string;
+}
+
+export interface RoutinesData {
+  version: number;
+  host: string;
+  now: string;
+  routines: RoutineSummary[];
 }
 
 export const STANDALONE = '__standalone__';

@@ -20,7 +20,8 @@ Repo data lives under `/api/w/:workspace`; everything else is global.
 | `PATCH /api/workspaces/:id` | `{ name }` | Renames |
 | `DELETE /api/workspaces/:id` | — | Forgets the workspace; files untouched |
 | `GET /api/fs/suggest?path=` | — | Sub-folder names under the typed path, flagged `hasRoot` — names only, never contents |
-| `GET /api/w/:id/data` | — | `{ workspace, issues, projects, specs, skipped }`; `skipped` is `[{ file, reason }]` for every file the reader couldn't show; marks the workspace last used |
+| `GET /api/w/:id/data` | — | `{ workspace, issues, projects, specs, skipped, routineCount }`; `skipped` is `[{ file, reason }]` for every file the reader couldn't show; marks the workspace last used |
+| `GET /api/w/:id/routines` | — | `{ version, host, now, routines }`: the harness's routines as `routines list --json` returns them (#0120) |
 | `GET /api/w/:id/events` | — | Server-Sent Events: `change` after `.md` files under the root change (debounced); `ready` on connect and whenever the root is watched again, `stale` instead while its watcher is down and no poll follows it. A client that hung up before the stream was set up gets no subscription |
 | `GET /api/w/:id/issues/:issue/activity?archived=` | — | Local git: commits mentioning `#NNNN`, branches named after it, the file's history with status changes |
 | `GET` / `PUT /api/w/:id/views` | `{ views }` on PUT | Saved list views for the workspace, kept in the user config |

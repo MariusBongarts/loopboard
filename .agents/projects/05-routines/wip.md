@@ -30,7 +30,7 @@ Goal: a routine is a folder in the harness, its schedule is understood in its ti
 
 Goal: a read-only Routines view per workspace with a contribution graph per routine and one for the workspace.
 
-- [ ] [#0120 See routines and their runs in a Routines view](../../issues/0120-routines-view.md) — todo
+- [x] [#0120 See routines and their runs in a Routines view](../../issues/0120-routines-view.md) — done
 - [ ] [#0121 See a year of runs as a contribution graph](../../issues/0121-routine-contribution-graphs.md) — todo
 
 ### Phase 3 — Harnesses and docs
@@ -96,6 +96,12 @@ Goal: every harness gets the folder, the skill and the rule, existing ones throu
   `docs/routines.md` starts with the setup for Claude Code, Codex and cron;
   #0123 completes it. Phase 1 is done: routines run end to end from the
   command line.
+- #0120 done: a read-only Routines view (`/w/:ws/routines`, a page per
+  routine) fed by `GET /api/w/:id/routines`; the rail lists it only in a
+  harness with routines, ⌘K always. Run states got their own tokens
+  (`--run-ok`, `--run-failed`, `--run-missed`, `--run-running`), checked by
+  the contrast script at 3:1. The view is checked in the browser in both
+  themes and on a narrow pane.
 
 ## Deferred / out of scope (added during execution)
 

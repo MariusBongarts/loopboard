@@ -2,6 +2,7 @@
 import { nextTick, ref, type Component } from 'vue';
 import {
   Box,
+  CalendarClock,
   CircleDot,
   CircleHelp,
   CircleUserRound,
@@ -38,6 +39,7 @@ const props = defineProps<{
   counts: Record<InboxFilter, number>;
   projectsCount: number;
   specsCount: number;
+  routinesCount: number;
   skippedCount: number;
   sections: { label: string; projects: Project[] }[];
   pinned: string[];
@@ -162,6 +164,19 @@ const feedOn = (key: InboxFilter) => props.view === 'feed' && props.filter === k
         <FileCheck2 class="rail-icon-glyph" :size="16" aria-hidden="true" />
         <span class="rail-name">Specs</span>
         <span class="rail-count">{{ props.specsCount }}</span>
+      </button>
+      <!-- Only in a harness that has routines (#0120); ⌘K reaches the view anyway. -->
+      <button
+        v-if="props.routinesCount"
+        type="button"
+        class="rail-nav"
+        :class="{ on: props.view === 'routines' || props.view === 'routine' }"
+        title="Routines"
+        @click="emit('show-view', 'routines')"
+      >
+        <CalendarClock class="rail-icon-glyph" :size="16" aria-hidden="true" />
+        <span class="rail-name">Routines</span>
+        <span class="rail-count">{{ props.routinesCount }}</span>
       </button>
     </div>
 

@@ -26,6 +26,8 @@ export const router = createRouter({
     { path: '/w/:ws/issues', component: WorkspaceView, props: { view: 'issues' } },
     { path: '/w/:ws/issues/:id(\\d{4})', component: WorkspaceView, props: { view: 'issue' } },
     { path: '/w/:ws/projects', component: WorkspaceView, props: { view: 'projects' } },
+    { path: '/w/:ws/routines', component: WorkspaceView, props: { view: 'routines' } },
+    { path: '/w/:ws/routines/:slug', component: WorkspaceView, props: { view: 'routine' } },
     { path: '/:pathMatch(.*)*', redirect: '/' },
   ],
 });

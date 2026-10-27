@@ -1,10 +1,10 @@
 import { inject, provide, type ComputedRef, type InjectionKey, type Ref } from 'vue';
 import type { SavedView } from './api';
 import type { RelationIndex } from './relations';
-import type { Issue, Project, Workspace } from './types';
+import type { Issue, Project, RoutinesData, Workspace } from './types';
 
 // The views inside a workspace; each has its own route.
-export type View = 'feed' | 'specs' | 'projects' | 'issues' | 'issue';
+export type View = 'feed' | 'specs' | 'projects' | 'issues' | 'issue' | 'routines' | 'routine';
 
 export interface WorkspaceContext {
   id: ComputedRef<string>;
@@ -17,6 +17,10 @@ export interface WorkspaceContext {
   relations: ComputedRef<RelationIndex>;
   views: Ref<SavedView[]>;
   saveViews(views: SavedView[]): Promise<void>;
+  // Routines (#0120): the count comes with /data, the list only while the
+  // Routines view is open.
+  routineCount: Ref<number>;
+  routines: Ref<RoutinesData | null>;
 }
 
 const WORKSPACE_KEY: InjectionKey<WorkspaceContext> = Symbol('workspace');

@@ -47,6 +47,7 @@ import { readStored, readWorkspaceStored, writeStored, writeWorkspaceStored } fr
 import { useWorkspace, type View } from '../workspace';
 import ProjectsView from './ProjectsView.vue';
 import ListView from './ListView.vue';
+import RoutinesView from './RoutinesView.vue';
 import type { LiveState } from '../live';
 import { hasModifier, isShortcut, isTyping, overlayOpen } from '../shortcuts';
 
@@ -115,7 +116,7 @@ const FILTERS: { key: InboxFilter; label: string; title: string }[] = [
 const feedHidden = ref(readStored('loopboard.feedHidden') === '1');
 watch(feedHidden, (h) => writeStored('loopboard.feedHidden', h ? '1' : null));
 
-const { views } = useWorkspace();
+const { views, routineCount } = useWorkspace();
 
 function openIssues(query: Record<string, string> = {}) {
   router.push({ path: `/w/${workspaceId.value}/issues`, query });
@@ -384,6 +385,7 @@ onBeforeUnmount(() => {
       :counts="counts"
       :projects-count="props.projects.length"
       :specs-count="props.specs.length"
+      :routines-count="routineCount"
       :skipped-count="props.skipped.length"
       :sections="railSections"
       :pinned="pinnedSlugs"
@@ -411,6 +413,9 @@ onBeforeUnmount(() => {
     </section>
     <section v-else-if="view === 'issue'" class="inbox-specs">
       <IssuePage :issue-id="String(route.params.id)" :archived="route.query.archived === '1'" :loaded="props.workspace !== null" />
+    </section>
+    <section v-else-if="view === 'routines' || view === 'routine'" class="inbox-specs">
+      <RoutinesView :slug="view === 'routine' ? String(route.params.slug) : null" />
     </section>
     <section v-else-if="view === 'specs'" class="inbox-specs">
       <SpecsView ref="specsView" :specs="props.specs" :loaded="props.workspace !== null" />

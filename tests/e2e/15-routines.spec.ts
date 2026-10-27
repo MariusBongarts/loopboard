@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { spawnSync } from 'node:child_process';
 import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { loopboard, repo, sandbox } from './cli';
+import { loopboard, repo, sandbox, serve } from './cli';
 
 // Spec § 15 — routines, through the real `loopboard` binary.
 let box: { dir: string; config: string };
@@ -170,3 +170,68 @@ test.describe('§ 15 routines on the command line', () => {
     expect(tree.stdout).toContain(`loopboard routines due --under ${box.dir} --json`);
   });
 });
+
+test.describe('§ 15 routines on the board', () => {
+  test('see routines in a Routines view and open one with its steps and runs', async ({ page }) => {
+    const app = repo(box.dir, 'shop');
+    const brief = routine(app, 'morning-brief', 'title: Morning brief\nschedule: "30 7 * * 1-5"\ntimezone: UTC', '1. Read the calendar.\n2. Write **the brief**.\n');
+    writeFileSync(
+      join(brief, 'runs.md'),
+      '# Runs: Morning brief\n\n## 2026-10-26 07:30 · ok\n- started: 2026-10-26T07:30:04+00:00\n- finished: 2026-10-26T07:41:00+00:00\n- slot: 2026-10-26T07:30:00+00:00\n- host: studio\n\n> Wrote the brief.\n\n## 2026-10-27 07:30 · failed\n- started: 2026-10-27T07:30:04+00:00\n- finished: 2026-10-27T07:32:00+00:00\n- slot: 2026-10-27T07:30:00+00:00\n- host: studio\n\n> The calendar API timed out.\n',
+    );
+    routine(app, 'books', 'title: Monthly books\nschedule: "0 6 1 * *"\ntimezone: UTC\ncreates: issue\nperiod: month');
+    routine(app, 'sweep', 'title: Inbox sweep\nschedule: "*/30 * * * *"\nenabled: false');
+    const server = await serve(['--port', '0'], app, box.config);
+    try {
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await page.goto(server.url);
+      await page.getByRole('button', { name: 'Routines' }).click();
+      await expect(page).toHaveURL(/\/w\/shop\/routines$/);
+      const rows = page.locator('.routine-row');
+      await expect(rows).toHaveCount(3);
+      const morning = rows.filter({ hasText: 'Morning brief' });
+      await expect(morning).toContainText('Weekdays at 07:30');
+      await expect(morning).toContainText('Failed ·');
+      await expect(rows.filter({ hasText: 'Monthly books' })).toContainText('files an issue');
+      await expect(rows.filter({ hasText: 'Inbox sweep' })).toContainText('Paused');
+
+      await morning.click();
+      await expect(page).toHaveURL(/\/w\/shop\/routines\/morning-brief$/);
+      await expect(page.locator('.routine-steps strong')).toHaveText('the brief');
+      const runs = page.locator('.routine-run');
+      await expect(runs).toHaveCount(2);
+      await expect(runs.first()).toContainText('Failed');
+      await expect(runs.first()).toContainText('The calendar API timed out.');
+      await expect(runs.last()).toContainText('Wrote the brief.');
+      await expect(page.locator('.routine-settings')).toContainText('30 7 * * 1-5');
+
+      // Live: a finished run shows up without a reload.
+      writeFileSync(join(brief, 'runs.md'), readFileSync(join(brief, 'runs.md'), 'utf8') + '\n## 2026-10-28 07:30 · ok\n- started: 2026-10-28T07:30:04+00:00\n\n> Back to normal.\n');
+      await expect(runs).toHaveCount(3);
+      await expect(runs.first()).toContainText('Back to normal.');
+
+      await page.getByRole('button', { name: 'Back to routines' }).click();
+      await expect(page).toHaveURL(/\/w\/shop\/routines$/);
+    } finally {
+      server.proc.kill();
+    }
+  });
+
+  test('a harness without routines keeps its rail; the view says how to start', async ({ page }) => {
+    const app = repo(box.dir, 'plain');
+    const server = await serve(['--port', '0'], app, box.config);
+    try {
+      await page.goto(server.url);
+      await expect(page.getByRole('button', { name: 'Specs' })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Routines' })).toHaveCount(0);
+      await page.keyboard.press('ControlOrMeta+k');
+      await page.keyboard.type('Go to Routines');
+      await page.keyboard.press('Enter');
+      await expect(page).toHaveURL(/\/w\/plain\/routines$/);
+      await expect(page.locator('.routines-empty')).toContainText('No routines yet.');
+    } finally {
+      server.proc.kill();
+    }
+  });
+});
+

@@ -3,7 +3,8 @@
 A Vue 3 app with `vue-router` ([router.ts](../../src/router.ts)): `/` redirects
 to the last-used workspace, `/w/:ws` is the feed and `/w/:ws/specs` the Specs
 view, `/w/:ws/issues` the list (filters in the query string, `&view=` for a
-saved view), `/w/:ws/projects` the overview, `/help` the Help Center (child
+saved view), `/w/:ws/projects` the overview, `/w/:ws/routines` and
+`/w/:ws/routines/:slug` the Routines view, `/help` the Help Center (child
 routes `learn`, `setup`, `upgrade`, `reference`) and `/needs-you` the
 cross-workspace queue. No store: [WorkspaceView.vue](../../src/views/WorkspaceView.vue) owns a
 workspace's data and every write and provides the workspace context
@@ -29,6 +30,7 @@ to catch up.
 | [DocEditor.vue](../../src/components/DocEditor.vue), [RichEditor.vue](../../src/components/RichEditor.vue) | Editing (issues in the drawer, PRD/WIP tabs, specs): Rich mode = fields form + TipTap (`@tiptap/markdown`), Source mode = the raw file; hash-checked saves with conflict resolution |
 | [ListView.vue](../../src/components/ListView.vue), [IssueList.vue](../../src/components/IssueList.vue) | The list view and its rows (also the project pane's List layout); grouping and filters in [list.ts](../../src/list.ts) |
 | [ProjectsView.vue](../../src/components/ProjectsView.vue) | Project progress from [projects.ts](../../src/projects.ts) (WIP phase parsing) |
+| [RoutinesView.vue](../../src/components/RoutinesView.vue) | Read-only list and page of the harness's routines (#0120); WorkspaceView fetches `/routines` while it is open and on every live change, the count comes with `/data`; labels in [routines.ts](../../src/routines.ts), times from [shared/cron.ts](../../shared/cron.ts) |
 | [IssueActivity.vue](../../src/components/IssueActivity.vue) | The drawer's lazily loaded git history |
 | [NeedsYouView.vue](../../src/views/NeedsYouView.vue) | `/needs-you` across workspaces; links back with `?item=` |
 | [WorkspaceSwitcher.vue](../../src/components/WorkspaceSwitcher.vue) | Top-left menu (teleported, the rail clips); Add and Manage dialogs on [BaseDialog.vue](../../src/components/BaseDialog.vue) |

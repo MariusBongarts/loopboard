@@ -1,4 +1,4 @@
-import type { ApiData, Assignee, HarnessInfo, Status, WorkspaceSummary } from './types';
+import type { ApiData, Assignee, HarnessInfo, RoutinesData, Status, WorkspaceSummary } from './types';
 
 async function errorDetail(res: Response): Promise<string> {
   try {
@@ -44,6 +44,10 @@ export async function removeWorkspace(id: string): Promise<void> {
 
 export function fetchData(workspace: string): Promise<ApiData> {
   return request('GET', `${ws(workspace)}/data`);
+}
+
+export function fetchRoutines(workspace: string): Promise<RoutinesData> {
+  return request('GET', `${ws(workspace)}/routines`);
 }
 
 export interface IssuePatch {

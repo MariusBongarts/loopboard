@@ -49,6 +49,8 @@ const PAIRS = [
   ['accent-text', 'bg', 4.5], ['accent-text', 'accent-soft', 4.5], ['on-accent', 'accent', 4.5],
   ...TONES.flatMap((t) => [[`${t}-text`, `${t}-soft`, 4.5], [`${t}-text`, 'bg', 4.5]]),
   ...['progress', 'review', 'done', 'blocked', 'todo', 'backlog'].map((st) => [`st-${st}`, 'bg', 3]),
+  // Routine run states are graphics that carry meaning (#0120, #0121).
+  ...['ok', 'failed', 'missed', 'running'].map((run) => [`run-${run}`, 'bg', 3]),
 ];
 
 let failed = 0;
