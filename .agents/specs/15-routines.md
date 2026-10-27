@@ -33,6 +33,7 @@ detail in `tests/cron.test.ts` and `tests/routines.test.ts`. Status legend in
 | Print the dispatcher prompt | ✅ | [`15-routines.spec.ts`](../../tests/e2e/15-routines.spec.ts): one harness and `--under` |
 | See routines on the board | ✅ | [`15-routines.spec.ts`](../../tests/e2e/15-routines.spec.ts): rail entry, rows, paused, issue routines |
 | Open a routine | ✅ | [`15-routines.spec.ts`](../../tests/e2e/15-routines.spec.ts): settings, rendered steps, runs with notes newest first, a live update |
+| See a year of runs as a graph | 🟡 | [`15-routines.spec.ts`](../../tests/e2e/15-routines.spec.ts): the workspace graph's cells, a failed and an ok day, the hover text, a routine's own graph. Day states in `tests/graph.test.ts`, layout in `tests/routineView.test.ts`; contrast in `pnpm verify` |
 | A harness without routines | ✅ | [`15-routines.spec.ts`](../../tests/e2e/15-routines.spec.ts): no rail entry, ⌘K, the empty state |
 | Check routines | 🟡 | [`15-routines.spec.ts`](../../tests/e2e/15-routines.spec.ts): a broken schedule fails, an unknown field warns. Every error and warning in `tests/routines.test.ts` |
 
@@ -338,5 +339,28 @@ AND the back arrow returns to the list
 GIVEN a workspace whose harness has no routines
 THEN the rail has no Routines entry
 AND ⌘K "Go to Routines" opens the view, which says how to create one
+```
+
+### Scenario: See a year of runs as a graph
+
+```
+GIVEN routines with runs
+WHEN I open the Routines view (or a routine's page)
+THEN a graph of the last 12 months sits on top — every routine summed on
+    the list, the routine alone on its page: 53 week columns of seven days,
+    Monday on top, month names above, ending with today
+AND a day is red when a run failed or was aborted, else green when runs
+    finished — four shades, darker for busier days relative to the busiest
+    —, else grey when a slot was missed or expired (recorded, or a past slot
+    of an enabled routine since its `created` day, or its first entry, with
+    no entry at all — so a dispatcher that stopped shows), else empty
+AND days are each routine's local days
+AND hovering or focusing a day shows its date and runs below the graph:
+    time, status and the note's first line (with the routine's title on the
+    list); the arrow keys, Home and End move through the days, and each day
+    has a label like "Mon 26 Oct 2026: 2 ok, 1 failed"
+AND a legend names the shades, Failed and Missed; the colors pass the
+    contrast check at 3:1 in both themes
+AND on a narrow pane the graph scrolls, starting at today
 ```
 

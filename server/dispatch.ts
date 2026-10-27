@@ -4,6 +4,7 @@ import { describeSchedule, formatIso, formatLocal, formatWhen, nextOccurrence, o
 import { frontmatterInner, setLine } from "../shared/frontmatter";
 import { withFileLock, writeFileAtomic } from "./files";
 import { isValid, machineName, parseDuration, readRoutine, readRoutines, ROUTINE_FILE, RUNS_FILE, type Harness, type IssueSpec, type Routine, type RoutineProblem } from "./routines";
+import { graphDays, type GraphDay } from "./graph";
 import { fileIssue, type FiledIssue } from "./recurrence";
 import { appendTo, lastRun, type NewEntry, type Run } from "./runs";
 
@@ -279,6 +280,7 @@ export interface RoutineSummary {
   slot: string | null;
   lastRun: Run | null;
   runs: Run[];
+  days: GraphDay[]; // the contribution graph's days with something on them (#0121)
   problems: RoutineProblem[];
   body: string;
 }
@@ -307,6 +309,7 @@ export function summarizeRoutine(routine: Routine, now: number, host = machineNa
     slot: ev.slot === null ? null : iso(routine, ev.slot),
     lastRun: lastRun(routine.runs),
     runs: routine.runs,
+    days: graphDays(routine, now),
     problems: routine.problems,
     body: routine.body,
   };

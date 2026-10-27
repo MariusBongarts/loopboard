@@ -251,6 +251,14 @@ export function weekdayOf(date: LocalDate): number {
   return new Date(Date.UTC(date.year, date.month - 1, date.day)).getUTCDay();
 }
 
+// A routine's contribution graph covers 53 weeks, Monday on top, ending with
+// today's week (#0121); this is its first Monday.
+export const GRAPH_WEEKS = 53;
+
+export function graphStart(today: LocalDate): LocalDate {
+  return addDays(today, -((weekdayOf(today) + 6) % 7) - 7 * (GRAPH_WEEKS - 1));
+}
+
 function dayMatches(cron: Cron, date: LocalDate): boolean {
   if (!cron.months.includes(date.month)) return false;
   const byDay = cron.days.includes(date.day) || (cron.lastDay && date.day === daysInMonth(date.year, date.month));

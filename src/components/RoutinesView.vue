@@ -3,8 +3,9 @@ import { computed, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { marked } from 'marked';
 import { ArrowLeft, CalendarClock, FilePlus2 } from '@lucide/vue';
-import { formatWhen, systemTimeZone } from '../../shared/cron';
-import { firstProblem, newestFirst, RUN_LABEL, runDuration, runTone, stateLabel } from '../routines';
+import { formatWhen, localDay, systemTimeZone } from '../../shared/cron';
+import { aggregateDays, firstProblem, newestFirst, RUN_LABEL, runDuration, runTone, stateLabel } from '../routines';
+import RoutineGraph from './RoutineGraph.vue';
 import type { RoutineSummary, Run } from '../types';
 import { useWorkspace } from '../workspace';
 
@@ -18,6 +19,7 @@ const zone = systemTimeZone();
 const now = computed(() => (data.value ? Date.parse(data.value.now) || Date.now() : Date.now()));
 const routines = computed(() => data.value?.routines ?? []);
 const current = computed(() => (props.slug ? routines.value.find((r) => r.slug === props.slug) ?? null : null));
+const allDays = computed(() => aggregateDays(routines.value));
 
 function when(iso: string | null | undefined, r: RoutineSummary): string {
   return iso ? formatWhen(Date.parse(iso), r.timezone, now.value) : '—';
@@ -103,7 +105,10 @@ const settings = computed(() => {
       <span class="routines-count">{{ routines.length }}</span>
     </header>
     <div class="routines-scroll">
-      <slot name="graph" />
+      <section v-if="routines.length" class="routines-graph">
+        <h3 class="routine-sec">Last 12 months</h3>
+        <RoutineGraph :days="allDays" :today="localDay(now, zone)" :routines="routines" label="Runs of every routine in the last 12 months" show-routine />
+      </section>
       <p v-if="data && !routines.length" class="list-empty routines-empty">
         No routines yet. Ask your agent to “create a routine that …” — each one is a folder in
         <code>.agents/scheduled/</code>, and one dispatcher runs whatever is due.
@@ -149,7 +154,7 @@ const settings = computed(() => {
         <ul v-if="current.problems.length" class="routine-problems">
           <li v-for="(p, i) in current.problems" :key="i" :class="p.level">{{ p.file }}: {{ p.message }}</li>
         </ul>
-        <slot name="graph" />
+        <RoutineGraph class="routine-graph" :days="current.days" :today="localDay(now, current.timezone)" :routines="[current]" :label="`Runs of ${current.title} in the last 12 months`" />
         <dl class="routine-settings">
           <template v-for="row in settings" :key="row.label">
             <dt>{{ row.label }}</dt>
@@ -186,6 +191,9 @@ const settings = computed(() => {
 .routine-back { width: 28px; height: 28px; padding: 0; justify-content: center; margin-left: -6px; }
 .routines-scroll { flex: 1; overflow-y: auto; padding-bottom: 40px; }
 .routines-empty code { font: 0.92em var(--mono); }
+.routines-graph { padding: 4px 20px 16px; border-bottom: 1px solid var(--border-subtle); }
+.routines-graph .routine-sec { margin: 12px 0 8px; }
+.routine-graph { margin-bottom: 20px; }
 .routine-cols, .routine-row {
   display: grid;
   grid-template-columns: minmax(200px, 1.4fr) minmax(0, 1fr) 150px 160px;

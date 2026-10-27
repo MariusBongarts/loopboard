@@ -31,7 +31,7 @@ Goal: a routine is a folder in the harness, its schedule is understood in its ti
 Goal: a read-only Routines view per workspace with a contribution graph per routine and one for the workspace.
 
 - [x] [#0120 See routines and their runs in a Routines view](../../issues/0120-routines-view.md) — done
-- [ ] [#0121 See a year of runs as a contribution graph](../../issues/0121-routine-contribution-graphs.md) — todo
+- [x] [#0121 See a year of runs as a contribution graph](../../issues/0121-routine-contribution-graphs.md) — done
 
 ### Phase 3 — Harnesses and docs
 
@@ -102,6 +102,12 @@ Goal: every harness gets the folder, the skill and the rule, existing ones throu
   (`--run-ok`, `--run-failed`, `--run-missed`, `--run-running`), checked by
   the contrast script at 3:1. The view is checked in the browser in both
   themes and on a narrow pane.
+- #0121 done: the server computes each routine's graph days
+  (`server/graph.ts`; `list --json` carries them as `days`), the client
+  draws them in `RoutineGraph.vue` and sums them for the workspace. Graph
+  shades are tokens (`--graph-1`…`--graph-4`, `--graph-empty`), all at 3:1
+  or more against the background in both themes. `GRAPH_WEEKS` and
+  `graphStart` live in `shared/cron.ts` for both sides. Phase 2 is done.
 
 ## Deferred / out of scope (added during execution)
 

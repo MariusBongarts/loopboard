@@ -51,6 +51,7 @@ const PAIRS = [
   ...['progress', 'review', 'done', 'blocked', 'todo', 'backlog'].map((st) => [`st-${st}`, 'bg', 3]),
   // Routine run states are graphics that carry meaning (#0120, #0121).
   ...['ok', 'failed', 'missed', 'running'].map((run) => [`run-${run}`, 'bg', 3]),
+  ...[1, 2, 3, 4].map((level) => [`graph-${level}`, 'bg', 3]),
 ];
 
 let failed = 0;

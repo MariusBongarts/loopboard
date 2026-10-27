@@ -173,11 +173,18 @@ test.describe('§ 15 routines on the command line', () => {
 
 test.describe('§ 15 routines on the board', () => {
   test('see routines in a Routines view and open one with its steps and runs', async ({ page }) => {
+    // Runs on the two days before today (UTC), so the graph always shows them.
+    const day = (back: number) => new Date(Date.now() - back * 86_400_000).toISOString().slice(0, 10);
+    const [older, newer, today] = [day(2), day(1), day(0)];
+    const long = (date: string) => {
+      const d = new Date(`${date}T12:00:00Z`);
+      return `${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d.getUTCDay()]} ${d.getUTCDate()} ${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+    };
     const app = repo(box.dir, 'shop');
-    const brief = routine(app, 'morning-brief', 'title: Morning brief\nschedule: "30 7 * * 1-5"\ntimezone: UTC', '1. Read the calendar.\n2. Write **the brief**.\n');
+    const brief = routine(app, 'morning-brief', 'title: Morning brief\nschedule: "30 7 * * *"\ntimezone: UTC', '1. Read the calendar.\n2. Write **the brief**.\n');
     writeFileSync(
       join(brief, 'runs.md'),
-      '# Runs: Morning brief\n\n## 2026-10-26 07:30 · ok\n- started: 2026-10-26T07:30:04+00:00\n- finished: 2026-10-26T07:41:00+00:00\n- slot: 2026-10-26T07:30:00+00:00\n- host: studio\n\n> Wrote the brief.\n\n## 2026-10-27 07:30 · failed\n- started: 2026-10-27T07:30:04+00:00\n- finished: 2026-10-27T07:32:00+00:00\n- slot: 2026-10-27T07:30:00+00:00\n- host: studio\n\n> The calendar API timed out.\n',
+      `# Runs: Morning brief\n\n## ${older} 07:30 · ok\n- started: ${older}T07:30:04+00:00\n- finished: ${older}T07:41:00+00:00\n- slot: ${older}T07:30:00+00:00\n- host: studio\n\n> Wrote the brief.\n\n## ${newer} 07:30 · failed\n- started: ${newer}T07:30:04+00:00\n- finished: ${newer}T07:32:00+00:00\n- slot: ${newer}T07:30:00+00:00\n- host: studio\n\n> The calendar API timed out.\n`,
     );
     routine(app, 'books', 'title: Monthly books\nschedule: "0 6 1 * *"\ntimezone: UTC\ncreates: issue\nperiod: month');
     routine(app, 'sweep', 'title: Inbox sweep\nschedule: "*/30 * * * *"\nenabled: false');
@@ -190,23 +197,34 @@ test.describe('§ 15 routines on the board', () => {
       const rows = page.locator('.routine-row');
       await expect(rows).toHaveCount(3);
       const morning = rows.filter({ hasText: 'Morning brief' });
-      await expect(morning).toContainText('Weekdays at 07:30');
+      await expect(morning).toContainText('Every day at 07:30');
       await expect(morning).toContainText('Failed ·');
       await expect(rows.filter({ hasText: 'Monthly books' })).toContainText('files an issue');
       await expect(rows.filter({ hasText: 'Inbox sweep' })).toContainText('Paused');
 
+      // The workspace graph (#0121): a cell per day, the failed day red, its runs on hover.
+      const graph = page.getByRole('grid', { name: 'Runs of every routine in the last 12 months' });
+      expect(await graph.getByRole('gridcell').count()).toBeGreaterThan(364);
+      const failed = graph.getByRole('gridcell', { name: `${long(newer)}: 1 failed` });
+      await expect(failed).toHaveClass(/failed/);
+      await failed.hover();
+      await expect(page.locator('.graph-detail')).toContainText(long(newer));
+      await expect(page.locator('.graph-detail')).toContainText('Morning brief · 07:30 Failed — The calendar API timed out.');
+      await expect(graph.getByRole('gridcell', { name: `${long(older)}: 1 ok` })).toHaveClass(/ok l4/);
+
       await morning.click();
       await expect(page).toHaveURL(/\/w\/shop\/routines\/morning-brief$/);
+      await expect(page.getByRole('grid', { name: 'Runs of Morning brief in the last 12 months' })).toBeVisible();
       await expect(page.locator('.routine-steps strong')).toHaveText('the brief');
       const runs = page.locator('.routine-run');
       await expect(runs).toHaveCount(2);
       await expect(runs.first()).toContainText('Failed');
       await expect(runs.first()).toContainText('The calendar API timed out.');
       await expect(runs.last()).toContainText('Wrote the brief.');
-      await expect(page.locator('.routine-settings')).toContainText('30 7 * * 1-5');
+      await expect(page.locator('.routine-settings')).toContainText('30 7 * * *');
 
       // Live: a finished run shows up without a reload.
-      writeFileSync(join(brief, 'runs.md'), readFileSync(join(brief, 'runs.md'), 'utf8') + '\n## 2026-10-28 07:30 · ok\n- started: 2026-10-28T07:30:04+00:00\n\n> Back to normal.\n');
+      writeFileSync(join(brief, 'runs.md'), readFileSync(join(brief, 'runs.md'), 'utf8') + `\n## ${today} 00:00 · ok\n- started: ${today}T00:00:04+00:00\n\n> Back to normal.\n`);
       await expect(runs).toHaveCount(3);
       await expect(runs.first()).toContainText('Back to normal.');
 

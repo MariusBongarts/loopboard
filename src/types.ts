@@ -217,6 +217,16 @@ export interface RoutineIssueSpec {
   dueAfter: string | null;
 }
 
+// One day of a contribution graph (#0121): only days with something on them.
+export interface GraphDay {
+  date: string;
+  state: 'ok' | 'failed' | 'missed';
+  ok: number;
+  failed: number;
+  missed: number;
+  level: number;
+}
+
 export interface RoutineSummary {
   slug: string;
   dir: string;
@@ -238,6 +248,7 @@ export interface RoutineSummary {
   slot: string | null;
   lastRun: Run | null;
   runs: Run[];
+  days: GraphDay[];
   problems: RoutineProblem[];
   body: string;
 }
