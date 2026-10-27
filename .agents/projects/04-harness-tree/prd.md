@@ -82,7 +82,7 @@ network.
 23. As a **maintainer**, I want **to sort and filter the list by due date and save that as a view**, so that **"what's due in the next two weeks" is one click**.
 24. As a **maintainer**, I want **everything overdue or due in the next 14 days across all harnesses in one place**, so that **a deadline in a harness I didn't open today can't hide**.
 
-**Recurring work**
+**Recurring work** — carried out by [project 05](../05-routines/prd.md): a routine with `creates: issue`
 
 25. As a **maintainer with monthly and yearly duties**, I want **each period's issue to appear with its due date**, so that **nobody has to remember to file it**.
 26. As a **maintainer**, I want **running the command twice to create nothing twice**, so that **a scheduled task can call it as often as it likes**.
@@ -271,7 +271,7 @@ taxes     harness   docs
   | `due` | `YYYY-MM-DD` | the day it has to be finished |
   | `waiting-on` | `"@id"` or a list of them | who owes a reply; the board shows "Waiting on accountant since 2 Oct" |
   | `blocked-by` | a list of references | every issue or project that must finish first; qualified references allowed |
-  | `recurrence` | written by `loopboard recur` | which recurring duty and period this issue stands for |
+  | `recurrence` | written by `loopboard routines due` (project 05) | which recurring duty and period this issue stands for |
 
   `parent:` stays valid as the single local blocker.
 
@@ -330,7 +330,8 @@ taxes     harness   docs
 - **A due date is a day.** No time of day. An open issue is overdue when its
   date is before today in the local time zone, and "due soon" is the next 14
   days, everywhere.
-- **Recurrence is a CLI command.** `loopboard recur` creates the issue for
+- **Recurrence is a CLI command.** Planned here as `loopboard recur`, it is
+  `loopboard routines due` since project 05 (ADR-0010): it creates the issue for
   the current period and stamps it with `recurrence:`, which is what makes a
   second run a no-op. A scheduled agent task or cron calls it; the server has
   no timer and no route that creates issues by itself.

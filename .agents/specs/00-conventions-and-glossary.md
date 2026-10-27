@@ -101,5 +101,24 @@
   harness's id in front: `shop#0412` for an issue, `shop#P04` for a project
   by its number, `company:contracts/lease.pdf` for a file. A plain `#NNNN`
   is always local. Plain text to loopboard until a later release.
+- **Routine** — recurring or one-time work a harness carries itself: a
+  folder `<root>/scheduled/<slug>/` with `routine.md` (schedule and settings
+  in the frontmatter, the steps in the body) and `runs.md`. A routine with
+  `creates: issue` only files the period's issue; any other runs as an
+  agent. loopboard never starts one
+  ([ADR-0010](../architecture/decisions/0010-routines-run-by-a-dispatcher-outside-loopboard.md)).
+- **Slot** — one occurrence of a routine's schedule in its time zone. A
+  routine is due when its latest slot up to now hasn't been handled; several
+  missed slots lead to one run.
+- **Run** — one execution of a routine, recorded in its append-only
+  `runs.md`: `running`, then `ok` or `failed` with a short note, or
+  `aborted` after its timeout. `expired` and `missed` entries record slots
+  that weren't run.
+- **Dispatcher** — the one task an agent platform keeps per place: a prompt
+  that runs on a fixed beat, asks `loopboard routines due` what's due, and
+  runs each due routine in its own sub-agent.
+- **Brief** — what `loopboard routines prompt` prints for a run: the
+  routine's steps, the harness, the notes of the last three runs, the rules
+  every run follows and the exact `finish` command.
 - **Help Center** — `/help` and its pages: Overview, Working with AI agents
   (the **course**), Set up a repo, Upgrade a harness, Reference.

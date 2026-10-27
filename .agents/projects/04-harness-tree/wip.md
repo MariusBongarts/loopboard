@@ -124,7 +124,7 @@ Goal: issues carry due dates and say who they wait on, what's due shows across w
 - [ ] [#0086 See what's due across all harnesses](../../issues/0086-due-across-harnesses.md) — backlog
 - [ ] [#0088 Say who owes a reply with waiting-on](../../issues/0088-waiting-on.md) — backlog (human: questions)
 - [ ] [#0107 Set and filter waiting-on from the board](../../issues/0107-set-and-filter-waiting-on-from-the-board.md) — backlog
-- [ ] [#0090 Create recurring issues with loopboard recur](../../issues/0090-recurring-issues-with-loopboard-recur.md) — backlog (human: questions)
+- [x] [#0090 Create recurring issues with loopboard recur](../../issues/0090-recurring-issues-with-loopboard-recur.md) — wontfix (superseded by [project 05](../05-routines/prd.md))
 
 ### Phase 3 — Dependencies and navigation
 
@@ -405,9 +405,10 @@ record; nothing blocks #0078 any more.
    example is assigned to you and waits on the accountant. Assumed: the
    count rule from #0074 stays, and such issues are listed apart, as
    "Waiting on others", with the name and the date.
-9. **Where recurring duties live (#0090).** `recurrence:` and
-   `loopboard recur` are decided; the place for the definitions isn't.
-   Assumed: one file per duty in `.agents/recurring/`.
+9. ~~**Where recurring duties live (#0090).**~~ Answered on 2026-10-27:
+   recurring duties are routines with `creates: issue` in
+   `.agents/scheduled/` ([project 05](../05-routines/prd.md)); #0090 is
+   closed as superseded.
 10. **How many migrations (also in #0101's `## Questions`).** Assumed: one,
     for the identity file (#0103).
     `due`, `waiting-on`, `blocked-by` and `recurrence` are optional and need

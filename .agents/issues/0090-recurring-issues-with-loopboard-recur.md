@@ -2,8 +2,8 @@
 id: 0090
 title: Create recurring issues with loopboard recur
 category: user-story
-status: backlog
-assignee: human
+status: wontfix
+assignee: agent
 project: 04-harness-tree
 phase: 2
 parent: 0085
@@ -65,3 +65,18 @@ place on disk.
   on a synced folder nothing can prevent a double — hence the `check`.
 - In a docs harness nothing else produces due dates automatically — this is
   the main source of them, which is why it depends on #0085.
+
+## Why rejected
+
+Superseded on 2026-10-27 by project
+[05-routines](../projects/05-routines/prd.md) (ADR-0010). Recurring duties
+became routines: a routine in `.agents/scheduled/` with `creates: issue`
+files the period's issue itself, stamped `recurrence: <slug>@<period>`,
+exactly once across live and archived issues, and `loopboard check` reports
+duplicates — built in
+[#0118](0118-recurring-issues-from-routines.md). The questions above are
+answered there: duties live as one folder per routine, `recurrence:` holds
+`<slug>@<period>`, and missed periods are recorded, never back-filled. There
+is no `loopboard recur`; `loopboard routines due` is the command a scheduled
+task calls.
+

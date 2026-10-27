@@ -21,7 +21,8 @@ Decisions 0001–0005 were locked in the
 not built yet; each names the issue that implements it. Decisions 0007 and
 0008 fix the on-disk contract of
 [harnesses across folders](../projects/04-harness-tree/prd.md) before it is
-built; 0009 leaves views over a whole tree to other tools.
+built; 0009 leaves views over a whole tree to other tools. 0010 fixes how
+[routines](../projects/05-routines/prd.md) are kept and run.
 
 | # | Decision | Implemented by |
 |---|---|---|
@@ -34,6 +35,7 @@ built; 0009 leaves views over a whole tree to other tools.
 | [0007](decisions/0007-identity-file-in-the-harness.md) | A harness carries its identity in `.agents/harness.md`; amends 0002 | #0078, #0079, #0080, #0103 |
 | [0008](decisions/0008-harness-ids-and-qualified-references.md) | Harness ids are short lowercase words, and references carry them in front | #0078, #0079, #0082 |
 | [0009](decisions/0009-views-over-a-tree-live-outside-loopboard.md) | Views over a tree of harnesses — index nodes, people, an Overview — live outside loopboard; amends 0007, 0008 | #0113 |
+| [0010](decisions/0010-routines-run-by-a-dispatcher-outside-loopboard.md) | Routines are files in the harness, run by a dispatcher outside loopboard; amends 0002 | #0114–#0123 |
 
 ## How to update these docs
 
