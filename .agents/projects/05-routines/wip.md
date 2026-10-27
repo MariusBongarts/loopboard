@@ -16,7 +16,10 @@ maintainer's: a look at the Routines view and a first real dispatcher run
 on a platform, then an issue-grooming run that archives #0114–#0123. Later,
 in other sessions: the private dashboard reads `routines list --json`
 (documented in `docs/routines.md`), and existing platform tasks move into
-routines (M003, step 6).
+routines (M003, step 6). Phase 4 holds what the first routines turned up: #0125
+(`writes-to` misses a harness registered under another id) is next;
+#0124 (a scoped `commits:` field) waits in the backlog, since it amends
+decision 8.
 
 ## Phases
 
@@ -44,6 +47,13 @@ Goal: every harness gets the folder, the skill and the rule, existing ones throu
 
 - [x] [#0122 Scaffold routines, add the routine skill and the AGENTS rule, migrate with M003](../../issues/0122-scaffold-skill-rule-and-migration.md) — done
 - [x] [#0123 Document routines for users](../../issues/0123-document-routines.md) — done
+
+### Phase 4 — Follow-ups from the first routines
+
+Goal: what setting up the first routines in webhighlights and prodapps turned up.
+
+- [ ] [#0125 writes-to warns about a harness that is registered under another workspace id](../../issues/0125-writes-to-misses-a-harness-registered-under-another-id.md) — todo
+- [ ] [#0124 Let a routine's run commit and push the paths it names with commits](../../issues/0124-routine-commits-named-paths.md) — backlog
 
 ## Activity log
 
@@ -128,6 +138,13 @@ Goal: every harness gets the folder, the skill and the rule, existing ones throu
   else. The README's CLI table, Help → Set up and Help → Reference (the
   guide without its JSON part, headings one level down) and the CHANGELOG
   name routines.
+
+- Later on 2026-10-27: merged to main, worktree removed, the CLI linked
+  with `npm link`. webhighlights got M003 by hand and the routine
+  `support-inbox`; a prodapps session set up `email-check`. Filed from
+  that: #0124 and #0125 (phase 4), and #0126 as a standalone bug —
+  `init --upgrade` would append a second workflow block to a customized
+  AGENTS.md, which is why webhighlights was upgraded by hand.
 
 ## Deferred / out of scope (added during execution)
 
