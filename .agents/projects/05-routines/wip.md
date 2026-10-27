@@ -19,7 +19,7 @@ briefs — so a dispatcher can run them before the board shows anything. Next:
 
 Goal: a routine is a folder in the harness, its schedule is understood in its time zone, and a dispatcher can ask what's due, record runs, file the period's issue and hand each run a brief.
 
-- [ ] [#0114 See a harness's routines and their next slot with loopboard routines list](../../issues/0114-routines-list-and-schedules.md) — todo
+- [x] [#0114 See a harness's routines and their next slot with loopboard routines list](../../issues/0114-routines-list-and-schedules.md) — done
 - [ ] [#0115 loopboard check validates routines](../../issues/0115-check-validates-routines.md) — todo
 - [ ] [#0116 Record runs with routines start and finish](../../issues/0116-record-runs-with-start-and-finish.md) — todo
 - [ ] [#0117 Ask what is due with loopboard routines due](../../issues/0117-routines-due.md) — todo
@@ -59,6 +59,14 @@ Goal: every harness gets the folder, the skill and the rule, existing ones throu
   one cron extension; the rail shows Routines only in a harness that has
   one, so the demo fixture's visual baselines stay; the `routine` skill is
   a core skill, like `grill-me`.
+
+- #0114 done: `shared/cron.ts` (cron and `at` in an IANA zone, the DST
+  rules, schedules in words, no dependency), `server/runs.ts` (reading
+  `runs.md`), `server/routines.ts` (raw-line reading, validation, harnesses
+  under a folder, the `version: 1` summary) and `loopboard routines [list]`
+  with `--under` and `--json`. Spec § 15 started. The list reader for
+  `aliases` moved to `shared/frontmatter.ts` (`readAnyList`) and now also
+  reads `writes-to` and `issue-labels`.
 
 ## Deferred / out of scope (added during execution)
 

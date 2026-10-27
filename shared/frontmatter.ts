@@ -83,6 +83,15 @@ export function readList(fmInner: string, key: string): string[] | null {
     .filter(Boolean);
 }
 
+// `key: [a, b]` on one line, one `- a` per line below `key:`, or a single
+// value (#0078, #0114).
+export function readAnyList(fmInner: string, key: string): string[] {
+  const line = readField(fmInner, key) ?? '';
+  if (line && !line.startsWith('#')) return readList(fmInner, key) ?? [line];
+  const block = fmInner.match(new RegExp(`^${key}:[ \\t]*(?:#.*)?\\r?\\n((?:[ \\t]*-[ \\t]+.*(?:\\r?\\n|$))+)`, 'm'))?.[1] ?? '';
+  return [...block.matchAll(/^[ \t]*-[ \t]+(.*)$/gm)].map(([, item]) => readField(`a: ${item}`, 'a') ?? '').filter(Boolean);
+}
+
 export function readLabels(fmInner: string): string[] | null {
   return readList(fmInner, 'labels');
 }

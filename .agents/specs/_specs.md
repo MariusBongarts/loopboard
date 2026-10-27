@@ -6,7 +6,8 @@
 > [`../architecture/_architecture.md`](../architecture/_architecture.md).
 >
 > Scope: running loopboard, workspaces, the rail and feed, the project pane
-> and board, changing issues, the issue panel and page, and the Specs view.
+> and board, changing issues, the issue panel and page, the Specs view and
+> routines.
 
 Start with [§ 0 — Conventions & Glossary](00-conventions-and-glossary.md) for
 shared terminology.
@@ -28,6 +29,7 @@ shared terminology.
 - [12. Editing](12-editing.md)
 - [13. List and saved views](13-list-and-views.md)
 - [14. Look and feel](14-look-and-feel.md)
+- [15. Routines](15-routines.md)
 
 ## E2E coverage
 
@@ -56,6 +58,7 @@ a legacy `ai/` repo) with their own config dir — never against this repo's
 | § 12 — Editing | [`12-editing.spec.ts`](../../tests/e2e/12-editing.spec.ts) |
 | § 13 — List and saved views | [`13-list-and-views.spec.ts`](../../tests/e2e/13-list-and-views.spec.ts) |
 | § 14 — Look and feel | [`14-look-and-feel.spec.ts`](../../tests/e2e/14-look-and-feel.spec.ts), [`visual.spec.ts`](../../tests/e2e/visual.spec.ts) |
+| § 15 — Routines | [`15-routines.spec.ts`](../../tests/e2e/15-routines.spec.ts) |
 
 Status legend:
 

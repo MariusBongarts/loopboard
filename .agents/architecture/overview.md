@@ -14,7 +14,8 @@ history, and a per-user registry remembers which repos (workspaces) exist.
   (frontmatter line edits; [refs.ts](../../shared/refs.ts), the one matcher
   for a local `#NNNN` reference and a local issue-file link;
   [printable.ts](../../shared/printable.ts), which escapes file names before
-  they reach a terminal or a prompt).
+  they reach a terminal or a prompt; [cron.ts](../../shared/cron.ts),
+  routine schedules in a time zone and in words).
 - **Server**: one Node request handler, mounted by the Vite dev plugin or by
   the CLI's own `node:http` server; `gray-matter` parses frontmatter. Node
   built-ins otherwise.
@@ -54,7 +55,8 @@ and reloads from disk when a write fails.
 ├─ issues/NNNN-slug.md      live issues
 ├─ issues/_archive/         closed issues (read-only on the board)
 ├─ projects/NN-slug/        prd.md + wip.md per project
-└─ specs/NN-slug.md         user-facing specs with coverage tables
+├─ specs/NN-slug.md         user-facing specs with coverage tables
+└─ scheduled/<slug>/        routine.md + runs.md per routine (ADR-0010)
 ```
 
 A workspace is registered by its repo path; the root is detected as

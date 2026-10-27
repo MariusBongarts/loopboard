@@ -8,6 +8,7 @@ import { applyPlan, InitError, isNewHarness, nextStep, planInit, planScaffold, s
 import { readBoard } from "./issues";
 import { matchName } from "./names";
 import { applyRenumber, planRenumber, RenumberError } from "./renumber";
+import { ROUTINES_FLAGS, ROUTINES_SUMMARY, ROUTINES_USAGE, runRoutines } from "./routinesCli";
 import { openBrowser } from "./open";
 import { configDir, packageRoot, packageVersion } from "./paths";
 import { createAppServer, listen } from "./serve";
@@ -354,6 +355,8 @@ commands.workspaces = {
     return 0;
   },
 };
+
+commands.routines = { usage: ROUTINES_USAGE, summary: ROUTINES_SUMMARY, flags: ROUTINES_FLAGS, run: runRoutines };
 
 export async function main(argv: string[]): Promise<number> {
   const [first, ...rest] = argv;

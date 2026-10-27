@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { frontmatterInner, readField, readList, yamlScalar } from "../shared/frontmatter";
+import { frontmatterInner, readAnyList, readField, yamlScalar } from "../shared/frontmatter";
 import { printable, quoted } from "../shared/printable";
 
 // A harness's identity file (ADR-0007) and the rules for the id it carries
@@ -80,14 +80,6 @@ export interface IdentityLines {
   aliases: string[];
 }
 
-// `aliases: [a, b]` on one line, or one `- a` per line below `aliases:`.
-function readAliases(inner: string): string[] {
-  const line = readField(inner, "aliases") ?? "";
-  if (line && !line.startsWith("#")) return readList(inner, "aliases") ?? [line];
-  const block = inner.match(/^aliases:[ \t]*(?:#.*)?\r?\n((?:[ \t]*-[ \t]+.*(?:\r?\n|$))+)/m)?.[1] ?? "";
-  return [...block.matchAll(/^[ \t]*-[ \t]+(.*)$/gm)].map(([, item]) => readField(`a: ${item}`, "a") ?? "").filter(Boolean);
-}
-
 // null when the folder has no identity file, or one that can't be read. A
 // BOM or blank lines before the frontmatter don't hide it (#0078).
 export function readIdentity(folder: string): IdentityLines | null {
@@ -99,5 +91,5 @@ export function readIdentity(folder: string): IdentityLines | null {
   }
   const inner = frontmatterInner(text.replace(/^[\uFEFF\s]+/, "")) ?? "";
   const field = (key: string) => readField(inner, key);
-  return { id: field("id"), name: field("name"), kind: field("kind"), type: field("type"), parent: field("parent"), aliases: readAliases(inner) };
+  return { id: field("id"), name: field("name"), kind: field("kind"), type: field("type"), parent: field("parent"), aliases: readAnyList(inner, "aliases") };
 }
