@@ -29,6 +29,8 @@ detail in `tests/cron.test.ts` and `tests/routines.test.ts`. Status legend in
 | A one-time routine switches itself off | ❌ | Vitest: `tests/dispatch.test.ts` |
 | File the period's issue | ✅ | [`15-routines.spec.ts`](../../tests/e2e/15-routines.spec.ts): fields, due day, recurrence, a second start files nothing. Periods at their edges in `tests/recurrence.test.ts` |
 | Two issues for one period are reported | ✅ | [`15-routines.spec.ts`](../../tests/e2e/15-routines.spec.ts) |
+| Brief a run | 🟡 | [`15-routines.spec.ts`](../../tests/e2e/15-routines.spec.ts): steps, earlier notes, rules and finish command. Every part in `tests/brief.test.ts` |
+| Print the dispatcher prompt | ✅ | [`15-routines.spec.ts`](../../tests/e2e/15-routines.spec.ts): one harness and `--under` |
 | Check routines | 🟡 | [`15-routines.spec.ts`](../../tests/e2e/15-routines.spec.ts): a broken schedule fails, an unknown field warns. Every error and warning in `tests/routines.test.ts` |
 
 ### Scenario: Write a routine
@@ -258,5 +260,41 @@ THEN the run is recorded as `aborted` with a note, and the routine is
     evaluated again — due if a newer slot is waiting
 AND a run younger than its timeout is listed as running and blocks the
     routine
+```
+
+### Scenario: Brief a run
+
+```
+GIVEN a routine with an open run
+WHEN I run `loopboard routines prompt <routine>`
+THEN it prints the brief for the run's sub-agent: the routine's title,
+    schedule in words with its zone and the slot the run is for (or that
+    it is manual), the working directory (the harness), the harness's id,
+    name and the purpose paragraph of .agents/harness.md, the pointer to
+    AGENTS.md, the steps, the notes of the last three finished or aborted
+    runs newest first (or "This is the routine's first run."), the rules —
+    write only to this harness and the `writes-to` harnesses (with their
+    folders where they are registered), never commit, push or publish,
+    never send anything unless a step says so, don't touch routine.md or
+    runs.md, fail instead of faking, end with a short note — and the exact
+    `finish` commands for ok and failed
+AND for a `creates: issue` routine it says there is nothing for an agent to
+    do and names `routines start`
+```
+
+### Scenario: Print the dispatcher prompt
+
+```
+GIVEN a harness, or a folder of harnesses
+WHEN I run `loopboard routines dispatcher-prompt [path]` or
+    `routines dispatcher-prompt --under <dir>`
+THEN it prints docs/dispatcher-prompt.md with the scope filled in: run
+    `routines due … --json`; handle `run` one after another, each with
+    `start`, a sub-agent with fresh context in the harness and the brief,
+    and a `finish` if the sub-agent didn't; a push notification per run
+    and per failure where the platform can; never send anything else,
+    never commit
+AND docs/routines.md shows how to run it as a Claude Code scheduled task,
+    with Codex and from cron with `claude -p`
 ```
 

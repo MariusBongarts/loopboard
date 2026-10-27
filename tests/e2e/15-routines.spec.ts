@@ -149,4 +149,24 @@ test.describe('§ 15 routines on the command line', () => {
     expect(json).toMatchObject({ version: 1, dryRun: false, run: [{ slug: 'hourly', missed: 0 }], filed: [{ slug: 'books', status: 'ok', issue: { id: '0002' } }], problems: [{ slug: 'broken' }] });
     expect(loopboard(['routines', 'due', '--json'], app, box.config).stdout).toContain('"filed": []');
   });
+
+  test('brief a run and print the dispatcher prompt', () => {
+    const app = repo(box.dir, 'shop');
+    const dir = routine(app, 'weekly', 'title: Weekly report\nschedule: "@weekly"\nwrites-to: [leben]', 'Write the report.\n');
+    writeFileSync(join(dir, 'runs.md'), '## 2026-10-19 00:00 · ok\n- started: 2026-10-19T00:00:04+00:00\n\n> Wrote it. Baseline set.\n');
+    expect(loopboard(['routines', 'start', dir], box.dir, box.config).status).toBe(0);
+    const brief = loopboard(['routines', 'prompt', 'weekly', '--path', app], box.dir, box.config);
+    expect(brief.status).toBe(0);
+    expect(brief.stdout).toContain('# Routine: Weekly report');
+    expect(brief.stdout).toContain('## Steps\n\nWrite the report.');
+    expect(brief.stdout).toMatch(/## What earlier runs noted\n\n- 2026-10-19 \d\d:\d\d · ok — Wrote it\. Baseline set\./);
+    expect(brief.stdout).toContain('`leben` (not registered on this machine)');
+    expect(brief.stdout).toContain(`loopboard routines finish ${dir} --status ok --note "<your note>"`);
+
+    const one = loopboard(['routines', 'dispatcher-prompt'], app, box.config);
+    // The working directory reads as its real path (/private/var on macOS).
+    expect(one.stdout).toMatch(/You are the routine dispatcher for the harness at \S*\/shop\./);
+    const tree = loopboard(['routines', 'dispatcher-prompt', '--under', box.dir], box.dir, box.config);
+    expect(tree.stdout).toContain(`loopboard routines due --under ${box.dir} --json`);
+  });
 });

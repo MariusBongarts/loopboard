@@ -2,7 +2,7 @@
 id: 0119
 title: Brief each run and print the dispatcher prompt
 category: user-story
-status: todo
+status: done
 assignee: agent
 project: 05-routines
 phase: 1
@@ -21,10 +21,10 @@ on whichever platform I use**.
 
 ## Acceptance criteria
 
-- [ ] `loopboard routines prompt <routine>` prints the brief: routine title, schedule in words, the slot of the open run (or "manual"), working directory, harness id, name and purpose paragraph, `AGENTS.md`, the steps, the last three run notes newest first (or "first run"), the fixed rules (only this harness and `writes-to`, never commit/push/send unless the steps say so, don't touch the routine's files, fail instead of faking, end with a short note) and the exact `finish` commands for ok and failed
-- [ ] `loopboard routines dispatcher-prompt [path]` / `--under <dir>` prints the dispatcher prompt with the scope filled in: `due --json`, then per routine one after another `start`, a fresh sub-agent in the harness with the brief, a `finish` if the sub-agent didn't, a push notification where the platform can, never any other message
-- [ ] The prompt lives in `docs/dispatcher-prompt.md`, ships with the package, and the docs show setup for a Claude Code scheduled task, Codex and cron with `claude -p`
-- [ ] Spec § 15 gains the scenarios; Vitest covers the brief's parts and the filled-in scope
+- [x] `loopboard routines prompt <routine>` prints the brief: routine title, schedule in words, the slot of the open run (or "manual"), working directory, harness id, name and purpose paragraph, `AGENTS.md`, the steps, the last three run notes newest first (or "first run"), the fixed rules (only this harness and `writes-to`, never commit/push/send unless the steps say so, don't touch the routine's files, fail instead of faking, end with a short note) and the exact `finish` commands for ok and failed
+- [x] `loopboard routines dispatcher-prompt [path]` / `--under <dir>` prints the dispatcher prompt with the scope filled in: `due --json`, then per routine one after another `start`, a fresh sub-agent in the harness with the brief, a `finish` if the sub-agent didn't, a push notification where the platform can, never any other message
+- [x] The prompt lives in `docs/dispatcher-prompt.md`, ships with the package, and the docs show setup for a Claude Code scheduled task, Codex and cron with `claude -p`
+- [x] Spec § 15 gains the scenarios; Vitest covers the brief's parts and the filled-in scope
 
 ## Out of scope
 

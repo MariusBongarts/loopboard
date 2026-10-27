@@ -4,8 +4,10 @@ import { formatWhen, systemTimeZone } from "../shared/cron";
 import { printable, shellWord } from "../shared/printable";
 import type { Args, Flags } from "./args";
 import { dueAll, FINISH_STATUSES, finishRun, listRoutines, RoutineRefusal, startRun, type DueRef, type FinishStatus, type HarnessRoutines, type RoutineSummary } from "./dispatch";
-import { harnessesUnder, harnessFor, machineName, ROUTINE_FILE, SCHEDULED_DIR, type Harness } from "./routines";
-import { detectRoot } from "./workspaces";
+import { buildBrief, dispatcherPrompt } from "./brief";
+import { configDir } from "./paths";
+import { harnessesUnder, harnessFor, machineName, readRoutine, ROUTINE_FILE, SCHEDULED_DIR, type Harness } from "./routines";
+import { detectRoot, loadRegistry } from "./workspaces";
 
 // `loopboard routines …` (#0114, #0116, ADR-0010). One command with
 // subcommands; each takes only its own flags.
@@ -19,6 +21,8 @@ const SUBCOMMANDS: Record<string, { usage: string; does: string; flags: string[]
     does: "record how the run ended (--path <repo>, --dry-run)",
     flags: ["--path", "--status", "--note", "--dry-run"],
   },
+  prompt: { usage: "routines prompt <routine>", does: "print the brief for a run (--path <repo>)", flags: ["--path"] },
+  "dispatcher-prompt": { usage: "routines dispatcher-prompt [path]", does: "print the dispatcher prompt for here or --under <dir>", flags: ["--under"] },
 };
 
 export const ROUTINES_FLAGS: Flags = {
@@ -213,7 +217,21 @@ async function finish(args: Args): Promise<number> {
   return 0;
 }
 
-const RUN: Record<string, (args: Args) => Promise<number>> = { list, due, start, finish };
+async function prompt(args: Args): Promise<number> {
+  const dir = routineDir(args.positionals[1], args.values["--path"]);
+  console.log(buildBrief(readRoutine(dir), (await loadRegistry(configDir())).workspaces));
+  return 0;
+}
+
+async function dispatcher(args: Args): Promise<number> {
+  const under = args.values["--under"];
+  const [harness] = scope(args, args.positionals[1]);
+  if (under === undefined && !harness) return 1;
+  console.log(dispatcherPrompt(under !== undefined ? { under: resolve(under) } : { path: harness.path }));
+  return 0;
+}
+
+const RUN: Record<string, (args: Args) => Promise<number>> = { list, due, start, finish, prompt, "dispatcher-prompt": dispatcher };
 
 export async function runRoutines(args: Args): Promise<number> {
   const [first] = args.positionals;

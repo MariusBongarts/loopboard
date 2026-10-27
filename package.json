@@ -28,6 +28,7 @@
     "bin",
     "build",
     "scaffold",
+    "docs/dispatcher-prompt.md",
     ".agents/skills",
     ".agents/issues/README.md",
     ".agents/issues/_templates",
