@@ -5,7 +5,7 @@ import { readIssueFile, workspaceRoot, writeIssueFile } from './workspace';
 
 // Spec § 11 — Capture and commands.
 test('create an issue', async ({ page }) => {
-  await page.goto('/w/demo-repo');
+  await page.goto('/w/demo-repo/inbox');
   await page.locator('.feed-row', { hasText: 'Wire the export button' }).click();
   await page.keyboard.press('c');
   const dialog = page.getByRole('dialog', { name: 'New issue' });
@@ -29,7 +29,7 @@ test('create an issue', async ({ page }) => {
 });
 
 test('create a project', async ({ page }) => {
-  await page.goto('/w/demo-repo');
+  await page.goto('/w/demo-repo/inbox');
   await page.getByRole('button', { name: 'New project' }).click();
   const dialog = page.getByRole('dialog', { name: 'New project' });
   await dialog.getByLabel('Project title').fill('Import everything');
@@ -45,7 +45,7 @@ test('create a project', async ({ page }) => {
 });
 
 test('jump anywhere with ⌘K', async ({ page }) => {
-  await page.goto('/w/demo-repo');
+  await page.goto('/w/demo-repo/inbox');
   await expect(page.locator('.feed-row').first()).toBeVisible();
   await page.keyboard.press('ControlOrMeta+k');
   const palette = page.getByRole('dialog', { name: 'Command palette' });
@@ -64,7 +64,7 @@ test('jump anywhere with ⌘K', async ({ page }) => {
 test('act on the selected issue with ⌘K', async ({ page }) => {
   const original = await readIssueFile('0001-wire-the-export-button.md');
   try {
-    await page.goto('/w/demo-repo');
+    await page.goto('/w/demo-repo/inbox');
     await page.locator('.feed-row', { hasText: 'Wire the export button' }).click();
     await page.keyboard.press('ControlOrMeta+k');
     const palette = page.getByRole('dialog', { name: 'Command palette' });
@@ -80,7 +80,7 @@ test('act on the selected issue with ⌘K', async ({ page }) => {
 
 test('copy an agent prompt', async ({ page, context }) => {
   await context.grantPermissions(['clipboard-read', 'clipboard-write']);
-  await page.goto('/w/demo-repo');
+  await page.goto('/w/demo-repo/inbox');
   await page.locator('.col-todo [data-issue-id="0001"] .card').click();
   await page.getByRole('dialog', { name: 'Issue detail' }).getByRole('button', { name: 'Copy agent prompt' }).click();
   await expect(page.getByText('Agent prompt copied')).toBeVisible();

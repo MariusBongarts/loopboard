@@ -19,7 +19,7 @@ test("see an issue's git history", async ({ page }) => {
     git('commit', '-qam', 'Start on the typo (#0007)');
     git('branch', 'fix/0007-readme');
 
-    await page.goto('/w/demo-repo');
+    await page.goto('/w/demo-repo/inbox');
     await page.locator('.feed-row', { hasText: 'Fix the README typo' }).click();
     await page.locator('[data-issue-id="0007"] .card').click();
     const history = page.locator('details.activity');
@@ -37,7 +37,7 @@ test('tick a checklist item right in the issue view', async ({ page }) => {
   const file = '0002-cache-the-feed.md';
   const original = await readIssueFile(file);
   try {
-    await page.goto('/w/demo-repo');
+    await page.goto('/w/demo-repo/inbox');
     await page.locator('.feed-row', { hasText: 'Cache the feed' }).click();
     await page.locator('[data-issue-id="0002"] .card').click();
     const box = page.locator('.issue-view-body input[data-task-index="0"]');
@@ -51,7 +51,7 @@ test('tick a checklist item right in the issue view', async ({ page }) => {
 
 test('open an issue in the side panel, follow a reference, copy its path, close with Esc', async ({ page, context }) => {
   await context.grantPermissions(['clipboard-read', 'clipboard-write']);
-  await page.goto('/w/demo-repo');
+  await page.goto('/w/demo-repo/inbox');
   await page.locator('.feed-row', { hasText: 'Check the new layout by hand' }).click();
   await page.locator('[data-issue-id="0003"] .card').click();
   const panel = page.getByRole('dialog', { name: 'Issue detail' });
@@ -75,7 +75,7 @@ test('open an issue in the side panel, follow a reference, copy its path, close 
 });
 
 test('step through the board in the panel, and resize it', async ({ page }) => {
-  await page.goto('/w/demo-repo');
+  await page.goto('/w/demo-repo/inbox');
   await page.locator('.feed-row', { hasText: 'Wire the export button' }).click();
   await page.locator('[data-issue-id="0001"] .card').click();
   const panel = page.getByRole('dialog', { name: 'Issue detail' });
@@ -102,7 +102,7 @@ test('step through the board in the panel, and resize it', async ({ page }) => {
 });
 
 test('open an issue as a page, go back, and an unknown id', async ({ page }) => {
-  await page.goto('/w/demo-repo');
+  await page.goto('/w/demo-repo/inbox');
   await page.locator('.feed-row', { hasText: 'Cache the feed' }).click();
   await page.locator('[data-issue-id="0002"] .card').click();
   await page.getByRole('dialog', { name: 'Issue detail' }).getByRole('button', { name: 'Open as page' }).click();
@@ -113,18 +113,18 @@ test('open an issue as a page, go back, and an unknown id', async ({ page }) => 
   await expect(details).toContainText('.agents/issues/0002-cache-the-feed.md');
   await expect(page.getByRole('dialog', { name: 'Issue detail' })).toHaveCount(0);
   await page.getByRole('button', { name: 'Back' }).click();
-  await expect(page).toHaveURL(/\/w\/demo-repo$/);
+  await expect(page).toHaveURL(/\/w\/demo-repo\/inbox$/);
 
   await page.goto('/w/demo-repo/issues/0999');
   await expect(page.getByRole('heading', { name: 'No issue #0999' })).toBeVisible();
   await page.getByRole('link', { name: 'Back to the board' }).click();
-  await expect(page).toHaveURL(/\/w\/demo-repo$/);
+  await expect(page).toHaveURL(/\/w\/demo-repo\/inbox$/);
 });
 
 test('send an issue to the backlog with its status, and promote it back', async ({ page }) => {
   const original = await readIssueFile('0007-fix-the-readme-typo.md');
   try {
-    await page.goto('/w/demo-repo');
+    await page.goto('/w/demo-repo/inbox');
     await page.locator('.feed-row', { hasText: 'Fix the README typo' }).click();
     await page.locator('[data-issue-id="0007"] .card').click();
     const panel = page.getByRole('dialog', { name: 'Issue detail' });
@@ -146,7 +146,7 @@ test('send an issue to the backlog with its status, and promote it back', async 
 });
 
 test('open an issue in my editor once one is chosen in Settings', async ({ page }) => {
-  await page.goto('/w/demo-repo');
+  await page.goto('/w/demo-repo/inbox');
   await page.locator('.feed-row', { hasText: 'Check the new layout by hand' }).click();
   await page.locator('[data-issue-id="0003"] .card').click();
   const drawer = page.getByRole('dialog', { name: 'Issue detail' });

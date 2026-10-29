@@ -5,7 +5,7 @@ import { readIssueFile, writeIssueFile } from './workspace';
 test('drag a card to another column', async ({ page }) => {
   const original = await readIssueFile('0001-wire-the-export-button.md');
   try {
-    await page.goto('/');
+    await page.goto('/w/demo-repo/inbox');
     await page.locator('.feed-row', { hasText: 'Wire the export button' }).click();
     const card = page.locator('.col-todo [data-issue-id="0001"]');
     await expect(card).toBeVisible();
@@ -24,7 +24,7 @@ test('drag a card to another column', async ({ page }) => {
 test('close an issue as wontfix', async ({ page }) => {
   const original = await readIssueFile('0005-wait-for-the-vendor.md');
   try {
-    await page.goto('/w/demo-repo');
+    await page.goto('/w/demo-repo/inbox');
     await page.locator('.col-blocked [data-issue-id="0005"] .card').click();
     await page.keyboard.press('ControlOrMeta+k');
     const palette = page.getByRole('dialog', { name: 'Command palette' });
@@ -46,7 +46,7 @@ test('close an issue as wontfix', async ({ page }) => {
 test('mark done work reviewed, and work through the review queue', async ({ page }) => {
   const original = await readIssueFile('0004-add-the-api-route.md');
   try {
-    await page.goto('/w/demo-repo');
+    await page.goto('/w/demo-repo/inbox');
     await page.locator('.feed-row', { hasText: 'Add the API route' }).click();
     const queue = page.getByRole('button', { name: 'Unreviewed 1' });
     await queue.click();
@@ -78,7 +78,7 @@ test('drag a card into position writes priorities for the column', async ({ page
   // The server numbers the whole todo bucket, standalone #0007 included.
   const seven = await readIssueFile('0007-fix-the-readme-typo.md');
   try {
-    await page.goto('/w/demo-repo');
+    await page.goto('/w/demo-repo/inbox');
     await page.locator('.feed-row', { hasText: 'Wire the export button' }).click();
     await page.locator('.col-in-progress [data-issue-id="0002"]').dragTo(page.locator('.col-todo [data-issue-id="0001"]'), {
       targetPosition: { x: 40, y: 4 },
@@ -97,7 +97,7 @@ test('drag a card into position writes priorities for the column', async ({ page
 test('toggle the assignee on a card without opening it', async ({ page }) => {
   const original = await readIssueFile('0001-wire-the-export-button.md');
   try {
-    await page.goto('/w/demo-repo');
+    await page.goto('/w/demo-repo/inbox');
     await page.locator('.feed-row', { hasText: 'Wire the export button' }).click();
     await page.locator('[data-issue-id="0001"]').getByRole('button', { name: 'Toggle assignee (currently agent)' }).click();
     await expect.poll(() => readIssueFile('0001-wire-the-export-button.md')).toBe(original.replace('assignee: agent', 'assignee: human'));
@@ -111,7 +111,7 @@ test('a failed write is reported and undone', async ({ page }) => {
   await page.route('**/api/w/demo-repo/issues/0001*', (route) =>
     route.request().method() === 'PATCH' ? route.fulfill({ status: 500, json: { error: 'disk is read-only' } }) : route.continue(),
   );
-  await page.goto('/w/demo-repo');
+  await page.goto('/w/demo-repo/inbox');
   await page.locator('.feed-row', { hasText: 'Wire the export button' }).click();
   await page.locator('.col-todo [data-issue-id="0001"]').dragTo(page.locator('.col-in-progress .column-list'), { targetPosition: { x: 40, y: 20 } });
   await expect(page.locator('.banner-error')).toContainText('disk is read-only');
@@ -124,7 +124,7 @@ test("change an issue's properties in place", async ({ page }) => {
   const file = '0007-fix-the-readme-typo.md';
   const original = await readIssueFile(file);
   try {
-    await page.goto('/w/demo-repo');
+    await page.goto('/w/demo-repo/inbox');
     await page.locator('.feed-row', { hasText: 'Fix the README typo' }).click();
     await page.locator('[data-issue-id="0007"] .card').click();
     const panel = page.getByRole('dialog', { name: 'Issue detail' });
@@ -182,7 +182,7 @@ test('right-click a card or row for the issue menu', async ({ page, context }) =
   const file = '0001-wire-the-export-button.md';
   const original = await readIssueFile(file);
   try {
-    await page.goto('/w/demo-repo');
+    await page.goto('/w/demo-repo/inbox');
     await page.locator('.feed-row', { hasText: 'Wire the export button' }).click();
     await page.locator('[data-issue-id="0001"] .card').click({ button: 'right' });
     const menu = page.getByRole('menu', { name: 'Issue #0001' });

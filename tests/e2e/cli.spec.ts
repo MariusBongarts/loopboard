@@ -27,7 +27,7 @@ test.describe('§ 1 running loopboard', () => {
       const second = loopboard(['--no-open'], beta, box.config);
       expect(second.status).toBe(0);
       expect(second.stdout).toContain(`loopboard is already running — opened http://127.0.0.1:${server.port}/w/beta`);
-      await page.goto(`http://127.0.0.1:${server.port}/w/beta`);
+      await page.goto(`http://127.0.0.1:${server.port}/w/beta/inbox`);
       await page.locator('.card').first().click();
       await expect(page.getByRole('dialog', { name: 'Issue detail' }).getByRole('button', { name: 'Copy path' })).toHaveAttribute('title', 'ai/issues/0001-first.md');
     } finally {
@@ -245,7 +245,7 @@ test.describe('§ 8 setup and upgrades', () => {
         data: { title: 'File the lease', category: 'task' },
       });
       expect(created.status()).toBe(201);
-      await page.reload();
+      await page.goto(`${server.url}/inbox`);
       await expect(page.locator('.feed-row', { hasText: 'File the lease' })).toBeVisible();
       expect(readFileSync(join(office, '.agents/issues/0001-file-the-lease.md'), 'utf8')).toContain('## What needs to be done\n');
       // No specs here, and the Specs entry says so instead of loading for good.

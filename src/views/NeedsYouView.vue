@@ -50,7 +50,7 @@ onUnmounted(() => window.removeEventListener('focus', load));
         :key="i.id"
         class="needs-row"
         :issue="i"
-        :to="{ path: `/w/${g.workspace.id}`, query: { item: `i:${i.id}` } }"
+        :to="{ path: `/w/${g.workspace.id}/inbox`, query: { item: `i:${i.id}` } }"
       />
     </section>
     <p v-if="skipped.length" class="needs-skipped">

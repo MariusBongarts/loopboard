@@ -7,7 +7,7 @@ import { readIssueFile, workspaceRoot, writeIssueFile } from './workspace';
 const FILE = '0007-fix-the-readme-typo.md';
 
 async function openEditor(page: Page, id = '0007', title = 'Fix the README typo', mode: 'Rich' | 'Source' = 'Source') {
-  await page.goto('/w/demo-repo');
+  await page.goto('/w/demo-repo/inbox');
   await page.locator('.feed-row', { hasText: title }).click();
   await page.locator(`[data-issue-id="${id}"] .card`).click();
   const drawer = page.getByRole('dialog', { name: 'Issue detail' });
@@ -139,7 +139,7 @@ test('edit a PRD and a spec in place', async ({ page }) => {
   const prd = await readFile(prdPath, 'utf8');
   const spec = await readFile(specPath, 'utf8');
   try {
-    await page.goto('/w/demo-repo');
+    await page.goto('/w/demo-repo/inbox');
     await page.getByRole('tab', { name: 'PRD' }).click();
     await page.getByRole('button', { name: 'Edit PRD' }).click();
     await page.getByRole('radio', { name: 'Rich' }).click();

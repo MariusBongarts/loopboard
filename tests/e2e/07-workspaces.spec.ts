@@ -24,20 +24,22 @@ test('open the last-used workspace', async ({ page }) => {
   await expect(page).toHaveURL(/\/w\/demo-repo$/);
   await expect(page).toHaveTitle('demo-repo · loopboard');
 
-  await page.goto('/w/legacy-repo');
+  await page.goto('/w/legacy-repo/inbox');
   await expect(page.locator('.feed-title')).toHaveText(['Started.', 'Legacy task in an ai/ root']);
 });
 
 test('switch workspace from the top-left, and a legacy ai/ root works', async ({ page }) => {
-  await page.goto('/w/demo-repo');
+  await page.goto('/w/demo-repo/inbox');
   await openMenu(page);
   const items = page.getByRole('menuitemradio');
   await expect(items).toHaveText([/demo-repo\s*8/, /legacy-repo\s*1/]);
   await expect(items.first()).toHaveAttribute('aria-checked', 'true');
 
   await items.nth(1).click();
+  // Switching opens the workspace on Home; its board is in the Inbox.
   await expect(page).toHaveURL(/\/w\/legacy-repo$/);
   await expect(page.locator('.ws-current')).toContainText('legacy-repo');
+  await page.getByRole('button', { name: 'Inbox' }).click();
   await page.locator('.card').first().click();
   await expect(page.getByRole('dialog', { name: 'Issue detail' }).getByRole('button', { name: 'Copy path' })).toHaveAttribute('title', 'ai/issues/0001-legacy-task.md');
 });
@@ -45,7 +47,7 @@ test('switch workspace from the top-left, and a legacy ai/ root works', async ({
 test('add a workspace by path, and explain a folder without a root', async ({ page }) => {
   await freshRepo('fresh-repo');
   await mkdir(join(e2eRoot(), 'plain-folder'), { recursive: true });
-  await page.goto('/w/demo-repo');
+  await page.goto('/w/demo-repo/inbox');
   await openMenu(page);
   await page.getByRole('menuitem', { name: '+ Add workspace…' }).click();
 
@@ -69,7 +71,7 @@ test('add a workspace by path, and explain a folder without a root', async ({ pa
 
 test('rename and remove workspaces; a missing folder is flagged', async ({ page }) => {
   const gone = await freshRepo('gone-repo');
-  await page.goto('/w/demo-repo');
+  await page.goto('/w/demo-repo/inbox');
   const added = await page.request.post('/api/workspaces', { data: { path: gone } });
   expect(added.status()).toBe(201);
   await rm(gone, { recursive: true });
@@ -96,7 +98,7 @@ test('rename and remove workspaces; a missing folder is flagged', async ({ page 
 });
 
 test('see what needs me across all workspaces', async ({ page }) => {
-  await page.goto('/w/demo-repo');
+  await page.goto('/w/demo-repo/inbox');
   await openMenu(page);
   await page.getByRole('menuitem', { name: 'All workspaces · Needs you' }).click();
   await expect(page).toHaveURL(/\/needs-you\?from=demo-repo$/);
@@ -104,6 +106,6 @@ test('see what needs me across all workspaces', async ({ page }) => {
   await expect(page.locator('.needs-group h2')).toHaveText([/demo-repo\s*2/, /legacy-repo\s*1/]);
 
   await page.locator('.needs-row', { hasText: 'Legacy task in an ai/ root' }).click();
-  await expect(page).toHaveURL(/\/w\/legacy-repo\?item=i:0001$/);
+  await expect(page).toHaveURL(/\/w\/legacy-repo\/inbox\?item=i:0001$/);
   await expect(page.locator('.feed-row.on')).toContainText('Legacy task in an ai/ root');
 });

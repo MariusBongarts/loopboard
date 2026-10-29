@@ -95,10 +95,12 @@ const tokens = computed(() => tokenizeQuery(query.value));
 const specsView = ref<InstanceType<typeof SpecsView> | null>(null);
 
 const view = computed(() => props.view);
-// The route owns the view (#0008): /w/:ws is the feed, /w/:ws/specs the specs.
+// The route owns the view (#0008): /w/:ws is Home, /w/:ws/inbox the feed,
+// /w/:ws/specs the specs.
 function showView(v: View) {
   if (v === props.view) return;
-  router.push(v === 'feed' ? `/w/${workspaceId.value}` : `/w/${workspaceId.value}/${v}`);
+  const tail = v === 'home' ? '' : v === 'feed' ? '/inbox' : `/${v}`;
+  router.push(`/w/${workspaceId.value}${tail}`);
 }
 
 function openFromOverview(slug: string) {

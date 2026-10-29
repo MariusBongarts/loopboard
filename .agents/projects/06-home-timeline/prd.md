@@ -101,11 +101,11 @@ chosen 2026-10-29).
 
 ## Implementation decisions
 
-- **Home is a workspace view, not the landing page.** It gets its own route
-  next to the feed, the Routines view and the others, and the first rail
-  entry. The workspace's default route stays the Inbox so existing links,
-  muscle memory and tests keep working; making Home the landing is a decision
-  for after living with it.
+- **Home is where a workspace opens** (decided in the #0135 review,
+  2026-10-29). It takes `/w/<ws>` and the first rail entry; the feed moves to
+  `/w/<ws>/inbox`. An older `/w/<ws>?item=…` link (Needs you, bookmarks)
+  redirects to the feed with that item, and `/w/<ws>/home` redirects to Home.
+  No harness changes: only URLs inside loopboard move.
 - **One pure timeline module does the thinking.** Given issues, projects,
   routines with their runs, "now", the period and the last-seen time, it
   returns the day groups with their events (run, issue, session), the routine
@@ -185,8 +185,6 @@ chosen 2026-10-29).
 - **"Recently updated" issues and PRDs** — issues and PRDs carry no
   modification time today; showing edits needs the server to read file times
   or git history. Sessions stand in for project activity until then.
-- **Making Home the workspace's landing page** — decided after the
-  maintainer has used Home for a while; the Inbox keeps its URL.
 - **Home across several workspaces or a whole tree** — ADR-0009 keeps views
   over a tree outside loopboard; Home is per workspace.
 - **Acting from Home** (re-running, pausing, changing status) — Home and its

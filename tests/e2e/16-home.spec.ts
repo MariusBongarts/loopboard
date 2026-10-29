@@ -53,9 +53,10 @@ function harness() {
 
 async function openHome(page: Page, url: string) {
   await page.setViewportSize({ width: 1440, height: 900 });
+  // A workspace opens on Home.
   await page.goto(url);
-  await page.getByRole('button', { name: 'Home' }).click();
-  await expect(page).toHaveURL(/\/w\/shop\/home$/);
+  await expect(page).toHaveURL(/\/w\/shop$/);
+  await expect(page.getByRole('button', { name: 'Home' })).toHaveAttribute('aria-current', 'page');
 }
 
 test.describe('§ 16 Home', () => {
@@ -113,10 +114,10 @@ test.describe('§ 16 Home', () => {
       await expect(page.getByRole('dialog', { name: 'Run preview' })).toBeVisible();
       await page.keyboard.press('Escape');
       await expect(page.getByRole('dialog')).toHaveCount(0);
-      await expect(page).toHaveURL(/\/w\/shop\/home$/);
+      await expect(page).toHaveURL(/\/w\/shop$/);
 
       // A link opens the same preview after a reload.
-      await page.goto(`${server.url.replace(/\/w\/.*/, '')}/w/shop/home?peek=issue/0002`);
+      await page.goto(`${server.url.replace(/\/w\/.*/, '')}/w/shop?peek=issue/0002`);
       await expect(page.getByRole('dialog', { name: 'Issue preview' })).toContainText('Morning triage');
       await page.getByRole('dialog').getByRole('button', { name: 'Close' }).click();
       await expect(page.getByRole('dialog')).toHaveCount(0);
@@ -140,10 +141,10 @@ test.describe('§ 16 Home', () => {
       await page.keyboard.press('ControlOrMeta+k');
       await page.keyboard.type('Go to Home');
       await page.keyboard.press('Enter');
-      await expect(page).toHaveURL(/\/w\/shop\/home$/);
+      await expect(page).toHaveURL(/\/w\/shop$/);
       await page.getByRole('button', { name: 'Inbox' }).click();
       await page.keyboard.press('h');
-      await expect(page).toHaveURL(/\/w\/shop\/home$/);
+      await expect(page).toHaveURL(/\/w\/shop$/);
     } finally {
       server.proc.kill();
     }

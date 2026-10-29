@@ -21,8 +21,16 @@ export const router = createRouter({
       ],
     },
     { path: '/needs-you', component: NeedsYouView },
-    { path: '/w/:ws', component: WorkspaceView, props: { view: 'feed' } },
-    { path: '/w/:ws/home', component: WorkspaceView, props: { view: 'home' } },
+    // A workspace opens on Home (project 06); the feed moved to /inbox, and an
+    // old feed link with a selected item still lands there.
+    {
+      path: '/w/:ws',
+      component: WorkspaceView,
+      props: { view: 'home' },
+      beforeEnter: (to) => (typeof to.query.item === 'string' ? { path: `${to.path.replace(/\/$/, '')}/inbox`, query: to.query } : true),
+    },
+    { path: '/w/:ws/home', redirect: (to) => ({ path: `/w/${String(to.params.ws)}`, query: to.query }) },
+    { path: '/w/:ws/inbox', component: WorkspaceView, props: { view: 'feed' } },
     { path: '/w/:ws/specs', component: WorkspaceView, props: { view: 'specs' } },
     { path: '/w/:ws/issues', component: WorkspaceView, props: { view: 'issues' } },
     { path: '/w/:ws/issues/:id(\\d{4})', component: WorkspaceView, props: { view: 'issue' } },

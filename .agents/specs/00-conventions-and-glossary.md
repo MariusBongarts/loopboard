@@ -55,7 +55,7 @@
   scheduled. They live in the Backlog drawer, never on the board.
 - **Rail** — the left column: brand, search, views and the project list.
 - **Feed** — the middle column: sessions and issues grouped by day.
-- **Home** — a workspace's overview (`/w/<ws>/home`, § 16): routine runs,
+- **Home** — a workspace's overview and where it opens (`/w/<ws>`, § 16): routine runs,
   sessions and filed issues as a timeline, with routine health, Needs you
   and the latest projects beside it.
 - **Preview** — a dialog over Home with its own link (`?peek=`): a run, an

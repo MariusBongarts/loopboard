@@ -3,7 +3,7 @@ import { readIssueFile, writeIssueFile } from './workspace';
 
 // Spec § 3 — Project pane and board.
 test('blocking relations and sub-issues', async ({ page }) => {
-  await page.goto('/w/demo-repo');
+  await page.goto('/w/demo-repo/inbox');
   await page.locator('.feed-row', { hasText: 'Wire the export button' }).click();
   const card = page.locator('.col-todo [data-issue-id="0001"]');
   await expect(card.locator('.marker-waiting')).toHaveText('waiting on #0002');
@@ -25,7 +25,7 @@ test('a finished parent reads "After", not "Blocked by"', async ({ page }) => {
   const original = await readIssueFile('0001-wire-the-export-button.md');
   try {
     await writeIssueFile('0001-wire-the-export-button.md', original.replace('parent: 0002', 'parent: 0004'));
-    await page.goto('/w/demo-repo');
+    await page.goto('/w/demo-repo/inbox');
     await page.locator('.feed-row', { hasText: 'Wire the export button' }).click();
     const card = page.locator('.col-todo [data-issue-id="0001"]');
     await expect(card.locator('.marker-waiting')).toHaveCount(0);
@@ -37,7 +37,7 @@ test('a finished parent reads "After", not "Blocked by"', async ({ page }) => {
 });
 
 test("see every project's progress", async ({ page }) => {
-  await page.goto('/w/demo-repo');
+  await page.goto('/w/demo-repo/inbox');
   await page.locator('.rail-nav', { hasText: 'Projects' }).first().click();
   await expect(page).toHaveURL(/\/w\/demo-repo\/projects$/);
   const row = page.locator('.project-row', { hasText: 'Demo Project' });
@@ -47,7 +47,7 @@ test("see every project's progress", async ({ page }) => {
   await expect(row.locator('.project-phase-name')).toHaveText(['Phase 1 — Export']);
 
   await row.click();
-  await expect(page).toHaveURL(/\/w\/demo-repo$/);
+  await expect(page).toHaveURL(/\/w\/demo-repo\/inbox$/);
   await expect(page.locator('.pane-title')).toHaveText('Demo Project');
 });
 
@@ -62,7 +62,7 @@ test('filter and sort the projects', async ({ page }) => {
   await filter.fill('demo');
   await expect(page).toHaveURL(/\/projects\?q=demo$/);
   await page.locator('.project-row', { hasText: 'Demo Project' }).click();
-  await expect(page).toHaveURL(/\/w\/demo-repo$/);
+  await expect(page).toHaveURL(/\/w\/demo-repo\/inbox$/);
   await page.goBack();
   await expect(filter).toHaveValue('demo');
   await expect(page.locator('.project-row')).toHaveCount(1);
@@ -77,7 +77,7 @@ test('filter and sort the projects', async ({ page }) => {
 });
 
 test('empty columns shrink, and the feed can make room for the board', async ({ page }) => {
-  await page.goto('/w/demo-repo');
+  await page.goto('/w/demo-repo/inbox');
   await page.locator('.pane-board-tools').getByRole('radio', { name: 'Agent' }).click();
   const blocked = page.getByRole('region', { name: 'Blocked' });
   await expect(blocked).toHaveClass(/column-empty/);
@@ -95,7 +95,7 @@ test('empty columns shrink, and the feed can make room for the board', async ({ 
 });
 
 test('columns out of view are hinted', async ({ page }) => {
-  await page.goto('/w/demo-repo');
+  await page.goto('/w/demo-repo/inbox');
   const board = page.locator('.pane-board');
   await expect(board).toHaveClass(/\bmore-right\b/);
   await expect(board).not.toHaveClass(/\bmore-left\b/);
@@ -105,7 +105,7 @@ test('columns out of view are hinted', async ({ page }) => {
 });
 
 test('the pane follows the selection; a feed row can open another board', async ({ page }) => {
-  await page.goto('/w/demo-repo');
+  await page.goto('/w/demo-repo/inbox');
   await page.locator('.feed-row', { hasText: 'Fix the README typo' }).click();
   await expect(page.locator('.pane-title')).toHaveText('Standalone issues');
   await page.locator('.feed-row', { hasText: 'Wire the export button' }).click();
@@ -118,7 +118,7 @@ test('the pane follows the selection; a feed row can open another board', async 
 });
 
 test('the board: five columns, archived issues last in Done, filters', async ({ page }) => {
-  await page.goto('/w/demo-repo');
+  await page.goto('/w/demo-repo/inbox');
   await page.locator('.feed-row', { hasText: 'Wire the export button' }).click();
   await expect(page.locator('.pane-board .column-name')).toHaveText(['Todo', 'Blocked', 'In progress', 'In review', 'Done']);
   await expect(page.getByRole('tab', { name: /Board\s*6/ })).toBeVisible();
@@ -135,7 +135,7 @@ test('the board: five columns, archived issues last in Done, filters', async ({ 
 });
 
 test('current focus, the selected item, and the PRD, WIP and activity tabs', async ({ page }) => {
-  await page.goto('/w/demo-repo');
+  await page.goto('/w/demo-repo/inbox');
   await page.locator('.feed-row', { hasText: 'Wire the export button' }).click();
   const titleRow = page.locator('.pane-title-row');
   const focus = page.getByRole('dialog', { name: 'Current focus' });

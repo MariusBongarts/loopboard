@@ -6,9 +6,10 @@ must apply are numbered in [MIGRATIONS.md](MIGRATIONS.md).
 ## [Unreleased]
 
 ### Home
-- Each workspace has a **Home** (`/w/<ws>/home`, the rail's first entry,
-  `H`, ⌘K): what happened lately as a timeline — routine runs with their
-  note's first line, the issues each run filed underneath and the ones it
+- A workspace now opens on its **Home** (`/w/<ws>`; the rail's first
+  entry, `H`, ⌘K); the feed moved to `/w/<ws>/inbox`, and older feed links
+  with a selected item still land there. Home shows what happened lately
+  as a timeline — routine runs with their note's first line, the issues each run filed underneath and the ones it
   mentioned beside it, project sessions and issues filed by hand. Quiet runs
   take one line; failed ones say so. Beside it: every routine's health with
   its recent runs, what needs you and the latest projects. Today / 7 days /

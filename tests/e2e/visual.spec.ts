@@ -14,14 +14,14 @@ async function open(page: Page, path: string, theme: 'light' | 'dark') {
 
 for (const theme of ['light', 'dark'] as const) {
   test(`inbox and board — ${theme}`, async ({ page }) => {
-    await open(page, '/w/demo-repo', theme);
+    await open(page, '/w/demo-repo/inbox', theme);
     await page.locator('.feed-row', { hasText: 'Wire the export button' }).click();
     await expect(page.locator('.live-dot.live')).toBeVisible();
     await expect(page).toHaveScreenshot(`inbox-${theme}.png`, { animations: 'disabled' });
   });
 
   test(`issue panel, picker, editor and page — ${theme}`, async ({ page }) => {
-    await open(page, '/w/demo-repo', theme);
+    await open(page, '/w/demo-repo/inbox', theme);
     await page.locator('.feed-row', { hasText: 'Cache the feed' }).click();
     await page.locator('[data-issue-id="0002"] .card').click();
     const panel = page.getByRole('dialog', { name: 'Issue detail' });
@@ -65,7 +65,7 @@ for (const theme of ['light', 'dark'] as const) {
 }
 
 test('command palette — light', async ({ page }) => {
-  await open(page, '/w/demo-repo', 'light');
+  await open(page, '/w/demo-repo/inbox', 'light');
   await expect(page.locator('.feed-row').first()).toBeVisible();
   await page.keyboard.press('ControlOrMeta+k');
   await page.getByRole('combobox').fill('export');

@@ -221,7 +221,7 @@ function onGlobalKeydown(e: KeyboardEvent) {
   }
   if (isShortcut(e, 'home') && !isTyping(e) && !anyDialogOpen() && !overlayOpen()) {
     e.preventDefault();
-    void router.push(`/w/${workspaceId.value}/home`);
+    void router.push(`/w/${workspaceId.value}`);
     return;
   }
   if (isShortcut(e, 'create') && !isTyping(e) && !anyDialogOpen()) {
@@ -394,8 +394,8 @@ const commands = computed<Command[]>(() => {
     { id: 'new-backlog', title: 'New backlog idea', group: 'Actions', run: () => openCreate(true) },
     { id: 'new-project', title: 'New project', group: 'Actions', run: () => (projectDialogOpen.value = true) },
     { id: 'refresh', title: 'Refresh', group: 'Actions', keywords: 'reload refetch update live', run: () => void refresh() },
-    { id: 'go-home', title: 'Go to Home', group: 'Actions', hint: SHORTCUTS.home.display, keywords: 'overview timeline runs routines what happened', run: () => router.push(`/w/${ws}/home`) },
-    { id: 'go-inbox', title: 'Go to Inbox', group: 'Actions', keywords: 'feed', run: () => router.push(`/w/${ws}`) },
+    { id: 'go-home', title: 'Go to Home', group: 'Actions', hint: SHORTCUTS.home.display, keywords: 'overview timeline runs routines what happened', run: () => router.push(`/w/${ws}`) },
+    { id: 'go-inbox', title: 'Go to Inbox', group: 'Actions', keywords: 'feed', run: () => router.push(`/w/${ws}/inbox`) },
     { id: 'go-specs', title: 'Go to Specs', group: 'Actions', run: () => router.push(`/w/${ws}/specs`) },
     { id: 'go-issues', title: 'Go to Issues (list)', group: 'Actions', keywords: 'list table', run: () => router.push(`/w/${ws}/issues`) },
     { id: 'go-projects', title: 'Go to Projects', group: 'Actions', keywords: 'overview progress', run: () => router.push(`/w/${ws}/projects`) },

@@ -43,5 +43,16 @@ What needs your eyes, on a workspace with real routines (webhighlights):
 3. Open a run, follow an issue, go Back, close with Esc; copy a link and open
    it in a new tab.
 4. Hover a few issue chips; try a narrow window.
-5. Decide whether Home should become the workspace's landing page (PRD out of
-   scope for now).
+
+### Decided with the maintainer (2026-10-29)
+
+- **Landing:** a workspace opens on Home at `/w/<ws>`; the feed moved to
+  `/w/<ws>/inbox`. Old `?item=` feed links and `/w/<ws>/home` redirect.
+  Done in this issue; specs § 2, § 7 and § 16 updated.
+- **Run summary:** keep it — the note's first line, joined with the next
+  when the first is a short heading.
+- **Filed vs mentioned:** keep the derived match (referenced and created
+  that day, or `recurrence`); no `finish --filed`.
+- **Period:** 7 days stays the default; the choice is remembered.
+
+What's left is your look at 1–4 above.

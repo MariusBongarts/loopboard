@@ -1,10 +1,11 @@
 # Client
 
 A Vue 3 app with `vue-router` ([router.ts](../../src/router.ts)): `/` redirects
-to the last-used workspace, `/w/:ws` is the feed and `/w/:ws/specs` the Specs
+to the last-used workspace, `/w/:ws` is Home (previews in `?peek=`; the
+old `/w/:ws/home` redirects), `/w/:ws/inbox` the feed (a `/w/:ws?item=` link
+from before redirects there) and `/w/:ws/specs` the Specs
 view, `/w/:ws/issues` the list (filters in the query string, `&view=` for a
-saved view), `/w/:ws/projects` the overview, `/w/:ws/home` Home (previews in
-`?peek=`), `/w/:ws/routines` and
+saved view), `/w/:ws/projects` the overview, `/w/:ws/routines` and
 `/w/:ws/routines/:slug` the Routines view, `/help` the Help Center (child
 routes `learn`, `setup`, `upgrade`, `reference`) and `/needs-you` the
 cross-workspace queue. No store: [WorkspaceView.vue](../../src/views/WorkspaceView.vue) owns a

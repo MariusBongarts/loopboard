@@ -1,7 +1,8 @@
 # 2. Rail and feed
 
 > loopboard is one screen with three panes: the rail, the feed and the
-> project pane (§ 3). This section covers the first two.
+> project pane (§ 3). This section covers the first two. A workspace opens
+> on Home (§ 16); the feed is the rail's Inbox, at /w/<workspace>/inbox.
 
 ## E2E coverage
 

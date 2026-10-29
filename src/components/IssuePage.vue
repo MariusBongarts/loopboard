@@ -18,7 +18,7 @@ const issue = computed(
 
 function back() {
   if (window.history.state?.back) router.back();
-  else void router.push(`/w/${workspaceId.value}`);
+  else void router.push(`/w/${workspaceId.value}/inbox`);
 }
 </script>
 
@@ -37,7 +37,7 @@ function back() {
       <div v-else-if="props.loaded" class="issue-page-missing">
         <h2>No issue #{{ props.issueId }}</h2>
         <p>It may have been renumbered or deleted.</p>
-        <RouterLink :to="`/w/${workspaceId}`">Back to the board</RouterLink>
+        <RouterLink :to="`/w/${workspaceId}/inbox`">Back to the board</RouterLink>
       </div>
     </div>
   </section>

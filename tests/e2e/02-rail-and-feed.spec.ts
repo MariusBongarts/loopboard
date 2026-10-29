@@ -5,7 +5,7 @@ import { readIssueFile, workspaceRoot, writeIssueFile } from './workspace';
 
 // Spec § 2 — Rail and feed.
 test('the feed lists sessions and issues by day', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/w/demo-repo/inbox');
 
   const rows = page.locator('.feed-row');
   // 2 sessions + 7 live issues; the archived issue stays out of the feed.
@@ -24,7 +24,7 @@ test('the feed lists sessions and issues by day', async ({ page }) => {
 });
 
 test('the board follows file changes live', async ({ page }) => {
-  await page.goto('/w/demo-repo');
+  await page.goto('/w/demo-repo/inbox');
   await expect(page.locator('.live-dot.live')).toBeVisible();
   await page.locator('.feed-row', { hasText: 'Cache the feed' }).click();
   await expect(page.locator('.col-in-progress [data-issue-id="0002"]')).toBeVisible();
@@ -49,7 +49,7 @@ test('the board follows file changes live', async ({ page }) => {
 
 test('see which files the board skipped', async ({ page, context }) => {
   await context.grantPermissions(['clipboard-read', 'clipboard-write']);
-  await page.goto('/w/demo-repo');
+  await page.goto('/w/demo-repo/inbox');
   await expect(page.locator('.live-dot.live')).toBeVisible();
   const rail = page.getByRole('navigation', { name: 'Inbox navigation' });
   // The fixture's 0009 has invalid YAML.
@@ -128,7 +128,7 @@ async function driveStream(page: Page): Promise<(event: 'ready' | 'stale' | 'err
 
 test('the board says when it stops being live', async ({ page }) => {
   const send = await driveStream(page);
-  await page.goto('/w/demo-repo');
+  await page.goto('/w/demo-repo/inbox');
   const rail = page.getByRole('navigation', { name: 'Inbox navigation' });
   await expect(page.locator('.feed-row').first()).toBeVisible();
   await send('ready');
@@ -159,7 +159,7 @@ test('the board says when it stops being live', async ({ page }) => {
 test('refresh on demand', async ({ page }) => {
   // No events arrive, so only a refresh can show what changed on disk.
   const send = await driveStream(page);
-  await page.goto('/w/demo-repo');
+  await page.goto('/w/demo-repo/inbox');
   const rail = page.getByRole('navigation', { name: 'Inbox navigation' });
   await page.locator('.feed-row', { hasText: 'Cache the feed' }).click();
   await expect(page.locator('.col-in-progress [data-issue-id="0002"]')).toBeVisible();
@@ -194,7 +194,7 @@ test('refresh on demand', async ({ page }) => {
 });
 
 test('filter the feed from the rail', async ({ page }) => {
-  await page.goto('/w/demo-repo');
+  await page.goto('/w/demo-repo/inbox');
   const rail = page.getByRole('navigation', { name: 'Inbox navigation' });
   const rows = page.locator('.feed-row');
   await expect(rows).toHaveCount(9);
@@ -212,7 +212,7 @@ test('filter the feed from the rail', async ({ page }) => {
 });
 
 test('collapse the rail to icons, and back', async ({ page }) => {
-  await page.goto('/w/demo-repo');
+  await page.goto('/w/demo-repo/inbox');
   const rail = page.getByRole('navigation', { name: 'Inbox navigation' });
   await rail.getByRole('button', { name: 'Collapse sidebar' }).click();
   await expect(rail).toHaveClass(/collapsed/);
@@ -227,7 +227,7 @@ test('collapse the rail to icons, and back', async ({ page }) => {
 });
 
 test('search narrows the feed and the project list', async ({ page }) => {
-  await page.goto('/w/demo-repo');
+  await page.goto('/w/demo-repo/inbox');
   await expect(page.locator('.feed-row').first()).toBeVisible();
   await page.keyboard.press('/');
   const search = page.getByLabel('Search issues, sessions and PRDs');
@@ -242,7 +242,7 @@ test('search narrows the feed and the project list', async ({ page }) => {
 });
 
 test('move through the feed with j and k, and the selection comes back', async ({ page }) => {
-  await page.goto('/w/demo-repo');
+  await page.goto('/w/demo-repo/inbox');
   const rows = page.locator('.feed-row');
   await rows.nth(1).click();
   await page.keyboard.press('j');
@@ -255,7 +255,7 @@ test('move through the feed with j and k, and the selection comes back', async (
 });
 
 test('narrow the feed to one project, and pin it', async ({ page }) => {
-  await page.goto('/w/demo-repo');
+  await page.goto('/w/demo-repo/inbox');
   const project = page.locator('.rail-row', { hasText: 'Demo Project' });
   await project.locator('.rail-nav').click();
   await expect(page.locator('.feed-row')).toHaveCount(8);
@@ -271,7 +271,7 @@ test('narrow the feed to one project, and pin it', async ({ page }) => {
 });
 
 test('resize the rail and the feed', async ({ page }) => {
-  await page.goto('/w/demo-repo');
+  await page.goto('/w/demo-repo/inbox');
   const rail = page.locator('.inbox-rail');
   const handle = page.getByRole('separator', { name: 'Resize sidebar' });
   const box = (await handle.boundingBox())!;

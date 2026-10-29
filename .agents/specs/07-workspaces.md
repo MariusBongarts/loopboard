@@ -26,9 +26,11 @@ Status legend in [`_specs.md`](_specs.md#e2e-coverage).
 ```
 GIVEN I registered several repos
 WHEN I open loopboard at /
-THEN it opens the workspace I used last, at /w/<workspace>
+THEN it opens the workspace I used last on its Home, at /w/<workspace> (§ 16)
 AND the browser tab reads "<workspace name> · loopboard"
 AND a bookmarked /w/<workspace> URL opens that workspace directly
+AND the feed is at /w/<workspace>/inbox; an older /w/<workspace>?item=…
+    link opens the feed with that item selected
 ```
 
 ### Scenario: Switch workspace from the top-left
@@ -39,7 +41,7 @@ WHEN I click it
 THEN a menu lists every workspace with its number of issue files
 AND the current one is highlighted
 WHEN I pick another workspace
-THEN its feed, projects and specs load and the URL becomes /w/<workspace>
+THEN its Home, projects and specs load and the URL becomes /w/<workspace>
 AND pins, the last selected item and the Specs view state are remembered
     per workspace
 ```
@@ -110,7 +112,8 @@ THEN /needs-you lists, per workspace, every live issue assigned to me that
     isn't done or wontfix, plus blocked issues, newest first, with a total
 AND workspaces with a missing folder are named as skipped
 WHEN I click an issue
-THEN its workspace opens with that issue selected
+THEN its workspace's feed opens at /w/<workspace>/inbox with that issue
+    selected
 AND the list refreshes when I come back to the browser tab
 ```
 

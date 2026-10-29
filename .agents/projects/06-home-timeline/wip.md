@@ -6,10 +6,10 @@
 
 ## Current focus
 
-Home is built: #0127–#0134 are done and verified. #0135 waits on the
-maintainer's review on a real workspace (its `## Review` lists what to
-check). After that, the ship gate: archive the issues and set the status to
-shipped. Open question for the review: should Home become the landing page?
+Home is built and is where a workspace opens (`/w/<ws>`; the feed is at
+`/w/<ws>/inbox`). #0127–#0134 are done; #0135 waits only on the maintainer's
+hands-on look (its `## Review`, items 1–4). After that, the ship gate:
+archive the issues and set the status to shipped.
 
 ## Phases
 
@@ -41,6 +41,14 @@ maintainer's review on a real workspace.
 - [ ] [#0135 Document Home and review it on a real workspace](../../issues/0135-document-home-and-review-it-on-a-real-workspace.md) — in-review
 
 ## Activity log
+
+### 2026-10-29 (review decisions)
+
+- Asked the maintainer the open questions: Home becomes the landing page at
+  `/w/<ws>` with the feed at `/w/<ws>/inbox`; the run summary, the derived
+  filed/mentioned match and the 7-day default stay. Old `?item=` feed links
+  and `/w/<ws>/home` redirect. Specs § 2, § 7, § 16 and the e2e tests that
+  meant the feed now say `/inbox`.
 
 ### 2026-10-29 (build)
 

@@ -16,7 +16,7 @@ rows, what is new — is unit-tested in `tests/home.test.ts`. Status legend in
 
 | Scenario | Status | Notes |
 |---|---|---|
-| Open Home | ✅ | [`16-home.spec.ts`](../../tests/e2e/16-home.spec.ts): rail entry, ⌘K "Go to Home", the `H` key |
+| Open Home | ✅ | [`16-home.spec.ts`](../../tests/e2e/16-home.spec.ts): a workspace opens on Home, ⌘K "Go to Home", the `H` key; the last-used redirect in [`07-workspaces.spec.ts`](../../tests/e2e/07-workspaces.spec.ts) |
 | Runs on the timeline | ✅ | [`16-home.spec.ts`](../../tests/e2e/16-home.spec.ts): day groups, summary, failed tag, a quiet run on one line. Summary rules in `tests/home.test.ts` |
 | What a run filed and mentioned | ✅ | [`16-home.spec.ts`](../../tests/e2e/16-home.spec.ts): filed under the run, mentions as chips, an issue routine's issue by `recurrence`, a hand-filed issue on its own |
 | Choose the period | ✅ | [`16-home.spec.ts`](../../tests/e2e/16-home.spec.ts): Today hides yesterday, remembered after a reload |
@@ -32,8 +32,10 @@ rows, what is new — is unit-tested in `tests/home.test.ts`. Status legend in
 
 ```
 GIVEN a workspace
-WHEN I click Home at the top of the rail, run "Go to Home" in ⌘K or press H
-THEN /w/<ws>/home shows Home
+WHEN I open it — from /, a bookmark, the switcher or `loopboard` in a
+    terminal — or click Home at the top of the rail, run "Go to Home" in ⌘K
+    or press H
+THEN /w/<ws> shows Home; the older /w/<ws>/home redirects there
 AND the rail's Home entry carries the number of items new since my last
     visit, when there are any
 ```

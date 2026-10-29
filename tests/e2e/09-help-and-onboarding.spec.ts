@@ -5,7 +5,7 @@ import { e2eRoot } from './workspace';
 
 // Spec § 9 — Help and onboarding.
 test('open Help from anywhere, move between its pages, and go back', async ({ page }) => {
-  await page.goto('/w/legacy-repo');
+  await page.goto('/w/legacy-repo/inbox');
   await expect(page.locator('.feed-row').first()).toBeVisible();
   await page.keyboard.press('?');
 
@@ -155,7 +155,7 @@ test('a set-up workspace with no issues yet', async ({ page }) => {
   const res = await page.request.post('/api/workspaces', { data: { path: repo } });
   expect(res.status()).toBe(201);
   try {
-    await page.goto('/w/empty-repo');
+    await page.goto('/w/empty-repo/inbox');
     await expect(page.getByRole('heading', { name: 'Nothing here yet' })).toBeVisible();
     await expect(page.locator('.first-steps li')).toHaveCount(3);
     await expect(page.getByText('The board appears here once there are issues.')).toBeVisible();
@@ -172,7 +172,7 @@ test('a workspace whose folder is gone comes back on its own', async ({ page }) 
   expect((await page.request.post('/api/workspaces', { data: { path: repo } })).status()).toBe(201);
   await rm(join(repo, '.agents'), { recursive: true });
 
-  await page.goto('/w/flaky-repo');
+  await page.goto('/w/flaky-repo/inbox');
   await expect(page.getByRole('heading', { name: 'flaky-repo has no workflow folder' })).toBeVisible();
   await expect(page.locator('.welcome-card code').first()).toHaveText(join(repo, '.agents'));
   await expect(page.locator('.ws-current')).toContainText('flaky-repo');
