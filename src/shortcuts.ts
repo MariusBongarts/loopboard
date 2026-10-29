@@ -10,6 +10,7 @@ export interface Shortcut {
 export const SHORTCUTS = {
   palette: { keys: ['k', 'K'], display: '⌘K', label: 'Command palette: jump anywhere, run any action', mod: true },
   create: { keys: ['c', 'C'], display: 'C', label: 'New issue' },
+  home: { keys: ['h', 'H'], display: 'H', label: 'Open Home: what ran and what changed lately' },
   search: { keys: ['/'], display: '/', label: 'Search the feed and projects' },
   next: { keys: ['j'], display: 'j', label: 'Next item in the feed' },
   prev: { keys: ['k'], display: 'k', label: 'Previous item in the feed' },

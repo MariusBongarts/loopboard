@@ -40,6 +40,8 @@ export interface Issue {
   body: string;
   reviewed?: string;
   deployed?: string;
+  // `<slug>@<period>` on an issue a routine filed (project 05).
+  recurrence?: string;
 }
 
 export interface ProjectSession {

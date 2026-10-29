@@ -6,6 +6,7 @@ import {
   CircleDot,
   CircleHelp,
   CircleUserRound,
+  House,
   FileCheck2,
   FileWarning,
   Inbox,
@@ -40,6 +41,7 @@ const props = defineProps<{
   projectsCount: number;
   specsCount: number;
   routinesCount: number;
+  homeNew: number;
   skippedCount: number;
   sections: { label: string; projects: Project[] }[];
   pinned: string[];
@@ -126,6 +128,18 @@ const feedOn = (key: InboxFilter) => props.view === 'feed' && props.filter === k
     </button>
 
     <div class="rail-group">
+      <button
+        type="button"
+        class="rail-nav"
+        :class="{ on: props.view === 'home' }"
+        :aria-current="props.view === 'home' ? 'page' : undefined"
+        title="Home (H)"
+        @click="emit('show-view', 'home')"
+      >
+        <House class="rail-icon-glyph" :size="16" aria-hidden="true" />
+        <span class="rail-name">Home</span>
+        <span v-if="props.homeNew" class="rail-count hot" :title="`${props.homeNew} new since your last visit`">{{ props.homeNew }}</span>
+      </button>
       <button
         v-for="f in FEED"
         :key="f.key"

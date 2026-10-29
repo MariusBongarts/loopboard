@@ -55,6 +55,11 @@
   scheduled. They live in the Backlog drawer, never on the board.
 - **Rail** — the left column: brand, search, views and the project list.
 - **Feed** — the middle column: sessions and issues grouped by day.
+- **Home** — a workspace's overview (`/w/<ws>/home`, § 16): routine runs,
+  sessions and filed issues as a timeline, with routine health, Needs you
+  and the latest projects beside it.
+- **Preview** — a dialog over Home with its own link (`?peek=`): a run, an
+  issue, a project or a routine.
 - **Project pane** — the right column: the selected item's project board,
   with PRD, WIP and Activity tabs.
 - **Pin** — a project marked to stay at the top of the rail, remembered per
@@ -121,5 +126,8 @@
 - **Brief** — what `loopboard routines prompt` prints for a run: the
   routine's steps, the harness, the notes of the last three runs, the rules
   every run follows and the exact `finish` command.
+- **Run summary** — the one line Home shows for a run: its note's first
+  line, with the next one when the first is a short heading. Not the
+  **Brief**, which is what the agent reads before a run.
 - **Help Center** — `/help` and its pages: Overview, Working with AI agents
   (the **course**), Set up a repo, Upgrade a harness, Reference.

@@ -2,7 +2,7 @@
 id: 0129
 title: See routine health, Needs you and projects beside the timeline
 category: user-story
-status: todo
+status: done
 assignee: agent
 project: 06-home-timeline
 phase: 1
@@ -17,11 +17,11 @@ As a **maintainer**, I want **a side column with every routine's health, what ne
 
 ## Acceptance criteria
 
-- [ ] Routine health lists every routine: last-run status dot, title, a strip of recent runs, the next slot or "Paused", and the time of the last run
-- [ ] Needs you lists the first five issues that need you (in review first) with a link to the Needs you view
-- [ ] Projects lists the four most recently worked-on projects with their last session day
-- [ ] Below 1000px the column moves above the timeline
-- [ ] Vitest: health rows for paused, running, no runs and next slot; Needs you order
+- [x] Routine health lists every routine: last-run status dot, title, a strip of recent runs, the next slot or "Paused", and the time of the last run
+- [x] Needs you lists the first five issues that need you (in review first) with a link to the Needs you view
+- [x] Projects lists the four most recently worked-on projects with their last session day
+- [x] Below 1000px the column moves above the timeline
+- [x] Vitest: health rows for paused, running, no runs and next slot; Needs you order
 
 ## Out of scope
 

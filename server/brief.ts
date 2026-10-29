@@ -101,7 +101,7 @@ export function buildBrief(routine: Routine, registered: Workspace[], now = Date
     "3. Never send anything — no email, chat message or post, no script that sends — unless a step above says so explicitly.",
     "4. Don't edit this routine's routine.md or runs.md; `finish` records the run.",
     "5. If a step can't be done, stop and finish with `--status failed`, saying why. Never fake a result.",
-    "6. End with a short note, up to five sentences: what you did, what stands out, what the next run should know.",
+    "6. End with a short note, up to five sentences: what you did, what stands out, what the next run should know. Its first line is what Home shows for this run, so make it the one line that matters.",
     "",
     "## Finish",
     "",

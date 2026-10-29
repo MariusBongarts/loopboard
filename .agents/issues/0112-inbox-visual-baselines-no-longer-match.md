@@ -54,3 +54,6 @@ it is meant to look.
   #0071's notes.
 - Refreshed baselines need a look by the maintainer before this is `done`:
   hand over as `in-review`.
+
+- 2026-10-29: the rail gained a Home entry (project 06); the inbox baselines
+  now differ for that too. The other visual baselines were re-recorded then.

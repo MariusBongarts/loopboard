@@ -147,6 +147,14 @@ The board shows the same under **Routines** in each workspace: every
 routine, a page per routine with its steps and runs, and a graph of the
 last 12 months.
 
+**Home** puts the runs on a timeline with the rest of the workspace: each
+run with its note's first line, the issues it filed underneath, the issues
+it mentions beside it, and every run, issue and project a click away in a
+preview with its own link. Write a note's first line for that: the one thing
+worth knowing about the run. An issue counts as filed by a run when the note
+names it and it was created that day, or when it carries the routine's
+`recurrence:`.
+
 ## Set up a dispatcher
 
 One dispatcher per place: one for each code repo, one for a folder of

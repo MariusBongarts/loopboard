@@ -1,4 +1,4 @@
-import { addDays, GRAPH_WEEKS, graphStart, localDay, weekdayOf, type LocalDate } from '../shared/cron';
+import { addDays, formatWhen, GRAPH_WEEKS, graphStart, localDay, weekdayOf, type LocalDate } from '../shared/cron';
 import type { GraphDay, RoutineSummary, Run, RunStatus } from './types';
 
 // The Routines view's pure parts (#0120, #0121): labels, tones, durations
@@ -50,6 +50,19 @@ export function runDuration(run: Run): string {
   if (minutes < 60) return `${minutes} min`;
   const h = Math.floor(minutes / 60);
   return minutes % 60 ? `${h} h ${minutes % 60} min` : `${h} h`;
+}
+
+// `today 15:00`, `Mon 2 Nov 07:30` in the routine's zone; `—` without a time.
+export function routineWhen(iso: string | null | undefined, routine: RoutineSummary, now: number): string {
+  return iso ? formatWhen(Date.parse(iso), routine.timezone, now) : '—';
+}
+
+// The next slot, or why there is none: due, running, paused.
+export function nextSlotText(routine: RoutineSummary, now: number): string {
+  if (routine.state === 'invalid' || routine.state === 'paused') return '—';
+  if (routine.state === 'due' && routine.slot) return `Due since ${routineWhen(routine.slot, routine, now)}`;
+  if (routine.state === 'running' && routine.lastRun) return `Running since ${routineWhen(routine.lastRun.at, routine, now)}`;
+  return routineWhen(routine.next, routine, now);
 }
 
 export function newestFirst(runs: Run[]): Run[] {

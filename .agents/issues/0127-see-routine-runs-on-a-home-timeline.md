@@ -2,7 +2,7 @@
 id: 0127
 title: See routine runs on a Home timeline
 category: user-story
-status: todo
+status: done
 assignee: agent
 project: 06-home-timeline
 phase: 1
@@ -16,13 +16,13 @@ As a **maintainer**, I want **a Home view in each workspace that lists what ran 
 
 ## Acceptance criteria
 
-- [ ] `/w/:ws/home` shows Home; the rail lists Home as its first entry
-- [ ] Runs of every routine are grouped under day headers ("Today", "Yesterday", "Tue 27 Oct"), newest first
-- [ ] A run shows its time, routine title, a status tag unless it is ok, and its run summary: the note's first line, joined with the next when the first is shorter than 40 characters, clipped near 170 characters; a running run without a note reads "Running since HH:MM"
-- [ ] A run that is ok, filed nothing and mentions nothing collapses to one line with the summary inline; others show the summary on its own line
-- [ ] Today / 7 days / 30 days switch the period, remembered per browser
-- [ ] Empty states: no routines (how to add one) and nothing in the period
-- [ ] Vitest for the timeline module: grouping, order, period start, summary rules, collapse rule
+- [x] `/w/:ws/home` shows Home; the rail lists Home as its first entry
+- [x] Runs of every routine are grouped under day headers ("Today", "Yesterday", "Tue 27 Oct"), newest first
+- [x] A run shows its time, routine title, a status tag unless it is ok, and its run summary: the note's first line, joined with the next when the first is shorter than 40 characters, clipped near 170 characters; a running run without a note reads "Running since HH:MM"
+- [x] A run that is ok, filed nothing and mentions nothing collapses to one line with the summary inline; others show the summary on its own line
+- [x] Today / 7 days / 30 days switch the period, remembered per browser
+- [x] Empty states: no routines (how to add one) and nothing in the period
+- [x] Vitest for the timeline module: grouping, order, period start, summary rules, collapse rule
 
 ## Out of scope
 

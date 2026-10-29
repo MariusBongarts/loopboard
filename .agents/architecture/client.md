@@ -3,7 +3,8 @@
 A Vue 3 app with `vue-router` ([router.ts](../../src/router.ts)): `/` redirects
 to the last-used workspace, `/w/:ws` is the feed and `/w/:ws/specs` the Specs
 view, `/w/:ws/issues` the list (filters in the query string, `&view=` for a
-saved view), `/w/:ws/projects` the overview, `/w/:ws/routines` and
+saved view), `/w/:ws/projects` the overview, `/w/:ws/home` Home (previews in
+`?peek=`), `/w/:ws/routines` and
 `/w/:ws/routines/:slug` the Routines view, `/help` the Help Center (child
 routes `learn`, `setup`, `upgrade`, `reference`) and `/needs-you` the
 cross-workspace queue. No store: [WorkspaceView.vue](../../src/views/WorkspaceView.vue) owns a
@@ -30,7 +31,8 @@ to catch up.
 | [DocEditor.vue](../../src/components/DocEditor.vue), [RichEditor.vue](../../src/components/RichEditor.vue) | Editing (issues in the drawer, PRD/WIP tabs, specs): Rich mode = fields form + TipTap (`@tiptap/markdown`), Source mode = the raw file; hash-checked saves with conflict resolution |
 | [ListView.vue](../../src/components/ListView.vue), [IssueList.vue](../../src/components/IssueList.vue) | The list view and its rows (also the project pane's List layout); grouping and filters in [list.ts](../../src/list.ts) |
 | [ProjectsView.vue](../../src/components/ProjectsView.vue) | Project progress from [projects.ts](../../src/projects.ts) (WIP phase parsing) |
-| [RoutinesView.vue](../../src/components/RoutinesView.vue) | Read-only list and page of the harness's routines (#0120); WorkspaceView fetches `/routines` while it is open and on every live change, the count comes with `/data`; labels in [routines.ts](../../src/routines.ts), times from [shared/cron.ts](../../shared/cron.ts). [RoutineGraph.vue](../../src/components/RoutineGraph.vue) draws a contribution graph from the server's days (a `role="grid"` with a roving tabindex; the hovered or focused day's runs in a live region below); the workspace graph sums routines with `aggregateDays` (#0121) |
+| [WorkspaceHome.vue](../../src/components/WorkspaceHome.vue), [home/](../../src/components/home/) | Home (project 06). [home.ts](../../src/home.ts) is the pure model — timeline days, run summary, filed vs mentioned, health rows, what's new, `?peek=` values — and [useHome.ts](../../src/useHome.ts) feeds it the workspace context plus the period and last-seen time; the rail uses the same composable for its count. [peek.ts](../../src/peek.ts) keeps the preview chain (Back, Close rewinding history). `HomePreview` renders runs, projects and routines itself and reuses `IssueView` for issues, overriding `openIssue` so references open the next preview. Routines are fetched whenever a harness has any |
+| [RoutinesView.vue](../../src/components/RoutinesView.vue) | Read-only list and page of the harness's routines (#0120); WorkspaceView fetches `/routines` while it or Home is open, or the harness has any, and on every live change; the count comes with `/data`; labels in [routines.ts](../../src/routines.ts), times from [shared/cron.ts](../../shared/cron.ts). [RoutineGraph.vue](../../src/components/RoutineGraph.vue) draws a contribution graph from the server's days (a `role="grid"` with a roving tabindex; the hovered or focused day's runs in a live region below); the workspace graph sums routines with `aggregateDays` (#0121) |
 | [IssueActivity.vue](../../src/components/IssueActivity.vue) | The drawer's lazily loaded git history |
 | [NeedsYouView.vue](../../src/views/NeedsYouView.vue) | `/needs-you` across workspaces; links back with `?item=` |
 | [WorkspaceSwitcher.vue](../../src/components/WorkspaceSwitcher.vue) | Top-left menu (teleported, the rail clips); Add and Manage dialogs on [BaseDialog.vue](../../src/components/BaseDialog.vue) |
@@ -103,3 +105,5 @@ pre-workspace `tracker.<key>` once, so old state carries over.
 | `loopboard.railCollapsed`, `loopboard.feedHidden` | Rail collapsed to icons; feed hidden |
 | `loopboard.theme`, `loopboard.editor` | Settings: theme and editor for "Open in …" |
 | `loopboard.projects.sort` | Projects view ordering (`active`, `newest`, `progress`, `you`, `name`) |
+| `loopboard.home.period` | Home's period (`today`, `7d`, `30d`) |
+| `loopboard.w.<ws>.home.seen` | When Home was last marked seen, epoch ms |

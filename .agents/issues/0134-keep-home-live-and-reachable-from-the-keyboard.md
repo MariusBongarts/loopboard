@@ -2,7 +2,7 @@
 id: 0134
 title: Keep Home live and reachable from the keyboard
 category: user-story
-status: todo
+status: done
 assignee: agent
 project: 06-home-timeline
 phase: 3
@@ -17,9 +17,9 @@ As a **maintainer**, I want **Home to follow file changes and to be in ⌘K and 
 
 ## Acceptance criteria
 
-- [ ] A run finishing or an issue filed on disk shows on Home without a reload
-- [ ] ⌘K has "Go to Home"; a plain-key shortcut opens Home and Help lists it
-- [ ] Playwright: a live update and the ⌘K command
+- [x] A run finishing or an issue filed on disk shows on Home without a reload
+- [x] ⌘K has "Go to Home"; a plain-key shortcut opens Home and Help lists it
+- [x] Playwright: a live update and the ⌘K command
 
 ## Out of scope
 

@@ -48,6 +48,8 @@ import { useWorkspace, type View } from '../workspace';
 import ProjectsView from './ProjectsView.vue';
 import ListView from './ListView.vue';
 import RoutinesView from './RoutinesView.vue';
+import WorkspaceHome from './WorkspaceHome.vue';
+import { useHome } from '../useHome';
 import type { LiveState } from '../live';
 import { hasModifier, isShortcut, isTyping, overlayOpen } from '../shortcuts';
 
@@ -117,6 +119,8 @@ const feedHidden = ref(readStored('loopboard.feedHidden') === '1');
 watch(feedHidden, (h) => writeStored('loopboard.feedHidden', h ? '1' : null));
 
 const { views, routineCount } = useWorkspace();
+// The rail's Home entry counts what's new (#0133).
+const { home } = useHome();
 
 function openIssues(query: Record<string, string> = {}) {
   router.push({ path: `/w/${workspaceId.value}/issues`, query });
@@ -386,6 +390,7 @@ onBeforeUnmount(() => {
       :projects-count="props.projects.length"
       :specs-count="props.specs.length"
       :routines-count="routineCount"
+      :home-new="home.newCount"
       :skipped-count="props.skipped.length"
       :sections="railSections"
       :pinned="pinnedSlugs"
@@ -405,7 +410,10 @@ onBeforeUnmount(() => {
       @open-view="(v) => openIssues({ ...v.query, view: v.id })"
     />
 
-    <section v-if="view === 'issues'" class="inbox-specs">
+    <section v-if="view === 'home'" class="inbox-specs">
+      <WorkspaceHome :loaded="props.workspace !== null" @open-project="openFromOverview" />
+    </section>
+    <section v-else-if="view === 'issues'" class="inbox-specs">
       <ListView />
     </section>
     <section v-else-if="view === 'projects'" class="inbox-specs">

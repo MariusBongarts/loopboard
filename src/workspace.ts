@@ -4,7 +4,7 @@ import type { RelationIndex } from './relations';
 import type { Issue, Project, RoutinesData, Workspace } from './types';
 
 // The views inside a workspace; each has its own route.
-export type View = 'feed' | 'specs' | 'projects' | 'issues' | 'issue' | 'routines' | 'routine';
+export type View = 'feed' | 'home' | 'specs' | 'projects' | 'issues' | 'issue' | 'routines' | 'routine';
 
 export interface WorkspaceContext {
   id: ComputedRef<string>;
@@ -17,8 +17,8 @@ export interface WorkspaceContext {
   relations: ComputedRef<RelationIndex>;
   views: Ref<SavedView[]>;
   saveViews(views: SavedView[]): Promise<void>;
-  // Routines (#0120): the count comes with /data, the list only while the
-  // Routines view is open.
+  // Routines (#0120): the count comes with /data, the list once a harness
+  // has routines (Home and the rail need it, project 06).
   routineCount: Ref<number>;
   routines: Ref<RoutinesData | null>;
 }

@@ -98,6 +98,8 @@ Every run:
 - never commits, pushes or publishes;
 - never sends anything — mail, chat, posts — unless its steps say so;
 - leaves `routine.md` and `runs.md` alone;
-- stops and fails instead of faking a result, and ends with a short note.
+- stops and fails instead of faking a result, and ends with a short note
+  whose first line says what matters most — Home shows that line for the
+  run.
 
 `loopboard check` says what is wrong with a routine.

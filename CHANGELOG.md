@@ -5,6 +5,20 @@ must apply are numbered in [MIGRATIONS.md](MIGRATIONS.md).
 
 ## [Unreleased]
 
+### Home
+- Each workspace has a **Home** (`/w/<ws>/home`, the rail's first entry,
+  `H`, ⌘K): what happened lately as a timeline — routine runs with their
+  note's first line, the issues each run filed underneath and the ones it
+  mentioned beside it, project sessions and issues filed by hand. Quiet runs
+  take one line; failed ones say so. Beside it: every routine's health with
+  its recent runs, what needs you and the latest projects. Today / 7 days /
+  30 days; dots and a rail count for what's new since you last looked.
+- Every run, issue, project and routine on Home opens a preview with its own
+  link (`?peek=…`): a run's whole note and issues, where an issue came from,
+  Back between previews, Copy link, Open in board. Issue links show a hover
+  card.
+- A run's brief asks for a first line worth showing on Home.
+
 ### Routines
 - Recurring and one-time agent work lives in the harness: one folder per
   routine in `.agents/scheduled/`, `routine.md` (five-field cron or a

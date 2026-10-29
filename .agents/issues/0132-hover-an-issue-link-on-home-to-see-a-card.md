@@ -2,7 +2,7 @@
 id: 0132
 title: Hover an issue link on Home to see a card
 category: user-story
-status: todo
+status: done
 assignee: agent
 project: 06-home-timeline
 phase: 3
@@ -17,9 +17,9 @@ As a **maintainer**, I want **hovering an issue link on Home to show its status,
 
 ## Acceptance criteria
 
-- [ ] Hovering an issue chip, row or `#NNNN` link for about 350 ms shows a card; leaving hides it
-- [ ] The card stays inside the window and never on touch
-- [ ] Playwright: hover shows the card with the title
+- [x] Hovering an issue chip, row or `#NNNN` link for about 350 ms shows a card; leaving hides it
+- [x] The card stays inside the window and never on touch
+- [x] Playwright: hover shows the card with the title
 
 ## Out of scope
 

@@ -22,6 +22,7 @@ export const router = createRouter({
     },
     { path: '/needs-you', component: NeedsYouView },
     { path: '/w/:ws', component: WorkspaceView, props: { view: 'feed' } },
+    { path: '/w/:ws/home', component: WorkspaceView, props: { view: 'home' } },
     { path: '/w/:ws/specs', component: WorkspaceView, props: { view: 'specs' } },
     { path: '/w/:ws/issues', component: WorkspaceView, props: { view: 'issues' } },
     { path: '/w/:ws/issues/:id(\\d{4})', component: WorkspaceView, props: { view: 'issue' } },

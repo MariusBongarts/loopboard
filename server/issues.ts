@@ -68,6 +68,8 @@ export interface Issue {
   priority?: number;
   reviewed?: string;
   deployed?: string;
+  // `<slug>@<period>` on an issue a routine filed (project 05).
+  recurrence?: string;
   body: string;
 }
 
@@ -159,6 +161,7 @@ function toIssue(entry: string, id: string, archived: boolean, raw: string): Iss
     created: normalizeCreated(fm.created),
     reviewed: normalizeCreated(fm.reviewed),
     deployed: normalizeCreated(fm.deployed),
+    recurrence: readField(parsed.matter ?? "", "recurrence") || undefined,
     priority,
     body: parsed.content,
   };

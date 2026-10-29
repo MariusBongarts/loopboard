@@ -21,7 +21,7 @@ import { activeMenu, closeMenu } from '../menu';
 import { buildRelations } from '../relations';
 import { EDITOR_LABEL, editorChoice, issueEditorUrl } from '../editor';
 import { copyWithToast, issuePrompt, projectPrompt } from '../prompts';
-import { isShortcut, isTyping, SHORTCUTS } from '../shortcuts';
+import { isShortcut, isTyping, overlayOpen, SHORTCUTS } from '../shortcuts';
 import { toast } from '../toast';
 import { cycleTheme, themeChoice } from '../theme';
 import { provideWorkspace, rootNameOf, type View } from '../workspace';
@@ -70,9 +70,10 @@ provideWorkspace({
   routines,
 });
 
-// The Routines view's data (#0120): fetched while it is open, again on
-// every live change.
-const routinesOpen = computed(() => props.view === 'routines' || props.view === 'routine');
+// Routines (#0120): fetched while the Routines view or Home is open, or the
+// harness has any (the rail counts what's new on Home), again on every live
+// change.
+const routinesWanted = computed(() => props.view === 'routines' || props.view === 'routine' || props.view === 'home' || routineCount.value > 0);
 async function loadRoutines() {
   const id = workspaceId.value;
   try {
@@ -82,7 +83,7 @@ async function loadRoutines() {
     errorMsg.value = (e as Error).message;
   }
 }
-watch(routinesOpen, (open) => {
+watch(routinesWanted, (open) => {
   if (open) void loadRoutines();
 });
 
@@ -134,7 +135,7 @@ async function load() {
     specs.value = data.specs ?? [];
     skipped.value = data.skipped ?? [];
     routineCount.value = data.routineCount ?? 0;
-    if (routinesOpen.value) void loadRoutines();
+    if (routinesWanted.value) void loadRoutines();
     if (pendingOpenId) {
       const created = data.issues.find((i) => i.id === pendingOpenId && !i.archived);
       if (created) {
@@ -216,6 +217,11 @@ function onGlobalKeydown(e: KeyboardEvent) {
     e.preventDefault();
     if (!paletteOpen.value) openPalette();
     else paletteOpen.value = false;
+    return;
+  }
+  if (isShortcut(e, 'home') && !isTyping(e) && !anyDialogOpen() && !overlayOpen()) {
+    e.preventDefault();
+    void router.push(`/w/${workspaceId.value}/home`);
     return;
   }
   if (isShortcut(e, 'create') && !isTyping(e) && !anyDialogOpen()) {
@@ -388,6 +394,7 @@ const commands = computed<Command[]>(() => {
     { id: 'new-backlog', title: 'New backlog idea', group: 'Actions', run: () => openCreate(true) },
     { id: 'new-project', title: 'New project', group: 'Actions', run: () => (projectDialogOpen.value = true) },
     { id: 'refresh', title: 'Refresh', group: 'Actions', keywords: 'reload refetch update live', run: () => void refresh() },
+    { id: 'go-home', title: 'Go to Home', group: 'Actions', hint: SHORTCUTS.home.display, keywords: 'overview timeline runs routines what happened', run: () => router.push(`/w/${ws}/home`) },
     { id: 'go-inbox', title: 'Go to Inbox', group: 'Actions', keywords: 'feed', run: () => router.push(`/w/${ws}`) },
     { id: 'go-specs', title: 'Go to Specs', group: 'Actions', run: () => router.push(`/w/${ws}/specs`) },
     { id: 'go-issues', title: 'Go to Issues (list)', group: 'Actions', keywords: 'list table', run: () => router.push(`/w/${ws}/issues`) },

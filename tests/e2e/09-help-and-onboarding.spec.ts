@@ -29,7 +29,7 @@ test('open Help from anywhere, move between its pages, and go back', async ({ pa
     'Routines',
     'Keyboard shortcuts',
   ]);
-  await expect(page.locator('.keys kbd')).toHaveText(['⌘K', 'C', '/', 'j', 'k', '[', '?', 'Esc']);
+  await expect(page.locator('.keys kbd')).toHaveText(['⌘K', 'C', 'H', '/', 'j', 'k', '[', '?', 'Esc']);
   await expect(page.getByRole('list', { name: 'Reference sections' }).getByRole('link')).toHaveCount(5);
 
   await page.getByRole('link', { name: '← Back to the board' }).click();

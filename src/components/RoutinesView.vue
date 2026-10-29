@@ -3,8 +3,8 @@ import { computed, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { marked } from 'marked';
 import { ArrowLeft, CalendarClock, FilePlus2 } from '@lucide/vue';
-import { formatWhen, localDay, systemTimeZone } from '../../shared/cron';
-import { aggregateDays, firstProblem, newestFirst, RUN_LABEL, runDuration, runTone, stateLabel } from '../routines';
+import { localDay, systemTimeZone } from '../../shared/cron';
+import { aggregateDays, firstProblem, newestFirst, nextSlotText, routineWhen, RUN_LABEL, runDuration, runTone, stateLabel } from '../routines';
 import RoutineGraph from './RoutineGraph.vue';
 import type { RoutineSummary, Run } from '../types';
 import { useWorkspace } from '../workspace';
@@ -21,21 +21,14 @@ const routines = computed(() => data.value?.routines ?? []);
 const current = computed(() => (props.slug ? routines.value.find((r) => r.slug === props.slug) ?? null : null));
 const allDays = computed(() => aggregateDays(routines.value));
 
-function when(iso: string | null | undefined, r: RoutineSummary): string {
-  return iso ? formatWhen(Date.parse(iso), r.timezone, now.value) : '—';
-}
+const when = (iso: string | null | undefined, r: RoutineSummary) => routineWhen(iso, r, now.value);
 
 function scheduleText(r: RoutineSummary): string {
   if (r.state === 'invalid') return '—';
   return r.timezone === zone ? r.words : `${r.words} · ${r.timezone}`;
 }
 
-function nextText(r: RoutineSummary): string {
-  if (r.state === 'invalid' || r.state === 'paused') return '—';
-  if (r.state === 'due' && r.slot) return `Due since ${when(r.slot, r)}`;
-  if (r.state === 'running' && r.lastRun) return `Running since ${when(r.lastRun.at, r)}`;
-  return r.next ? when(r.next, r) : '—';
-}
+const nextText = (r: RoutineSummary) => nextSlotText(r, now.value);
 
 // The schedule and the next slot on one line, for a narrow pane.
 function narrowText(r: RoutineSummary): string {

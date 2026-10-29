@@ -2,7 +2,7 @@
 id: 0131
 title: Preview issues, projects and routines from Home
 category: user-story
-status: todo
+status: done
 assignee: agent
 project: 06-home-timeline
 phase: 2
@@ -17,10 +17,10 @@ As a **maintainer**, I want **issues, projects and routines on Home to open in p
 
 ## Acceptance criteria
 
-- [ ] `?peek=issue/<id>` shows the issue in a preview that also says which run filed it and which runs mentioned it, with Open in board
-- [ ] `?peek=project/<slug>` shows the project's focus, open issues and latest sessions; `?peek=routine/<slug>` its schedule, state and recent runs
-- [ ] Following a link inside a preview opens the next preview and shows Back; Back returns to the previous one; Close rewinds to where the chain started
-- [ ] Playwright: run → issue → Back → Esc
+- [x] `?peek=issue/<id>` shows the issue in a preview that also says which run filed it and which runs mentioned it, with Open in board
+- [x] `?peek=project/<slug>` shows the project's focus, open issues and latest sessions; `?peek=routine/<slug>` its schedule, state and recent runs
+- [x] Following a link inside a preview opens the next preview and shows Back; Back returns to the previous one; Close rewinds to where the chain started
+- [x] Playwright: run → issue → Back → Esc
 
 ## Out of scope
 

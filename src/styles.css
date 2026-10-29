@@ -722,6 +722,8 @@ body.is-resizing { cursor: col-resize; user-select: none; }
 /* ── Workspace switcher (#0008, #0009) ─────────────────────────── */
 .modal .actions { margin-top: 14px; }
 .modal-wide { width: min(560px, 94vw); }
+/* Home's previews (#0130): a reading dialog with its own bar and scroll. */
+.modal-preview { display: flex; flex-direction: column; width: min(760px, 94vw); max-height: 86vh; padding: 0; overflow: hidden; }
 .ws-switch { position: relative; min-width: 0; flex: 1; }
 .ws-current {
   display: flex; align-items: center; gap: 8px; width: 100%; min-width: 0;
