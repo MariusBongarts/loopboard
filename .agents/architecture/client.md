@@ -5,7 +5,8 @@ to the last-used workspace, `/w/:ws` is Home (previews in `?peek=`; the
 old `/w/:ws/home` redirects), `/w/:ws/inbox` the feed (a `/w/:ws?item=` link
 from before redirects there) and `/w/:ws/specs` the Specs
 view, `/w/:ws/issues` the list (filters in the query string, `&view=` for a
-saved view), `/w/:ws/projects` the overview, `/w/:ws/routines` and
+saved view), `/w/:ws/board` every issue on one board (`?scope=` narrows it),
+`/w/:ws/backlog` the ordered ideas, `/w/:ws/projects` the overview, `/w/:ws/routines` and
 `/w/:ws/routines/:slug` the Routines view, `/help` the Help Center (child
 routes `learn`, `setup`, `upgrade`, `reference`) and `/needs-you` the
 cross-workspace queue. No store: [WorkspaceView.vue](../../src/views/WorkspaceView.vue) owns a
@@ -38,7 +39,10 @@ to catch up.
 | [NeedsYouView.vue](../../src/views/NeedsYouView.vue) | `/needs-you` across workspaces; links back with `?item=` |
 | [WorkspaceSwitcher.vue](../../src/components/WorkspaceSwitcher.vue) | Top-left menu (teleported, the rail clips); Add and Manage dialogs on [BaseDialog.vue](../../src/components/BaseDialog.vue) |
 | [InboxView.vue](../../src/components/InboxView.vue) | Layout of rail, feed and pane; feed (day groups, `j`/`k`, `/`); hosts the list, projects, specs and issue page views |
-| [ProjectPane.vue](../../src/components/ProjectPane.vue) | Board, PRD/WIP/Activity tabs, focus and selection badges |
+| [ProjectPane.vue](../../src/components/ProjectPane.vue) | A project's board, PRD/WIP/Activity tabs, focus and selection badges |
+| [IssueBoard.vue](../../src/components/IssueBoard.vue) | A board and its filters, for whichever `issues` the parent hands it; the pane and the Board view share it |
+| [BoardView.vue](../../src/components/BoardView.vue) | `/w/:ws/board`: the scope menu ([board.ts](../../src/board.ts) holds scopes, what each holds, the menu) over an `IssueBoard` |
+| [BacklogView.vue](../../src/components/BacklogView.vue), [BacklogGroup.vue](../../src/components/BacklogGroup.vue) | `/w/:ws/backlog`: ideas by project (`backlogGroups` in [list.ts](../../src/list.ts)); each group is a draggable list that emits the same `reorder` as a column |
 | [AppRail.vue](../../src/components/AppRail.vue) | The rail: feed views, workspace destinations, saved views, projects, the "N files skipped" notice, collapse to icons |
 | [SkippedFilesDialog.vue](../../src/components/SkippedFilesDialog.vue) | The files `/data` reports as `skipped`, each with its reason, and the agent prompt that fixes them (`skippedPrompt` in [prompts.ts](../../src/prompts.ts)); WorkspaceView hosts it |
 | [IssueView.vue](../../src/components/IssueView.vue), [IssuePanel.vue](../../src/components/IssuePanel.vue), [IssuePage.vue](../../src/components/IssuePage.vue) | One issue view in two shells: the resizable side panel (‹ › through the list it came from) and the page at `/w/:ws/issues/:id` |
@@ -47,7 +51,7 @@ to catch up.
 | `StatusIcon`, `Avatar`, `LabelPill`, `ProjectBadge`, `ResizeHandle` | Shared primitives; [resize.ts](../../src/resize.ts) is the resize model for rail, feed and panel |
 | [IssueRow.vue](../../src/components/IssueRow.vue) | One dense row for the list view, a project's list layout and Needs you; [issueContext.ts](../../src/issueContext.ts) is the right-click menu on cards, rows and feed issues |
 | [Column.vue](../../src/components/Column.vue), [Card.vue](../../src/components/Card.vue) | Draggable columns and cards |
-| [BacklogDrawer.vue](../../src/components/BacklogDrawer.vue) | Backlog list with promote |
+| [BacklogDrawer.vue](../../src/components/BacklogDrawer.vue), [BacklogRow.vue](../../src/components/BacklogRow.vue) | A board's backlog in a drawer; the row with promote, also in the Backlog view |
 | [SpecsView.vue](../../src/components/SpecsView.vue) and `Spec*.vue` | Specs table of contents, coverage, search and status chips |
 
 [relations.ts](../../src/relations.ts) indexes `parent:` once per load (shared

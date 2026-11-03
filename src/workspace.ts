@@ -4,7 +4,7 @@ import type { RelationIndex } from './relations';
 import type { Issue, Project, RoutinesData, Workspace } from './types';
 
 // The views inside a workspace; each has its own route.
-export type View = 'feed' | 'home' | 'specs' | 'projects' | 'issues' | 'issue' | 'routines' | 'routine';
+export type View = 'feed' | 'home' | 'specs' | 'projects' | 'board' | 'backlog' | 'issues' | 'issue' | 'routines' | 'routine';
 
 export interface WorkspaceContext {
   id: ComputedRef<string>;

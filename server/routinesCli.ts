@@ -5,6 +5,7 @@ import { printable, shellWord } from "../shared/printable";
 import type { Args, Flags } from "./args";
 import { dueAll, FINISH_STATUSES, finishRun, listRoutines, RoutineRefusal, startRun, type DueRef, type FinishStatus, type HarnessRoutines, type RoutineSummary } from "./dispatch";
 import { buildBrief, dispatcherPrompt } from "./brief";
+import { DecisionRefusal, harnessDecisions, recordDecision, type HarnessDecision } from "./decisions";
 import { configDir } from "./paths";
 import { harnessesUnder, harnessFor, machineName, readRoutine, ROUTINE_FILE, SCHEDULED_DIR, type Harness } from "./routines";
 import { detectRoot, loadRegistry } from "./workspaces";
@@ -23,6 +24,12 @@ const SUBCOMMANDS: Record<string, { usage: string; does: string; flags: string[]
   },
   prompt: { usage: "routines prompt <routine>", does: "print the brief for a run (--path <repo>)", flags: ["--path"] },
   "dispatcher-prompt": { usage: "routines dispatcher-prompt [path]", does: "print the dispatcher prompt for here or --under <dir>", flags: ["--under"] },
+  decisions: { usage: "routines decisions [path]", does: "the open decisions in the run logs, oldest first (--under <dir>, --json)", flags: ["--under", "--json"] },
+  answer: {
+    usage: "routines answer <id> --choice <option|text>",
+    does: "record an answer, or --applied <what> once it's applied (--path <repo>, --dry-run)",
+    flags: ["--path", "--choice", "--applied", "--dry-run"],
+  },
 };
 
 export const ROUTINES_FLAGS: Flags = {
@@ -32,6 +39,8 @@ export const ROUTINES_FLAGS: Flags = {
   "--dry-run": "switch",
   "--status": "value",
   "--note": "value",
+  "--choice": "value",
+  "--applied": "value",
 };
 
 export const ROUTINES_USAGE = `routines [${Object.keys(SUBCOMMANDS).join("|")}]`;
@@ -233,7 +242,48 @@ async function dispatcher(args: Args): Promise<number> {
   return 0;
 }
 
-const RUN: Record<string, (args: Args) => Promise<number>> = { list, due, start, finish, prompt, "dispatcher-prompt": dispatcher };
+// #0136: what the runs couldn't settle, oldest first.
+async function decisions(args: Args): Promise<number> {
+  const found = scope(args, args.positionals[1]).map(harnessDecisions);
+  if (args.switches.has("--json")) {
+    const strip = ({ dir: _dir, ...d }: HarnessDecision) => d;
+    console.log(JSON.stringify({ version: 1, harnesses: found.map((h) => ({ id: h.id, name: h.name, path: h.path, root: h.root, decisions: h.decisions.map(strip) })) }, null, 2));
+    return 0;
+  }
+  const under = args.values["--under"] !== undefined;
+  const count = found.reduce((n, h) => n + h.decisions.length, 0);
+  if (!count) console.log("No open decisions.");
+  for (const h of found) {
+    if (!h.decisions.length) continue;
+    if (under) console.log(`${printable(h.name)} · ${printable(h.path)}`);
+    for (const d of h.decisions) {
+      console.log(`${d.state === "answered" ? "✓" : "?"} ${printable(d.id)} · ${printable(d.question)}`);
+      if (d.state === "answered") console.log(`    answered ${printable(d.answer ?? "")} — to apply`);
+      else if (d.interview) console.log(`    interview: ${printable(d.brief ?? "")}`);
+      else {
+        for (const o of d.options) console.log(`    ${o.key}: ${printable(o.text)}`);
+        console.log(`    recommended: ${printable(d.recommended ?? "")}`);
+      }
+    }
+    if (under) console.log("");
+  }
+  return 0;
+}
+
+async function answer(args: Args): Promise<number> {
+  const id = args.positionals[1];
+  if (!id) throw new RoutinesUsage("Name the decision: `loopboard routines answer <id> --choice <option|text>`.");
+  const target = resolve(args.values["--path"] ?? ".");
+  const found = detectRoot(target);
+  if (!found) throw new RoutinesUsage(`No .agents/ (or legacy ai/) folder with issues/ in ${target}.`);
+  const dryRun = args.switches.has("--dry-run");
+  const done = await recordDecision(found.root, id, { choice: args.values["--choice"], applied: args.values["--applied"] }, Date.now(), { dryRun });
+  const what = done.decision.state === "applied" ? `applied: ${done.decision.applied}` : `answer: ${done.decision.answer}`;
+  console.log(`${dryRun ? "would record" : "recorded"} ${printable(id)} ${printable(what)} in ${printable(done.file)}${done.carried ? " (carried into the newest section)" : ""}`);
+  return 0;
+}
+
+const RUN: Record<string, (args: Args) => Promise<number>> = { list, due, start, finish, prompt, "dispatcher-prompt": dispatcher, decisions, answer };
 
 export async function runRoutines(args: Args): Promise<number> {
   const [first] = args.positionals;
@@ -247,7 +297,7 @@ export async function runRoutines(args: Args): Promise<number> {
     if (effective.positionals.length > 2) throw new RoutinesUsage(`Usage: loopboard ${spec.usage}`);
     return await RUN[sub](effective);
   } catch (err) {
-    if (err instanceof RoutinesUsage || err instanceof RoutineRefusal) {
+    if (err instanceof RoutinesUsage || err instanceof RoutineRefusal || err instanceof DecisionRefusal) {
       console.error(err.message);
       return 1;
     }

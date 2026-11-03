@@ -17,9 +17,11 @@ dispatcher is the only one per place.
 ```text
 scheduled/
 ├─ _templates/routine.md   the template a new routine starts from
+├─ _templates/log.md       one month of a run log, with an open decision
 └─ <slug>/
    ├─ routine.md           when and what — edited by people and agents
    ├─ runs.md              every run — written by `loopboard routines` only
+   ├─ log/YYYY-MM.md       the run log, when the routine keeps one — written by its runs
    └─ …                    anything the steps use: templates, checklists
 ```
 
@@ -103,3 +105,47 @@ Every run:
   run.
 
 `loopboard check` says what is wrong with a routine.
+
+## Run log
+
+A routine whose runs build on each other keeps a **run log** next to
+`runs.md`: `log/YYYY-MM.md`, one file per month, one section per run,
+newest on top ([`_templates/log.md`](_templates/log.md)). `runs.md` keeps
+the note; the run log keeps what is behind it.
+
+- A run reads the top section first (on the 1st, last month's file), then
+  writes its own: `## YYYY-MM-DD`, the note in a `text` block, `### Detail`,
+  `### Open decisions` when there are any, and `### Wrote`.
+- The run log is the routine's own file: writing it is no write elsewhere.
+
+## Open decisions
+
+A run never asks. What it can't settle alone becomes an **open decision**
+in its section, and its note names the id:
+
+```markdown
+#### weekly-report-20261026-1 · Pricing page test: ship variant B?
+
+- state: open
+- kind: test-call
+- raised: 2026-10-26
+- options:
+  - A: ship B
+  - B: run two more weeks
+- recommended: A — three full weeks, B ahead every week
+```
+
+- The id is `<slug>-YYYYMMDD-<n>` and never changes. Two to four lettered
+  options and the recommended one with its reason — or `ask: interview`
+  and a short brief when the question needs a conversation.
+- `state`: `open` → `answered` (`- answer: A · <day>`) → `applied`
+  (`- applied: <day> · <what was done>`), or `dropped` (`- dropped: <why>`).
+- A run copies every decision that isn't applied or dropped into its own
+  section, so the newest section holds all live ones.
+- The dispatcher lists them after its summary and asks them once the
+  maintainer replies. `loopboard routines decisions` lists what is open;
+  `loopboard routines answer <id> --choice <option|text>` records an
+  answer, `--applied "<what>"` its application.
+- `kind` names an entry under the routine's `## On answer`: what applying
+  the answer means and who does it — the dispatcher, the next run, or a
+  proposed session. `loopboard check` warns about a decision it can't read.

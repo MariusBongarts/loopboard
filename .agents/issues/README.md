@@ -52,7 +52,7 @@ Canonical — every skill uses this. **Do not invent new statuses.**
 
 | Status | Meaning |
 |---|---|
-| `backlog` | Captured idea, not yet scheduled. Lives in loopboard's Backlog drawer, not on the board. Promote to `todo` (or close as `wontfix`) when the call to schedule is made. |
+| `backlog` | Captured idea, not yet scheduled. Lives in loopboard's Backlog view, not in a board column. Promote to `todo` (or close as `wontfix`) when the call to schedule is made. |
 
 `backlog` is a holding pen for future ideas that aren't ready to grab —
 e.g. "voice editions" speculation, vendor-decision spikes, "someday"
@@ -115,10 +115,11 @@ review is a queue you work through when you choose. Omit them when unused.
 ## Priority (optional)
 
 `priority: <integer ≥ 1>` is an optional sort rank within an issue's
-column on loopboard's board (1 = top, lower = higher priority). It is
-**not** severity (P0/P1/P2). loopboard writes it when the maintainer
-drags a card into a chosen vertical position; existing issues without
-the field sort below prioritized ones, by id ascending.
+column on loopboard's board, or within the backlog (1 = top, lower = higher
+priority). It is **not** severity (P0/P1/P2). loopboard writes it when the
+maintainer drags a card or backlog idea into a chosen vertical position;
+existing issues without the field sort below prioritized ones, by id
+ascending.
 
 ## Recurrence
 

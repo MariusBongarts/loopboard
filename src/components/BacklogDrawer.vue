@@ -1,9 +1,7 @@
 <script setup lang="ts">
-import { ref } from 'vue';
-import { ArrowUpRight, X } from '@lucide/vue';
+import { X } from '@lucide/vue';
 import type { Issue } from '../types';
-import Avatar from './Avatar.vue';
-import LabelPill from './LabelPill.vue';
+import BacklogRow from './BacklogRow.vue';
 import StatusIcon from './StatusIcon.vue';
 
 // A project's backlog ideas (#0145, restyled in #0056): promote one to Todo,
@@ -16,18 +14,6 @@ const emit = defineEmits<{
   (e: 'close'): void;
   (e: 'open-issue' | 'promote', issue: Issue): void;
 }>();
-
-// A short "Promoted" note on the row until the refresh removes it.
-const promoting = ref<Set<string>>(new Set());
-
-function onPromote(e: MouseEvent, issue: Issue) {
-  e.stopPropagation();
-  promoting.value.add(issue.id);
-  emit('promote', issue);
-  setTimeout(() => {
-    promoting.value.delete(issue.id);
-  }, 1200);
-}
 </script>
 
 <template>
@@ -44,31 +30,13 @@ function onPromote(e: MouseEvent, issue: Issue) {
     <p class="backlog-sub">Ideas not yet scheduled. Promote one when it's time.</p>
     <p v-if="props.issues.length === 0" class="backlog-empty">No backlog ideas here.</p>
     <ul v-else class="backlog-list">
-      <li
+      <BacklogRow
         v-for="iss in props.issues"
         :key="iss.id + (iss.archived ? ':a' : '')"
-        class="backlog-row"
-        :class="{ promoting: promoting.has(iss.id) }"
-        @click="emit('open-issue', iss)"
-      >
-        <span class="card-id">{{ iss.id }}</span>
-        <span class="backlog-row-main">
-          <span class="backlog-row-title">{{ iss.title }}</span>
-          <span v-if="iss.labels.length" class="backlog-row-meta">
-            <LabelPill v-for="l in iss.labels" :key="l" :label="l" />
-          </span>
-        </span>
-        <Avatar :assignee="iss.assignee" />
-        <button
-          v-if="!promoting.has(iss.id)"
-          type="button"
-          class="backlog-promote"
-          title="Promote to Todo"
-          aria-label="Promote to Todo"
-          @click="(e) => onPromote(e, iss)"
-        ><ArrowUpRight :size="14" aria-hidden="true" />Todo</button>
-        <span v-else class="backlog-promoted">Promoted</span>
-      </li>
+        :issue="iss"
+        @open="emit('open-issue', iss)"
+        @promote="emit('promote', iss)"
+      />
     </ul>
   </aside>
 </template>
@@ -98,12 +66,4 @@ function onPromote(e: MouseEvent, issue: Issue) {
 .backlog-sub { margin: 0; padding: 10px 18px; font-size: 12.5px; color: var(--text-3); border-bottom: 1px solid var(--border-subtle); }
 .backlog-empty { padding: 18px; color: var(--text-3); }
 .backlog-list { flex: 1; overflow-y: auto; margin: 0; padding: 0; list-style: none; }
-.backlog-row { display: flex; align-items: center; gap: 10px; padding: 10px 14px 10px 18px; border-bottom: 1px solid var(--border-subtle); cursor: pointer; }
-.backlog-row:hover { background: var(--bg-hover); }
-.backlog-row.promoting { opacity: 0.6; }
-.backlog-row-main { flex: 1; display: grid; gap: 4px; min-width: 0; }
-.backlog-row-title { overflow: hidden; font-size: 13px; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
-.backlog-row-meta { display: flex; flex-wrap: wrap; gap: 4px; }
-.backlog-promote { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; font-size: 12px; }
-.backlog-promoted { font-size: 12px; color: var(--green-text); }
 </style>

@@ -49,10 +49,12 @@
   Orthogonal to status.
 - **Needs you** — every live (not archived), open (not `done`/`wontfix`)
   issue with `assignee: human`.
-- **Priority** — an optional integer sort rank within a board column
-  (1 = top), written when a card is dragged into position. Not severity.
+- **Priority** — an optional integer sort rank within a board column or the
+  backlog (1 = top), written when a card or idea is dragged into position.
+  Not severity.
 - **Backlog** — issues with `status: backlog`: captured ideas that are not
-  scheduled. They live in the Backlog drawer, never on the board.
+  scheduled. They live in the Backlog view (§ 5) and a board's Backlog drawer,
+  never in a workflow column.
 - **Rail** — the left column: brand, search, views and the project list.
 - **Feed** — the middle column: sessions and issues grouped by day.
 - **Home** — a workspace's overview and where it opens (`/w/<ws>`, § 16): routine runs,

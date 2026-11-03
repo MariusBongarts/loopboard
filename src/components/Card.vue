@@ -7,11 +7,12 @@ import { useIssueActions } from '../actions';
 import { useIssueContextMenu } from '../issueContext';
 import Avatar from './Avatar.vue';
 import LabelPill from './LabelPill.vue';
+import ProjectBadge from './ProjectBadge.vue';
 import StatusIcon from './StatusIcon.vue';
 
 // A board card (#0053): id and assignee, status and title, then labels and
 // markers. Right-click opens the issue menu (#0055).
-const props = defineProps<{ issue: Issue; highlighted?: boolean }>();
+const props = defineProps<{ issue: Issue; highlighted?: boolean; showProject?: boolean }>();
 const emit = defineEmits<{
   (e: 'open' | 'toggle-assignee', issue: Issue): void;
 }>();
@@ -20,7 +21,8 @@ const { relations } = useWorkspace();
 const waiting = computed(() => relations.value.isWaiting(props.issue));
 const actions = useIssueActions();
 const contextMenu = useIssueContextMenu();
-const hasMeta = computed(() => waiting.value || props.issue.reviewed || props.issue.deployed || props.issue.labels.length > 0);
+const projectShown = computed(() => props.showProject && !!props.issue.project);
+const hasMeta = computed(() => waiting.value || projectShown.value || props.issue.reviewed || props.issue.deployed || props.issue.labels.length > 0);
 
 function onToggleAssignee(e: MouseEvent) {
   e.stopPropagation();
@@ -65,6 +67,7 @@ function onToggleAssignee(e: MouseEvent) {
       <span class="card-title">{{ props.issue.title }}</span>
     </div>
     <div v-if="hasMeta" class="card-meta">
+      <ProjectBadge v-if="projectShown" :slug="props.issue.project" />
       <span v-if="waiting" class="marker marker-waiting" :title="`Waits for #${props.issue.parent} to be done`">waiting on #{{ props.issue.parent }}</span>
       <span v-if="props.issue.reviewed" class="marker marker-reviewed" :title="`Reviewed ${props.issue.reviewed}`">✓ reviewed</span>
       <span v-if="props.issue.deployed" class="marker marker-deployed" :title="`Deployed ${props.issue.deployed}`">↑ deployed</span>
@@ -76,6 +79,7 @@ function onToggleAssignee(e: MouseEvent) {
 <style scoped>
 .card {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 6px;
   padding: 9px 10px 10px;
   border: 1px solid var(--border);

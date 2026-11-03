@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { repo, sandbox, serve } from './cli';
+import { loopboard, repo, sandbox, serve } from './cli';
 
 // Spec § 16 — Home (project 06), through the real `loopboard` binary.
 let box: { dir: string; config: string };
@@ -121,6 +121,48 @@ test.describe('§ 16 Home', () => {
       await expect(page.getByRole('dialog', { name: 'Issue preview' })).toContainText('Morning triage');
       await page.getByRole('dialog').getByRole('button', { name: 'Close' }).click();
       await expect(page.getByRole('dialog')).toHaveCount(0);
+    } finally {
+      server.proc.kill();
+    }
+  });
+
+  test('open decisions of the run logs stand beside the timeline and follow an answer (#0136)', async ({ page }) => {
+    const { app, triage } = harness();
+    const id = `triage-${today.replaceAll('-', '')}-1`;
+    mkdirSync(join(triage, 'log'), { recursive: true });
+    writeFileSync(
+      join(triage, 'log', `${today.slice(0, 7)}.md`),
+      [
+        `## ${today}`,
+        '',
+        '### Open decisions',
+        '',
+        `#### ${id} · Close the stale bug reports?`,
+        '',
+        '- state: open',
+        '- kind: grooming',
+        `- raised: ${today}`,
+        '- options:',
+        '  - A: close them',
+        '  - B: ask the reporters first',
+        '- recommended: B — two reporters answered last week',
+        '',
+      ].join('\n'),
+    );
+    const server = await serve(['--port', '0'], app, box.config);
+    try {
+      await openHome(page, server.url);
+      const card = page.getByRole('region', { name: 'Open decisions' });
+      await expect(card.locator('h3')).toHaveText('Open decisions · 1');
+      const row = card.locator('.decision-row');
+      await expect(row).toContainText('Close the stale bug reports?');
+      await expect(row).toContainText('Morning triage');
+      await expect(row).toContainText('Recommended B: ask the reporters first');
+
+      expect(loopboard(['routines', 'answer', id, '--choice', 'a'], app, box.config).status).toBe(0);
+      await expect(row).toContainText('Answered A · to apply');
+      expect(loopboard(['routines', 'answer', id, '--applied', 'closed three reports'], app, box.config).status).toBe(0);
+      await expect(card).toHaveCount(0);
     } finally {
       server.proc.kill();
     }

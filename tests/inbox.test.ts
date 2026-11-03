@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   boardColumnIssues,
   boardIssueCount,
+  inProject,
   buildFeed,
   dayLabel,
   filterFeed,
@@ -262,20 +263,20 @@ describe('boardColumnIssues', () => {
   ];
 
   it('puts every archived issue in this project into Done, after live done cards', () => {
-    expect(boardColumnIssues(board, '01-a', 'done').map((i) => i.id)).toEqual([
+    const inA = board.filter((i) => inProject(i, '01-a'));
+    expect(boardColumnIssues(inA, 'done').map((i) => i.id)).toEqual([
       '0001',
       '0002',
       '0004',
       '0003',
     ]);
-    expect(boardColumnIssues(board, '01-a', 'todo').map((i) => i.id)).toEqual(['0006']);
-    expect(boardColumnIssues(board, null, 'done').map((i) => i.id)).toEqual(['0007']);
+    expect(boardColumnIssues(inA, 'todo').map((i) => i.id)).toEqual(['0006']);
+    expect(boardColumnIssues(board.filter((i) => inProject(i, null)), 'done').map((i) => i.id)).toEqual(['0007']);
   });
 
   it('still honors assignee and search filters', () => {
     const filtered = boardColumnIssues(
-      board.map((i) => (i.id === '0004' ? { ...i, assignee: 'human', title: 'Keystore' } : i)),
-      '01-a',
+      board.filter((i) => inProject(i, '01-a')).map((i) => (i.id === '0004' ? { ...i, assignee: 'human', title: 'Keystore' } : i)),
       'done',
       'human',
       ['keystore'],

@@ -106,6 +106,11 @@ describe('the dispatcher prompt (#0119)', () => {
     for (const rule of ['one after another, never in parallel', 'fresh context', 'push notification', 'Never send email', 'Never commit']) {
       expect(tree.out).toContain(rule);
     }
+    // #0136: the summary ends with the open decisions; they're asked only once the maintainer replies.
+    expect(one).toContain(`Run \`loopboard routines decisions '${repo}' --json\``);
+    for (const rule of ['📬 NEEDS YOU', '🤔 OPEN DECISIONS', "Don't ask\n   them now and don't wait", 'AskUserQuestion', 'loopboard routines answer <id> --choice', '## On answer', '--applied']) {
+      expect(tree.out).toContain(rule);
+    }
   });
 
   it('ships with the package', () => {

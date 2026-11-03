@@ -157,6 +157,24 @@ describe('API over HTTP', () => {
     );
   });
 
+  it('orders backlog ideas like a column, and only the whole bucket', async () => {
+    const issues = join(tmp, 'demo', '.agents', 'issues');
+    const idea = (id: string) => `---\nid: ${id}\ntitle: Idea\nstatus: backlog\nassignee: agent\nlabels: []\n---\n\nBody.\n`;
+    await writeFile(join(issues, '0002-a.md'), idea('0002'));
+    await writeFile(join(issues, '0003-b.md'), idea('0003'));
+    try {
+      const partial = await call('PATCH', '/api/w/demo/columns/reorder?archived=false', { body: { status: 'backlog', ids: ['0003'] } });
+      expect(partial.status).toBe(400);
+      const res = await call('PATCH', '/api/w/demo/columns/reorder?archived=false', { body: { status: 'backlog', ids: ['0003', '0002'] } });
+      expect(res.status).toBe(200);
+      expect(await readFile(join(issues, '0003-b.md'), 'utf8')).toContain('priority: 1');
+      expect(await readFile(join(issues, '0002-a.md'), 'utf8')).toContain('priority: 2');
+    } finally {
+      await rm(join(issues, '0002-a.md'));
+      await rm(join(issues, '0003-b.md'));
+    }
+  });
+
   it('answers 404 for an unknown workspace and 422 for a folder without a root', async () => {
     expect((await call('GET', '/api/w/nope/data')).status).toBe(404);
     await mkdir(join(tmp, 'plain'), { recursive: true });

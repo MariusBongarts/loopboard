@@ -15,6 +15,7 @@ import SettingsDialog from '../components/SettingsDialog.vue';
 import SkippedFilesDialog from '../components/SkippedFilesDialog.vue';
 import WontfixModal from '../components/WontfixModal.vue';
 import WorkspaceMissing from '../components/WorkspaceMissing.vue';
+import { SCOPE_BACKLOG } from '../board';
 import type { IssueEdit } from '../issueMenus';
 import { singleFlight, useLiveUpdates } from '../live';
 import { activeMenu, closeMenu } from '../menu';
@@ -226,13 +227,16 @@ function onGlobalKeydown(e: KeyboardEvent) {
   }
   if (isShortcut(e, 'create') && !isTyping(e) && !anyDialogOpen()) {
     e.preventDefault();
-    openCreate(false);
+    openCreate(captureToBacklog.value);
     return;
   }
   if (e.key !== 'Escape' || anyDialogOpen()) return;
   if (backlogIssues.value) backlogIssues.value = null;
   else if (panelIssue.value) panelIssue.value = null;
 }
+
+// Capturing while looking at the backlog files a backlog idea (#0139).
+const captureToBacklog = computed(() => props.view === 'backlog' || (props.view === 'board' && route.query.scope === SCOPE_BACKLOG));
 
 function openCreate(backlog: boolean) {
   createInBacklog.value = backlog;
@@ -398,6 +402,8 @@ const commands = computed<Command[]>(() => {
     { id: 'go-inbox', title: 'Go to Inbox', group: 'Actions', keywords: 'feed', run: () => router.push(`/w/${ws}/inbox`) },
     { id: 'go-specs', title: 'Go to Specs', group: 'Actions', run: () => router.push(`/w/${ws}/specs`) },
     { id: 'go-issues', title: 'Go to Issues (list)', group: 'Actions', keywords: 'list table', run: () => router.push(`/w/${ws}/issues`) },
+    { id: 'go-board', title: 'Go to Board', group: 'Actions', keywords: 'kanban columns all issues', run: () => router.push(`/w/${ws}/board`) },
+    { id: 'go-backlog', title: 'Go to Backlog', group: 'Actions', keywords: 'ideas priority order', run: () => router.push(`/w/${ws}/backlog`) },
     { id: 'go-projects', title: 'Go to Projects', group: 'Actions', keywords: 'overview progress', run: () => router.push(`/w/${ws}/projects`) },
     { id: 'go-routines', title: 'Go to Routines', group: 'Actions', keywords: 'scheduled recurring cron runs dispatcher', run: () => router.push(`/w/${ws}/routines`) },
     { id: 'theme', title: `Theme: ${themeChoice.value} → ${themeChoice.value === 'system' ? 'dark' : themeChoice.value === 'dark' ? 'light' : 'system'}`, group: 'Actions', keywords: 'dark light mode appearance', run: () => toast(`Theme: ${cycleTheme()}`) },
@@ -530,12 +536,7 @@ async function applyReorder(archived: boolean, status: Status, ids: string[]): P
 // full bucket, so splice the subset back into the full on-disk order.
 function spliceSubset(archived: boolean, column: ColumnKey, subsetIds: string[]): string[] | null {
   const fullOrder = issues.value
-    .filter(
-      (iss) =>
-        iss.archived === archived &&
-        iss.status !== 'backlog' &&
-        columnForStatus(iss.status) === column,
-    )
+    .filter((iss) => iss.archived === archived && columnForStatus(iss.status) === column)
     .sort(byPriority)
     .map((i) => i.id);
   const subsetSet = new Set(subsetIds);
@@ -639,7 +640,7 @@ async function onCancelWontfix() {
       @refresh="refresh"
       @selection="(iss) => (selectedIssue = iss)"
       @pane-project="(slug) => (paneProject = slug)"
-      @new-issue="openCreate(false)"
+      @new-issue="openCreate(captureToBacklog)"
       @new-project="projectDialogOpen = true"
       @settings="settingsOpen = true"
       @skipped="skippedOpen = true"

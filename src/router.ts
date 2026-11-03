@@ -34,6 +34,8 @@ export const router = createRouter({
     { path: '/w/:ws/specs', component: WorkspaceView, props: { view: 'specs' } },
     { path: '/w/:ws/issues', component: WorkspaceView, props: { view: 'issues' } },
     { path: '/w/:ws/issues/:id(\\d{4})', component: WorkspaceView, props: { view: 'issue' } },
+    { path: '/w/:ws/board', component: WorkspaceView, props: { view: 'board' } },
+    { path: '/w/:ws/backlog', component: WorkspaceView, props: { view: 'backlog' } },
     { path: '/w/:ws/projects', component: WorkspaceView, props: { view: 'projects' } },
     { path: '/w/:ws/routines', component: WorkspaceView, props: { view: 'routines' } },
     { path: '/w/:ws/routines/:slug', component: WorkspaceView, props: { view: 'routine' } },

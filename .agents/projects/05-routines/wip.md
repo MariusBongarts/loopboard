@@ -1,6 +1,6 @@
 # Routines — WIP
 
-> Last updated: 2026-10-27
+> Last updated: 2026-10-30
 > PRD: [./prd.md](./prd.md)
 > Status: in-progress
 
@@ -54,6 +54,7 @@ Goal: what setting up the first routines in webhighlights and prodapps turned up
 
 - [ ] [#0125 writes-to warns about a harness that is registered under another workspace id](../../issues/0125-writes-to-misses-a-harness-registered-under-another-id.md) — todo
 - [ ] [#0124 Let a routine's run commit and push the paths it names with commits](../../issues/0124-routine-commits-named-paths.md) — backlog
+- [x] [#0136 Open decisions in run logs, morning summary and decision round, decisions on Home](../../issues/0136-open-decisions-and-morning-summary.md) — done
 
 ## Activity log
 
@@ -145,6 +146,17 @@ Goal: what setting up the first routines in webhighlights and prodapps turned up
   that: #0124 and #0125 (phase 4), and #0126 as a standalone bug —
   `init --upgrade` would append a second workflow block to a customized
   AGENTS.md, which is why webhighlights was upgraded by hand.
+
+### 2026-10-30
+
+- #0136 (from webhighlights#1276): run logs and open decisions upstream —
+  `shared/decisions.ts` parses them, `routines decisions` / `answer`,
+  `check` warnings, Home's "Open decisions" card, the dispatcher's summary
+  and decision round, M004. A scheduled desktop session could ask, but a
+  question keeps its beat open and blocks the next ones, so the prompt
+  lists the decisions and asks only once the maintainer replies. `pnpm
+  verify` and §15/§16 e2e green; built
+  ([#0136](../../issues/0136-open-decisions-and-morning-summary.md)).
 
 ## Deferred / out of scope (added during execution)
 

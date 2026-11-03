@@ -705,7 +705,7 @@ body.is-resizing { cursor: col-resize; user-select: none; }
   padding-bottom: 8px;
 }
 /* Fade an edge that hides columns. Masks read alpha only. */
-.pane-body > .issue-list { margin: 0 -20px; border-top: 1px solid var(--border-subtle); }
+.issue-board > .issue-list { margin: 0 -20px; border-top: 1px solid var(--border-subtle); }
 .pane-board > .column { flex: 1 0 236px; min-width: 236px; }
 .pane-board > .column.column-empty { flex: 0 0 44px; min-width: 44px; min-height: 180px; align-self: stretch; }
 .pane-board.more-right { mask-image: linear-gradient(to right, var(--text) calc(100% - 56px), transparent); }

@@ -1,4 +1,4 @@
-import { ALL_STATUSES, COLUMN_LABEL, COLUMN_ORDER, type Issue, type Status } from './types';
+import { ALL_STATUSES, COLUMN_LABEL, COLUMN_ORDER, byPriority, searchMatches, type Issue, type Status } from './types';
 
 // The list view's filters and grouping (#0031). Filters round-trip through
 // the URL query, so a saved view (#0032) is just a named query.
@@ -92,4 +92,10 @@ export function groupIssues(issues: Issue[], by: GroupBy, projectTitle: (slug: s
             : key,
     issues: groups.get(key)!,
   }));
+}
+
+// The Backlog view (#0139): ideas by project, each group in priority order.
+export function backlogGroups(issues: Issue[], tokens: string[], projectTitle: (slug: string) => string): Group[] {
+  const ideas = issues.filter((i) => !i.archived && i.status === 'backlog' && searchMatches(i, tokens));
+  return groupIssues(ideas, 'project', projectTitle).map((g) => ({ ...g, issues: [...g.issues].sort(byPriority) }));
 }

@@ -36,7 +36,7 @@ if anything below is unclear.
 Status semantics (lifecycle only):
 
 - `backlog` — captured idea, not yet scheduled. Lives in loopboard's
-  Backlog drawer, not on the kanban board. Promote to `todo` when ready
+  Backlog view, not in a kanban column. Promote to `todo` when ready
   to schedule, or close as `wontfix` if the idea is rejected.
 - `todo` — drafted, ready to be picked up.
 - `in-progress` — actively being worked on.

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_FILTERS, filterIssues, filtersFromQuery, filtersToQuery, groupIssues } from '../src/list';
+import { DEFAULT_FILTERS, backlogGroups, filterIssues, filtersFromQuery, filtersToQuery, groupIssues } from '../src/list';
 import type { Issue } from '../src/types';
 
 const issue = (id: string, over: Partial<Issue> = {}): Issue => ({
@@ -40,5 +40,31 @@ describe('groupIssues', () => {
   it('groups by project and label, with the empty group last', () => {
     expect(groupIssues(live, 'project', (s) => s.toUpperCase()).map((g) => g.label)).toEqual(['01-A', 'No project']);
     expect(groupIssues(live, 'label').map((g) => [g.label, g.issues.length])).toEqual([['api', 1], ['ui', 2], ['No label', 1]]);
+  });
+});
+
+describe('backlogGroups', () => {
+  const ideas = [
+    issue('0010', { status: 'backlog', project: '01-a', priority: 2 }),
+    issue('0011', { status: 'backlog', project: '01-a', priority: 1 }),
+    issue('0012', { status: 'backlog', project: '01-a' }),
+    issue('0013', { status: 'backlog', title: 'Standalone idea' }),
+    issue('0014', { status: 'backlog', project: '02-b' }),
+    issue('0015', { status: 'backlog', archived: true }),
+    issue('0016', { project: '01-a' }),
+  ];
+  const title = (slug: string) => `Project ${slug}`;
+
+  it('groups live ideas by project in priority order, no project last', () => {
+    const groups = backlogGroups(ideas, [], title);
+    expect(groups.map((g) => [g.label, g.issues.map((i) => i.id)])).toEqual([
+      ['Project 01-a', ['0011', '0010', '0012']],
+      ['Project 02-b', ['0014']],
+      ['No project', ['0013']],
+    ]);
+  });
+
+  it('keeps only ideas matching every word', () => {
+    expect(backlogGroups(ideas, ['standalone', 'idea'], title).flatMap((g) => g.issues.map((i) => i.id))).toEqual(['0013']);
   });
 });

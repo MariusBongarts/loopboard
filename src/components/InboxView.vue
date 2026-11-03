@@ -42,11 +42,14 @@ import {
 } from '../types';
 import SpecsView from './SpecsView.vue';
 import { useRoute, useRouter } from 'vue-router';
+import { boardCardCount, boardScopeColumns, boardScopeIssues, SCOPE_ALL } from '../board';
 import { useResizable } from '../resize';
 import { readStored, readWorkspaceStored, writeStored, writeWorkspaceStored } from '../storage';
 import { useWorkspace, type View } from '../workspace';
 import ProjectsView from './ProjectsView.vue';
 import ListView from './ListView.vue';
+import BacklogView from './BacklogView.vue';
+import BoardView from './BoardView.vue';
 import RoutinesView from './RoutinesView.vue';
 import WorkspaceHome from './WorkspaceHome.vue';
 import { useHome } from '../useHome';
@@ -98,7 +101,8 @@ const view = computed(() => props.view);
 // The route owns the view (#0008): /w/:ws is Home, /w/:ws/inbox the feed,
 // /w/:ws/specs the specs.
 function showView(v: View) {
-  if (v === props.view) return;
+  // The rail's Board entry also clears a scope.
+  if (v === props.view && v !== 'board') return;
   const tail = v === 'home' ? '' : v === 'feed' ? '/inbox' : `/${v}`;
   router.push(`/w/${workspaceId.value}${tail}`);
 }
@@ -164,6 +168,9 @@ const counts = computed(() => ({
   issues: feed.value.filter((e) => e.kind === 'issue').length,
 }));
 
+const boardCount = computed(() => boardCardCount(boardScopeIssues(props.issues, SCOPE_ALL), boardScopeColumns(SCOPE_ALL)));
+const backlogCount = computed(() => props.issues.filter((i) => !i.archived && i.status === 'backlog').length);
+
 const pinnedSlugs = ref(readPins());
 function readPins(): string[] {
   return readPinnedSlugs(readWorkspaceStored(workspaceId.value, PIN_KEY));
@@ -206,11 +213,16 @@ watch(
   (issue) => emit('selection', issue),
   { immediate: true },
 );
-watch(
-  () => (paneKey.value && paneKey.value !== STANDALONE ? paneKey.value : null),
-  (slug) => emit('pane-project', slug),
-  { immediate: true },
-);
+// The project a capture defaults to: what's on screen.
+const captureProject = computed(() => {
+  if (view.value === 'board') {
+    const scoped = route.query.scope;
+    return typeof scoped === 'string' && projectsBySlug.value.has(scoped) ? scoped : null;
+  }
+  if (view.value === 'backlog') return null;
+  return paneKey.value && paneKey.value !== STANDALONE ? paneKey.value : null;
+});
+watch(captureProject, (slug) => emit('pane-project', slug), { immediate: true });
 // "Show this project" from ⌘K or after creating one (#0020, #0021).
 watch(
   () => props.request?.nonce,
@@ -389,6 +401,8 @@ onBeforeUnmount(() => {
       :filter="filter"
       :scope="scope"
       :counts="counts"
+      :board-count="boardCount"
+      :backlog-count="backlogCount"
       :projects-count="props.projects.length"
       :specs-count="props.specs.length"
       :routines-count="routineCount"
@@ -417,6 +431,18 @@ onBeforeUnmount(() => {
     </section>
     <section v-else-if="view === 'issues'" class="inbox-specs">
       <ListView />
+    </section>
+    <section v-else-if="view === 'board'" class="inbox-specs">
+      <BoardView
+        @open-issue="(i, list) => emit('open-issue', i, list)"
+        @toggle-assignee="(i) => emit('toggle-assignee', i)"
+        @open-backlog="(list) => emit('open-backlog', list)"
+        @drop="(p) => emit('drop', p)"
+        @reorder="(p) => emit('reorder', p)"
+      />
+    </section>
+    <section v-else-if="view === 'backlog'" class="inbox-specs">
+      <BacklogView @reorder="(p) => emit('reorder', p)" />
     </section>
     <section v-else-if="view === 'projects'" class="inbox-specs">
       <ProjectsView :projects="props.projects" :issues="props.issues" @open="openFromOverview" />

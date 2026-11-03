@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { HealthRow, Home } from '../../home';
+import { decisionHint, type HealthRow, type Home } from '../../home';
 import { dayLabel } from '../../inbox';
 import { nextSlotText, routineWhen } from '../../routines';
 import ProjectBadge from '../ProjectBadge.vue';
@@ -8,8 +8,8 @@ import PeekLink from './PeekLink.vue';
 import RunDot from './RunDot.vue';
 import RunStrip from './RunStrip.vue';
 
-// Beside the timeline (#0129): every routine's health, what needs you and
-// the projects worked on last.
+// Beside the timeline (#0129): every routine's health, the open decisions of
+// the run logs (#0136), what needs you and the projects worked on last.
 const props = defineProps<{ home: Home; today: string; now: number; workspace: string }>();
 const NEEDS_SHOWN = 5;
 
@@ -35,6 +35,17 @@ function nextLine(h: HealthRow): string {
           <span>{{ nextLine(h) }}</span>
           <span v-if="h.last">Last {{ routineWhen(h.last.at, h.routine, props.now) }}</span>
           <span v-else>{{ h.label }}</span>
+        </span>
+      </div>
+    </section>
+
+    <section v-if="props.home.decisions.length" class="side-card" aria-label="Open decisions">
+      <h3>Open decisions · {{ props.home.decisions.length }}</h3>
+      <div v-for="d in props.home.decisions" :key="d.decision.id" class="decision-row" :title="d.decision.id">
+        <span class="decision-question">{{ d.decision.question }}</span>
+        <span class="decision-meta">
+          <PeekLink class="decision-routine" :to="{ kind: 'routine', slug: d.routine.slug }">{{ d.routine.title }}</PeekLink>
+          <span class="decision-hint">{{ decisionHint(d.decision) }}</span>
         </span>
       </div>
     </section>
@@ -74,4 +85,10 @@ function nextLine(h: HealthRow): string {
 .side-project:hover { background: var(--bg-hover); }
 .side-project :deep(.project-badge) { flex: 1; min-width: 0; color: var(--text); }
 .side-when { flex: none; font-size: 11.5px; color: var(--text-4); }
+.decision-row { display: grid; gap: 2px; padding: 6px 0; min-width: 0; }
+.decision-question { font-weight: 500; color: var(--text); }
+.decision-meta { display: flex; gap: 8px; min-width: 0; font-size: 11.5px; color: var(--text-4); }
+.decision-routine { flex: none; color: var(--text-3); text-decoration: none; }
+.decision-routine:hover { color: var(--accent-text); }
+.decision-hint { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 </style>

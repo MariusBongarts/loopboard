@@ -97,6 +97,7 @@ change, and ask before any bulk edits.
 | `npx loopboard routines due` | What is due now, for the one dispatcher per place. Files the period's issue of a `creates: issue` routine and records expired slots and aborted runs; `--json`, `--dry-run`. |
 | `npx loopboard routines start <routine>` / `finish <routine> --status ok\|failed --note "…"` | Record a run's start and how it ended, in the routine's `runs.md`. |
 | `npx loopboard routines prompt <routine>` / `dispatcher-prompt` | Print the brief for a run's sub-agent, or the dispatcher prompt to schedule on your agent platform. |
+| `npx loopboard routines decisions` / `answer <id> --choice <option>` | List the open decisions the runs left in their run logs, and record an answer (`--applied "…"` once it's done). The dispatcher asks them after its summary; Home lists them. |
 | `npx loopboard workspaces` | Lists the registered workspaces: id, name, path and whether the folder still exists. `--json` prints them as data. `workspaces forget <id>…` removes entries from the list, never a repo's files. |
 
 Requires Node 20 or newer. The server binds to `127.0.0.1` and refuses

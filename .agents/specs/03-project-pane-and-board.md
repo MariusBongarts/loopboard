@@ -22,6 +22,8 @@ Status legend in [`_specs.md`](_specs.md#e2e-coverage).
 | Empty columns shrink | ✅ | `03-project-pane-and-board.spec.ts` |
 | Hide the feed for a wider board | ✅ | `03-project-pane-and-board.spec.ts` |
 | Columns out of view are hinted | ✅ | `03-project-pane-and-board.spec.ts` |
+| See every issue on one board | ✅ | `03-project-pane-and-board.spec.ts`: rail, both kinds of issue, project badge, no backlog or archived cards, count, panel |
+| Narrow the Board to a project, no project or the backlog | ✅ | `03-project-pane-and-board.spec.ts`: each scope and its URL, Back, the rail clearing it, filters reset, a gone project; drop to schedule; capture default. Scopes and menu unit-tested in `tests/board.test.ts` |
 | See every project's progress | ✅ | `03-project-pane-and-board.spec.ts`; phase parsing and counts unit-tested in `tests/projects.test.ts` |
 | Filter and sort the projects | ✅ | `03-project-pane-and-board.spec.ts`: filter, empty state, `?q=` survives Back, sort remembered. Each ordering unit-tested (`sortProjectRows`) |
 
@@ -154,6 +156,46 @@ GIVEN some issues on the board are waiting on an unfinished parent
 THEN the board tools show "Hide waiting N"
 WHEN I turn it on
 THEN those cards disappear until I turn it off or switch projects
+```
+
+### Scenario: See every issue on one board
+
+```
+WHEN I click Board in the rail (or "Go to Board" in ⌘K)
+THEN /w/<workspace>/board shows every live issue of every project, and those
+    without a project, in the five columns, with their count in the header
+AND each card names its project
+AND backlog ideas, wontfix and archived issues are not on it — archived ones
+    would bury Done
+AND the filters of a project's board work the same (Everyone / You / Agent,
+    "Filter this board", Hide waiting, Unreviewed, Backlog N); there is no
+    Board / List choice: All issues is the list
+AND cards drag and open as on any board (§ 4, § 5)
+```
+
+### Scenario: Narrow the Board to a project, no project or the backlog
+
+```
+GIVEN the Board view
+WHEN I click its title at the top left
+THEN a menu offers All issues, No project and Backlog, then the open projects
+    by last session, then shipped ones; typing filters by name or number
+WHEN I pick a project
+THEN the board shows just that project, as in its pane: archived issues end
+    Done and cards don't repeat the project's name
+WHEN I pick No project
+THEN it shows the issues without a project
+WHEN I pick Backlog
+THEN a Backlog column holds every idea, in priority order, next to the empty
+    workflow columns
+WHEN I drop an idea on one of those columns
+THEN it takes that status and leaves the view
+AND the choice is in the URL (`?scope=<slug>`, `none`, `backlog`): Back returns
+    to the previous one and a link keeps it; clicking Board in the rail goes
+    back to All issues; a project that no longer exists shows All issues
+AND switching resets the board's filters
+AND a new issue defaults to the project shown, and to Backlog on the Backlog
+    scope (§ 11)
 ```
 
 ### Scenario: See every project's progress

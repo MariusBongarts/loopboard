@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
 import { rm } from 'node:fs/promises';
 import { join } from 'node:path';
-import { e2eRoot, readIssueFile, writeIssueFile } from './workspace';
+import { e2eRoot, readIssueFile, workspaceRoot, writeIssueFile } from './workspace';
 
 // Spec § 5 — Issue view (panel and page) and backlog.
 test("see an issue's git history", async ({ page }) => {
@@ -112,7 +112,7 @@ test('open an issue as a page, go back, and an unknown id', async ({ page }) => 
   await expect(details.getByRole('button', { name: 'Status: In progress' })).toBeVisible();
   await expect(details).toContainText('.agents/issues/0002-cache-the-feed.md');
   await expect(page.getByRole('dialog', { name: 'Issue detail' })).toHaveCount(0);
-  await page.getByRole('button', { name: 'Back' }).click();
+  await page.getByRole('button', { name: 'Back', exact: true }).click();
   await expect(page).toHaveURL(/\/w\/demo-repo\/inbox$/);
 
   await page.goto('/w/demo-repo/issues/0999');
@@ -134,7 +134,7 @@ test('send an issue to the backlog with its status, and promote it back', async 
     await expect(page.locator('.col-todo [data-issue-id="0007"]')).toHaveCount(0);
     await page.keyboard.press('Escape');
 
-    await page.getByRole('button', { name: 'Backlog 1' }).click();
+    await page.locator('.pane-backlog').click();
     const row = page.locator('.backlog-row', { hasText: 'Fix the README typo' });
     await row.getByRole('button', { name: 'Promote to Todo' }).click();
     await expect.poll(() => readIssueFile('0007-fix-the-readme-typo.md')).toBe(original);
@@ -143,6 +143,103 @@ test('send an issue to the backlog with its status, and promote it back', async 
   } finally {
     await writeIssueFile('0007-fix-the-readme-typo.md', original);
   }
+});
+
+const IDEAS = ['0041-idea-one.md', '0042-idea-two.md', '0043-idea-three.md'];
+const idea = (file: string, title: string, project = '01-demo-project') =>
+  writeIssueFile(file, `---\nid: ${file.slice(0, 4)}\ntitle: ${title}\ncategory: task\nstatus: backlog\nassignee: agent\nproject: ${project}\nlabels: []\ncreated: 2026-09-01\n---\n\nBody.\n`);
+const removeIdeas = () => Promise.all(IDEAS.map((f) => rm(join(workspaceRoot(), 'issues', f), { force: true })));
+
+test('see the backlog by project', async ({ page }) => {
+  await page.goto('/w/demo-repo/inbox');
+  await page.locator('.rail-nav', { hasText: 'Backlog' }).click();
+  await expect(page).toHaveURL(/\/w\/demo-repo\/backlog$/);
+  await expect(page.locator('.rail-nav.on')).toContainText('Backlog');
+  const group = page.getByRole('region', { name: 'Demo Project' });
+  await expect(group.locator('.backlog-row')).toContainText(['Someday: dark mode']);
+  await expect(page.locator('.backlog-view-count')).toHaveText('1');
+
+  const filter = page.getByRole('searchbox', { name: 'Filter backlog' });
+  await filter.fill('nothing like it');
+  await expect(page.locator('.backlog-view')).toContainText('No ideas match “nothing like it”.');
+  await page.getByRole('button', { name: 'Clear' }).click();
+
+  await group.locator('.backlog-row').click();
+  await expect(page.getByRole('dialog', { name: 'Issue detail' }).locator('.issue-view-title')).toHaveText('Someday: dark mode');
+});
+
+test('order the backlog by dragging', async ({ page }) => {
+  const standing = await readIssueFile('0006-someday-dark-mode.md');
+  try {
+    await idea(IDEAS[0], 'Idea one');
+    await idea(IDEAS[1], 'Idea two');
+    await idea(IDEAS[2], 'Idea without a project', '');
+    await page.goto('/w/demo-repo/backlog');
+    const group = page.getByRole('region', { name: 'Demo Project' });
+    const titles = group.locator('.backlog-row-title');
+    await expect(titles).toHaveText(['Someday: dark mode', 'Idea one', 'Idea two']);
+    await expect(page.getByRole('region', { name: 'No project' }).locator('.backlog-row-title')).toHaveText(['Idea without a project']);
+
+    await group.locator('[data-issue-id="0042"]').dragTo(group.locator('[data-issue-id="0006"]'), { targetPosition: { x: 200, y: 4 } });
+    await expect(titles).toHaveText(['Idea two', 'Someday: dark mode', 'Idea one']);
+    await expect(group.locator('.backlog-rank')).toHaveText(['1', '2', '3']);
+    // Every idea gets a rank, the other group's after these; the last write ends it.
+    await expect.poll(() => readIssueFile(IDEAS[2])).toContain('priority: 4');
+    expect(await readIssueFile(IDEAS[1])).toContain('priority: 1');
+    expect(await readIssueFile('0006-someday-dark-mode.md')).toContain('priority: 2');
+    // Only the priority line is new; the same order after a reload.
+    expect(await readIssueFile(IDEAS[0])).toMatch(/assignee: agent\npriority: 3\nproject:/);
+    await page.reload();
+    await expect(titles).toHaveText(['Idea two', 'Someday: dark mode', 'Idea one']);
+  } finally {
+    await removeIdeas();
+    await writeIssueFile('0006-someday-dark-mode.md', standing);
+  }
+});
+
+test('order the backlog from the keyboard', async ({ page }) => {
+  const standing = await readIssueFile('0006-someday-dark-mode.md');
+  try {
+    await idea(IDEAS[0], 'Idea one');
+    await page.goto('/w/demo-repo/backlog');
+    const group = page.getByRole('region', { name: 'Demo Project' });
+    const titles = group.locator('.backlog-row-title');
+    await expect(titles).toHaveText(['Someday: dark mode', 'Idea one']);
+    await group.locator('[data-issue-id="0041"]').focus();
+    await page.keyboard.press('Alt+ArrowUp');
+    await expect(titles).toHaveText(['Idea one', 'Someday: dark mode']);
+    await expect(group.locator('[data-issue-id="0041"]')).toBeFocused();
+    await expect.poll(() => readIssueFile('0006-someday-dark-mode.md')).toContain('priority: 2');
+    expect(await readIssueFile(IDEAS[0])).toContain('priority: 1');
+    // Already first: nothing moves.
+    await page.keyboard.press('Alt+ArrowUp');
+    await expect(titles).toHaveText(['Idea one', 'Someday: dark mode']);
+  } finally {
+    await removeIdeas();
+    await writeIssueFile('0006-someday-dark-mode.md', standing);
+  }
+});
+
+test('promote an idea from the Backlog view', async ({ page }) => {
+  const standing = await readIssueFile('0006-someday-dark-mode.md');
+  try {
+    await page.goto('/w/demo-repo/backlog');
+    await page.locator('.backlog-row', { hasText: 'Someday: dark mode' }).getByRole('button', { name: 'Promote to Todo' }).click();
+    await expect.poll(() => readIssueFile('0006-someday-dark-mode.md')).toBe(standing.replace('status: backlog', 'status: todo'));
+    await expect(page.getByText('#0006 moved to Todo')).toBeVisible();
+    await expect(page.locator('.backlog-view')).toContainText('No backlog ideas.');
+  } finally {
+    await writeIssueFile('0006-someday-dark-mode.md', standing);
+  }
+});
+
+test('capture from the backlog files an idea', async ({ page }) => {
+  await page.goto('/w/demo-repo/backlog');
+  await expect(page.locator('.backlog-row')).toHaveCount(1);
+  await page.keyboard.press('c');
+  const dialog = page.getByRole('dialog', { name: 'New issue' });
+  await expect(dialog.getByRole('radio', { name: 'Backlog' })).toBeChecked();
+  await page.keyboard.press('Escape');
 });
 
 test('open an issue in my editor once one is chosen in Settings', async ({ page }) => {

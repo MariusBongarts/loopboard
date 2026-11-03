@@ -22,7 +22,8 @@ GIVEN a workspace
 WHEN I press "C" (outside a text field) or click "+" next to the workspace name
 THEN a "New issue" dialog opens with the title focused
 AND Category (Task / Story / Bug), Status (Todo / Backlog), Assignee
-    (Agent / You) and Project (default: the project on screen) are preset
+    (Agent / You) and Project (default: the project on screen) are preset;
+    Status is Backlog on the Backlog view and the Board's Backlog scope
 WHEN I type a title and press Enter
 THEN <root>/issues/NNNN-<slug>.md is written with the next free number
     (§ 10), the frontmatter I chose and a skeleton of the category template — its
@@ -54,7 +55,8 @@ AND the project opens on its PRD tab
 ```
 WHEN I press ⌘K (Ctrl+K)
 THEN a palette opens with actions (New issue, New backlog idea, New project,
-    Refresh (§ 2), Go to Inbox, Go to Specs, Open Help) and the other workspaces
+    Refresh (§ 2), Go to Inbox, Go to Board, Go to Backlog, Go to Specs, Open
+    Help) and the other workspaces
 WHEN I type
 THEN issues (by number or title), projects, specs and actions that match every
     word are listed, best match first

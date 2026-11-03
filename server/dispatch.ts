@@ -7,6 +7,8 @@ import { isValid, machineName, parseDuration, readRoutine, readRoutines, ROUTINE
 import { graphDays, type GraphDay } from "./graph";
 import { fileIssue, type FiledIssue } from "./recurrence";
 import { appendTo, lastRun, type NewEntry, type Run } from "./runs";
+import { routineDecisions } from "./runLog";
+import type { LoggedDecision } from "../shared/decisions";
 
 // What a dispatcher asks and records (#0116, #0117, ADR-0010): when a slot
 // is due, the entries `start`, `finish` and `due` append to runs.md, and the
@@ -283,6 +285,7 @@ export interface RoutineSummary {
   days: GraphDay[]; // the contribution graph's days with something on them (#0121)
   problems: RoutineProblem[];
   body: string;
+  decisions: LoggedDecision[]; // live, oldest raised first (#0136)
 }
 
 export function summarizeRoutine(routine: Routine, now: number, host = machineName()): RoutineSummary {
@@ -312,6 +315,7 @@ export function summarizeRoutine(routine: Routine, now: number, host = machineNa
     days: graphDays(routine, now),
     problems: routine.problems,
     body: routine.body,
+    decisions: routineDecisions(routine.dir).decisions,
   };
 }
 

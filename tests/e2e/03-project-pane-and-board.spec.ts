@@ -36,6 +36,93 @@ test('a finished parent reads "After", not "Blocked by"', async ({ page }) => {
   }
 });
 
+test('see every issue on one board', async ({ page }) => {
+  await page.goto('/w/demo-repo/inbox');
+  await page.locator('.rail-nav', { hasText: 'Board' }).click();
+  await expect(page).toHaveURL(/\/w\/demo-repo\/board$/);
+  await expect(page.locator('.rail-nav.on')).toContainText('Board');
+
+  const board = page.locator('.board-view');
+  await expect(page.getByRole('button', { name: 'Board scope: All issues' })).toBeVisible();
+  // A project's issue and one without a project, on the same board.
+  await expect(board.locator('.col-todo [data-issue-id="0001"]')).toBeVisible();
+  await expect(board.locator('.col-todo [data-issue-id="0007"]')).toBeVisible();
+  await expect(board.locator('.col-todo [data-issue-id="0001"] .project-badge')).toHaveText('Demo Project');
+  // No backlog ideas and no archived issues; no Board / List choice.
+  await expect(board.locator('[data-issue-id="0006"]')).toHaveCount(0);
+  await expect(board.locator('[data-issue-id="0008"]')).toHaveCount(0);
+  await expect(board.getByRole('radio', { name: 'List' })).toHaveCount(0);
+  await expect(board.locator('.board-count')).toHaveText(await page.locator('.rail-nav', { hasText: 'Board' }).locator('.rail-count').innerText());
+
+  await board.locator('.col-todo [data-issue-id="0001"] .card').click();
+  await expect(page.getByRole('dialog', { name: 'Issue detail' }).locator('.issue-view-title')).toHaveText('Wire the export button');
+});
+
+test('narrow the board to a project, no project or the backlog', async ({ page }) => {
+  await page.goto('/w/demo-repo/board');
+  const board = page.locator('.board-view');
+  const pick = async (from: string, name: string) => {
+    await page.getByRole('button', { name: `Board scope: ${from}` }).click();
+    await page.getByRole('menu', { name: 'Board scope' }).getByRole('menuitemcheckbox', { name }).click();
+  };
+
+  await pick('All issues', 'Demo Project');
+  await expect(page).toHaveURL(/\?scope=01-demo-project$/);
+  await expect(board.locator('.col-todo [data-issue-id="0001"]')).toBeVisible();
+  await expect(board.locator('.col-todo [data-issue-id="0007"]')).toHaveCount(0);
+  // The same board as the project's pane: archived issues end Done.
+  await expect(board.locator('.col-done [data-issue-id="0008"]')).toBeVisible();
+  await expect(board.locator('.col-todo [data-issue-id="0001"] .project-badge')).toHaveCount(0);
+
+  await pick('Demo Project', 'No project');
+  await expect(page).toHaveURL(/\?scope=none$/);
+  await expect(board.locator('.col-todo [data-issue-id="0007"]')).toBeVisible();
+  await expect(board.locator('.col-todo [data-issue-id="0001"]')).toHaveCount(0);
+
+  await pick('No project', 'Backlog');
+  await expect(page).toHaveURL(/\?scope=backlog$/);
+  await expect(board.locator('.col-backlog [data-issue-id="0006"]')).toBeVisible();
+  await expect(board.locator('.col-todo .card')).toHaveCount(0);
+  await expect(board.locator('.pane-backlog')).toHaveCount(0);
+
+  // Back returns to the previous scope; the rail's Board clears it.
+  await page.goBack();
+  await expect(page.getByRole('button', { name: 'Board scope: No project' })).toBeVisible();
+  await page.locator('.rail-nav', { hasText: 'Board' }).click();
+  await expect(page).toHaveURL(/\/board$/);
+  await expect(page.getByRole('button', { name: 'Board scope: All issues' })).toBeVisible();
+
+  // Filters don't survive a change of scope; a link to a gone project shows everything.
+  await board.getByRole('searchbox', { name: 'Filter this board' }).fill('export');
+  await expect(board.locator('.card')).toHaveCount(1);
+  await pick('All issues', 'Demo Project');
+  await expect(board.getByRole('searchbox', { name: 'Filter this board' })).toHaveValue('');
+  await page.goto('/w/demo-repo/board?scope=99-gone');
+  await expect(page.getByRole('button', { name: 'Board scope: All issues' })).toBeVisible();
+});
+
+test('a new issue defaults to the project the board is narrowed to', async ({ page }) => {
+  await page.goto('/w/demo-repo/board?scope=01-demo-project');
+  await expect(page.locator('.board-view .card').first()).toBeVisible();
+  await page.keyboard.press('c');
+  const dialog = page.getByRole('dialog', { name: 'New issue' });
+  await expect(dialog.getByRole('combobox', { name: 'Project' })).toHaveValue('01-demo-project');
+  await page.keyboard.press('Escape');
+});
+
+test('drop an idea from the backlog board to schedule it', async ({ page }) => {
+  const original = await readIssueFile('0006-someday-dark-mode.md');
+  try {
+    await page.goto('/w/demo-repo/board?scope=backlog');
+    const board = page.locator('.board-view');
+    await board.locator('.col-backlog [data-issue-id="0006"]').dragTo(board.locator('.col-todo .column-list'), { targetPosition: { x: 20, y: 20 } });
+    await expect.poll(() => readIssueFile('0006-someday-dark-mode.md')).toBe(original.replace('status: backlog', 'status: todo'));
+    await expect(board.locator('.col-backlog [data-issue-id="0006"]')).toHaveCount(0);
+  } finally {
+    await writeIssueFile('0006-someday-dark-mode.md', original);
+  }
+});
+
 test("see every project's progress", async ({ page }) => {
   await page.goto('/w/demo-repo/inbox');
   await page.locator('.rail-nav', { hasText: 'Projects' }).first().click();

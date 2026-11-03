@@ -75,4 +75,23 @@ describe('the documented JSON (#0123)', () => {
     expect(Object.keys(due.run[0]).filter((k) => !['slot', 'missed'].includes(k))).toEqual(docs['Due entry']);
     expect(Object.keys(due.filed[0])).toEqual([...docs['Due entry'], 'slot', 'status', 'issue', 'note']);
   });
+
+  it('names every field decisions --json prints (#0136)', async () => {
+    const repo = join(tmp, 'shop');
+    await mkdir(join(repo, '.agents', 'issues'), { recursive: true });
+    const dir = join(repo, '.agents', 'scheduled', 'weekly');
+    await mkdir(join(dir, 'log'), { recursive: true });
+    await writeFile(join(dir, 'routine.md'), '---\nschedule: "@weekly"\ntimezone: UTC\n---\n\nSteps.\n');
+    await writeFile(
+      join(dir, 'log', '2026-10.md'),
+      '## 2026-10-26\n\n### Open decisions\n\n#### weekly-20261026-1 · Ship B?\n\n- state: open\n- options:\n  - A: ship\n  - B: wait\n- recommended: A — ahead\n',
+    );
+    const docs = documented();
+    const out = JSON.parse(await run('routines', 'decisions', repo, '--json'));
+    expect(Object.keys(out)).toEqual(docs.Decisions);
+    expect(Object.keys(out.harnesses[0])).toEqual(docs['Decision harness']);
+    expect(Object.keys(out.harnesses[0].decisions[0])).toEqual(docs.Decision);
+    const listed = JSON.parse(await run('routines', repo, '--json'));
+    expect(Object.keys(listed.harnesses[0].routines[0].decisions[0])).toEqual(docs.Decision.filter((k) => !['routine', 'title'].includes(k)));
+  });
 });

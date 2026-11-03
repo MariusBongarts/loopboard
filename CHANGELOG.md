@@ -5,6 +5,15 @@ must apply are numbered in [MIGRATIONS.md](MIGRATIONS.md).
 
 ## [Unreleased]
 
+### Board and Backlog
+- **Board** in the rail (`/w/<ws>/board`): every issue of the workspace on one
+  board, with a project badge on each card. The menu at its top left narrows
+  it to one project, to issues without a project or to the backlog; dropping
+  an idea on a column schedules it.
+- **Backlog** in the rail (`/w/<ws>/backlog`): every idea grouped by project.
+  Drag a row, or press Alt+↑/↓, to set its priority; promote it to Todo from
+  its row. `priority:` now also orders backlog ideas.
+
 ### Home
 - A workspace now opens on its **Home** (`/w/<ws>`; the rail's first
   entry, `H`, ⌘K); the feed moved to `/w/<ws>/inbox`, and older feed links
@@ -43,6 +52,13 @@ must apply are numbered in [MIGRATIONS.md](MIGRATIONS.md).
 - `loopboard init` adds `.agents/scheduled/`, the `routine` skill and the
   AGENTS.md rule that recurring work becomes a routine, never a task of an
   agent platform; migration M003 brings them to existing harnesses.
+- A routine can keep a run log, `log/YYYY-MM.md`, whose sections hold the
+  **open decisions** an unattended run couldn't settle.
+  `routines decisions` lists them, `routines answer <id> --choice …`
+  records an answer (`--applied` its application), `check` warns about one
+  it can't read, and Home lists them beside the timeline. The dispatcher
+  prompt ends each beat with a summary and the open decisions and asks them
+  once the maintainer replies; migration M004 (#0136).
 
 ### Run anywhere
 - `npx loopboard [path]` starts a local board for any repo with an `.agents/`

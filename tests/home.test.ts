@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { buildHome, findRun, issueOrigins, parsePeek, peekValue, periodStart, runKey, runSummary, splitRunNote, type HomeInput, type RunEntry } from '../src/home';
+import { buildHome, decisionHint, findRun, issueOrigins, parsePeek, peekValue, periodStart, runKey, runSummary, splitRunNote, type HomeInput, type RunEntry } from '../src/home';
+import type { LoggedDecision } from '../shared/decisions';
 import type { Issue, Project, RoutineSummary, Run } from '../src/types';
 
 // Home (project 06): the timeline, the run summary, filed vs mentioned, the
@@ -21,7 +22,7 @@ function routine(slug: string, runs: Run[], over: Partial<RoutineSummary> = {}):
   return {
     slug, dir: '', title: slug, kind: 'agent', enabled: true, state: 'idle', schedule: '0 8 * * *', at: null, timezone: 'Europe/Berlin',
     words: 'Every day at 08:00', expiresAfter: null, timeout: '2h', host: null, writesTo: [], created: null, creates: null,
-    next: '2026-10-30T08:00:00+01:00', slot: null, lastRun: runs[runs.length - 1] ?? null, runs, days: [], problems: [], body: '', ...over,
+    next: '2026-10-30T08:00:00+01:00', slot: null, lastRun: runs[runs.length - 1] ?? null, runs, days: [], problems: [], body: '', decisions: [], ...over,
   };
 }
 
@@ -212,5 +213,47 @@ describe('preview links', () => {
   it('round-trips every kind and rejects anything else', () => {
     for (const v of ['run/triage/2026-10-29T0953', 'issue/0124', 'project/06-home', 'routine/triage']) expect(peekValue(parsePeek(v)!)).toBe(v);
     for (const v of ['run/triage', 'issue/12', 'nothing/x', '', undefined, 3]) expect(parsePeek(v)).toBeNull();
+  });
+});
+
+describe('open decisions (#0136)', () => {
+  const decision = (id: string, over: Partial<LoggedDecision> = {}): LoggedDecision => ({
+    id,
+    question: 'Ship C?',
+    state: 'open',
+    kind: 'call',
+    raised: `${id.slice(-10, -6)}-${id.slice(-6, -4)}-${id.slice(-4, -2)}`,
+    options: [
+      { key: 'A', text: 'ship C' },
+      { key: 'B', text: 'run one more week' },
+    ],
+    recommended: 'B — not enough data yet',
+    interview: false,
+    brief: null,
+    answer: null,
+    applied: null,
+    dropped: null,
+    section: '2026-10-31',
+    line: 12,
+    file: 'log/2026-10.md',
+    inNewest: true,
+    ...over,
+  });
+
+  it('lists every routine’s decisions, oldest raised first', () => {
+    const hero = routine('hero', [], { decisions: [decision('hero-20261031-1')] });
+    const mail = routine('mail', [], { decisions: [decision('mail-20261029-1'), decision('mail-20261030-2')] });
+    expect(home({ routines: [hero, mail] }).decisions.map((d) => [d.routine.slug, d.decision.id])).toEqual([
+      ['mail', 'mail-20261029-1'],
+      ['mail', 'mail-20261030-2'],
+      ['hero', 'hero-20261031-1'],
+    ]);
+  });
+
+  it('says what each one waits for', () => {
+    expect(decisionHint(decision('a-20261031-1'))).toBe('Recommended B: run one more week');
+    expect(decisionHint(decision('a-20261031-1', { state: 'answered', answer: 'A · 2026-10-31' }))).toBe('Answered A · to apply');
+    expect(decisionHint(decision('a-20261031-1', { interview: true, options: [], recommended: null }))).toBe('Interview');
+    expect(decisionHint(decision('a-20261031-1', { recommended: 'whatever fits' }))).toBe('Open');
   });
 });

@@ -195,7 +195,7 @@ export function searchProjects(projects: Project[], tokens: string[]): Project[]
   });
 }
 
-function inProject(issue: Issue, projectSlug: string | null): boolean {
+export function inProject(issue: Issue, projectSlug: string | null): boolean {
   return projectSlug ? issue.project === projectSlug : !issue.project;
 }
 
@@ -207,27 +207,21 @@ export function passesBoardFilters(
   return (who === 'all' || issue.assignee === who) && searchMatches(issue, tokens);
 }
 
-// Archived issues have left the workflow, so the board shows them in Done
-// after the live done cards (newest archive first).
+// `issues` are the ones this board holds. Archived issues have left the
+// workflow, so the board shows them in Done after the live done cards (newest
+// archive first).
 export function boardColumnIssues(
   issues: Issue[],
-  projectSlug: string | null,
   column: ColumnKey,
   who: 'all' | Issue['assignee'] = 'all',
   tokens: string[] = [],
 ): Issue[] {
   const live = issues
-    .filter(
-      (i) =>
-        !i.archived &&
-        inProject(i, projectSlug) &&
-        i.status === column &&
-        passesBoardFilters(i, who, tokens),
-    )
+    .filter((i) => !i.archived && i.status === column && passesBoardFilters(i, who, tokens))
     .sort(byPriority);
   if (column !== 'done') return live;
   const archived = issues
-    .filter((i) => i.archived && inProject(i, projectSlug) && passesBoardFilters(i, who, tokens))
+    .filter((i) => i.archived && passesBoardFilters(i, who, tokens))
     .sort((a, b) => (b.created ?? '').localeCompare(a.created ?? '') || b.id.localeCompare(a.id));
   return [...live, ...archived];
 }

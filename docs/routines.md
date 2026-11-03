@@ -125,6 +125,73 @@ The entries of one run share `started`; its last entry is its state:
 `running`, `ok`, `failed` or `aborted`. `expired` (`recorded`, `slot`) and
 `missed` (`recorded`, `from`, `to`, `slots`) record slots that weren't run.
 
+## Run log and open decisions
+
+A routine whose runs build on each other keeps a run log next to
+`runs.md`: `log/YYYY-MM.md`, one file per month, one section per run,
+newest on top. The routine's steps say what goes in; each run reads the top
+section first and writes its own:
+
+````markdown
+## 2026-10-26
+
+```text
+📬 1 · signups +12% · pricing test ready to call
+1. 🤔 Pricing page test: ship variant B? (weekly-report-20261026-1)
+```
+
+### Detail
+
+- Signups 412 vs 368 the week before.
+
+### Open decisions
+
+#### weekly-report-20261026-1 · Pricing page test: ship variant B?
+
+- state: open
+- kind: test-call
+- raised: 2026-10-26
+- options:
+  - A: ship B
+  - B: run two more weeks
+- recommended: A — three full weeks, B ahead every week
+
+### Wrote
+
+- `reports/2026-10-26.md`
+````
+
+loopboard reads one part of it: the **open decisions**, what an unattended
+run couldn't settle alone.
+
+- **Section:** `## YYYY-MM-DD`, or `## YYYY-MM-DD HH:MM` for a routine that
+  runs more than once a day. Only `#### ` blocks under its
+  `### Open decisions` are decisions; headings inside code fences don't
+  count.
+- **Decision:** `#### <id> · <question>`, then `- key: value` lines. The id
+  is `<slug>-YYYYMMDD-<n>`. It needs a `state`, two to four lettered
+  `options` and a `recommended` line — or `ask: interview` with a brief
+  (a `brief:` line or a paragraph) instead of options. `kind` names the
+  entry under the routine's `## On answer`; `raised` is the day it was
+  first asked.
+- **States:** `open` → `answered` (`- answer: A · 2026-10-27`) → `applied`
+  (`- applied: 2026-10-28 · <what was done>`), or `dropped`
+  (`- dropped: <why>`). `open` and `answered` are live.
+- **Newest wins:** an id's newest occurrence — the top section of the
+  newest month first — holds its state. A run copies every live decision
+  into its own section; one it forgot stays live anyway, and
+  `routines answer` copies it into the newest section with its answer, so
+  the next run sees it.
+- **On answer:** each `routine.md` that raises decisions ends with
+  `## On answer`: per `kind`, what applying an answer means and who does
+  it — the dispatcher's session, the routine's next run, or a proposed
+  session.
+- **Asking:** the dispatcher lists the open decisions at the end of its
+  summary and asks them once the maintainer replies in its session — a
+  beat that waited for an answer would keep the next beats from starting.
+  `loopboard check` warns about a section or decision it can't read; the
+  dispatcher never asks one.
+
 ## Commands
 
 `<routine>` is a routine's folder, or its slug in the harness at
@@ -141,6 +208,8 @@ which reports and writes nothing.
 | `loopboard routines finish <routine> --status ok\|failed --note <text>` | Records how the run ended; `--note -` reads the note from stdin |
 | `loopboard routines prompt <routine>` | The brief for the run's sub-agent: steps, harness, last three notes, rules, the finish command |
 | `loopboard routines dispatcher-prompt [path]` | The dispatcher prompt for this harness or `--under <dir>` |
+| `loopboard routines decisions [path]` | The open decisions in the run logs, oldest first; `--under <dir>`, `--json` |
+| `loopboard routines answer <id> --choice <option\|text>` | Records an answer in the routine's newest run-log section; `--applied <what>` records that it was applied; `--path <repo>`, `--dry-run` |
 | `loopboard check` | Also validates every routine and finds duplicate `recurrence:` values |
 
 The board shows the same under **Routines** in each workspace: every
@@ -197,10 +266,10 @@ the dispatcher would run, and writes nothing.
 
 ## For other tools: the JSON
 
-`routines list --json`, `routines due --json` and `routines start --json`
-are a contract for dashboards and scripts. Each carries `"version": 1`;
-within a version, fields are only ever added. Times are ISO 8601 strings
-with an offset; `null` means "none".
+`routines list --json`, `routines due --json`, `routines start --json` and
+`routines decisions --json` are a contract for dashboards and scripts.
+Each carries `"version": 1`; within a version, fields are only ever added.
+Times are ISO 8601 strings with an offset; `null` means "none".
 
 ### `routines list --json`
 
@@ -250,6 +319,7 @@ with an offset; `null` means "none".
 | `days` | the contribution graph's days with something on them |
 | `problems` | `[{ level, file, message }]`: `level` is `error` or `warning`, `file` is `routine.md` or `runs.md` |
 | `body` | the steps, as markdown |
+| `decisions` | its live open decisions, oldest first: `Decision` entries without `routine` and `title` |
 
 #### Run
 
@@ -314,3 +384,45 @@ Fields a run doesn't have are left out.
 above; `slot` is the slot it runs for, or `null` for a manual run; `missed`
 counts the earlier slots it covers; `aborted` is the stale run it closed
 first, or `null`.
+
+### `routines decisions --json`
+
+#### Decisions
+
+| Field | Value |
+|---|---|
+| `version` | `1` |
+| `harnesses` | one entry per harness, also those without decisions |
+
+#### Decision harness
+
+| Field | Value |
+|---|---|
+| `id` | the identity file's id, else the folder's slug |
+| `name` | the identity file's name, else the folder's name |
+| `path` | the harness folder — what `routines answer --path` takes |
+| `root` | its `.agents/` (or legacy `ai/`) folder |
+| `decisions` | its live decisions, oldest `raised` first |
+
+#### Decision
+
+| Field | Value |
+|---|---|
+| `id` | `<slug>-YYYYMMDD-<n>` |
+| `question` | the heading's text after `·` |
+| `state` | `open` or `answered` (`applied` and `dropped` aren't live) |
+| `kind` | `kind:`, or `null` |
+| `raised` | `raised:`, or `null` |
+| `options` | `[{ key, text }]`, `key` a capital letter; empty for an interview |
+| `recommended` | `recommended:` as written, or `null` for an interview |
+| `interview` | `true` for `ask: interview` |
+| `brief` | an interview's brief, or `null` |
+| `answer` | `answer:` (`B · 2026-10-27`), or `null` |
+| `applied` | `applied:`, or `null` |
+| `dropped` | `dropped:`, or `null` |
+| `section` | the heading of the section that holds its newest state |
+| `line` | its `####` line in that file, from 1 |
+| `file` | that file, relative to the routine: `log/2026-10.md` |
+| `inNewest` | `false` when the newest section left it out |
+| `routine` | the routine's slug (`decisions --json` only) |
+| `title` | the routine's title (`decisions --json` only) |

@@ -12,12 +12,14 @@ import {
   Inbox,
   Layers,
   List,
+  ListOrdered,
   PanelLeftClose,
   PanelLeftOpen,
   Plus,
   ScrollText,
   Search,
   Settings,
+  SquareKanban,
   SquarePen,
 } from '@lucide/vue';
 import PinIcon from './icons/PinIcon.vue';
@@ -38,6 +40,8 @@ const props = defineProps<{
   filter: InboxFilter;
   scope: string | null;
   counts: Record<InboxFilter, number>;
+  boardCount: number;
+  backlogCount: number;
   projectsCount: number;
   specsCount: number;
   routinesCount: number;
@@ -168,6 +172,16 @@ const feedOn = (key: InboxFilter) => props.view === 'feed' && props.filter === k
         <List class="rail-icon-glyph" :size="16" aria-hidden="true" />
         <span class="rail-name">All issues</span>
         <span class="rail-count">{{ props.counts.issues }}</span>
+      </button>
+      <button type="button" class="rail-nav" :class="{ on: props.view === 'board' }" title="Board" @click="emit('show-view', 'board')">
+        <SquareKanban class="rail-icon-glyph" :size="16" aria-hidden="true" />
+        <span class="rail-name">Board</span>
+        <span class="rail-count">{{ props.boardCount }}</span>
+      </button>
+      <button type="button" class="rail-nav" :class="{ on: props.view === 'backlog' }" title="Backlog" @click="emit('show-view', 'backlog')">
+        <ListOrdered class="rail-icon-glyph" :size="16" aria-hidden="true" />
+        <span class="rail-name">Backlog</span>
+        <span class="rail-count">{{ props.backlogCount }}</span>
       </button>
       <button type="button" class="rail-nav" :class="{ on: props.view === 'projects' }" title="Projects" @click="emit('show-view', 'projects')">
         <Box class="rail-icon-glyph" :size="16" aria-hidden="true" />

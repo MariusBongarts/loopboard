@@ -1,7 +1,9 @@
+import type { LoggedDecision } from '../shared/decisions';
+
 export const WORKFLOW_STATUSES = ['todo', 'in-progress', 'in-review', 'done'] as const;
 export const SIDE_STATUSES = ['blocked', 'wontfix'] as const;
 // Pre-workflow stage: captured idea, not yet scheduled. Surfaced in
-// the Backlog drawer (#0145), not on the kanban board.
+// the Backlog view (#0139) and drawer (#0145), not in a kanban column.
 export const PRE_WORKFLOW_STATUSES = ['backlog'] as const;
 export const ALL_STATUSES = [
   ...PRE_WORKFLOW_STATUSES,
@@ -253,6 +255,7 @@ export interface RoutineSummary {
   days: GraphDay[];
   problems: RoutineProblem[];
   body: string;
+  decisions: LoggedDecision[];
 }
 
 export interface RoutinesData {
@@ -295,8 +298,8 @@ export const COLUMN_LABEL: Record<ColumnKey, string> = {
   'in-review': 'In review',
   'done': 'Done',
   'wontfix': 'Wontfix',
-  // backlog is `Status` for typing purposes but never appears as a
-  // board column — the Backlog drawer is its only surface (#0145).
+  // backlog is `Status` for typing purposes; it's a column only when the
+  // Board view is narrowed to the backlog (#0138).
   'backlog': 'Backlog',
 };
 

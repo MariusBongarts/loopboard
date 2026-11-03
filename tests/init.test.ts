@@ -170,6 +170,7 @@ describe('loopboard init --kind docs', () => {
     '.agents/projects/_templates/prd.md',
     '.agents/projects/_templates/wip.md',
     '.agents/scheduled/README.md',
+    '.agents/scheduled/_templates/log.md',
     '.agents/scheduled/_templates/routine.md',
     'AGENTS.md',
     'CLAUDE.md',
@@ -732,7 +733,7 @@ describe('routines in the scaffold (#0122)', () => {
     await rm(join(repo, '.agents/skills/routine'), { recursive: true });
     await rm(join(repo, '.claude/skills/routine'));
     const actions = await init({ upgrade: true });
-    expect(paths(actions, 'create')).toEqual(['.agents/skills/routine/SKILL.md', '.agents/scheduled/README.md', '.agents/scheduled/_templates/routine.md']);
+    expect(paths(actions, 'create')).toEqual(['.agents/skills/routine/SKILL.md', '.agents/scheduled/README.md', '.agents/scheduled/_templates/log.md', '.agents/scheduled/_templates/routine.md']);
     expect(paths(actions, 'link')).toEqual(['.claude/skills/routine']);
   });
 

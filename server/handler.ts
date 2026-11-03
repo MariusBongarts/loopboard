@@ -295,7 +295,6 @@ route("PATCH", /^\/api\/w\/([^/]+)\/columns\/reorder$/, async (ctx, req, res, m)
   if (typeof status !== "string" || !(ALL_STATUSES as readonly string[]).includes(status)) {
     throw new HttpError(400, `unknown status: ${String(status)}`);
   }
-  if (status === "backlog") throw new HttpError(400, "backlog has no column ordering");
   if (!Array.isArray(ids) || ids.some((v) => typeof v !== "string")) {
     throw new HttpError(400, "ids must be an array of strings");
   }

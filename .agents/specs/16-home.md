@@ -21,6 +21,7 @@ rows, what is new — is unit-tested in `tests/home.test.ts`. Status legend in
 | What a run filed and mentioned | ✅ | [`16-home.spec.ts`](../../tests/e2e/16-home.spec.ts): filed under the run, mentions as chips, an issue routine's issue by `recurrence`, a hand-filed issue on its own |
 | Choose the period | ✅ | [`16-home.spec.ts`](../../tests/e2e/16-home.spec.ts): Today hides yesterday, remembered after a reload |
 | Routine health, Needs you and projects | 🟡 | [`16-home.spec.ts`](../../tests/e2e/16-home.spec.ts): a row per routine with its run strip. Paused, running, no runs, Needs you order and projects in `tests/home.test.ts` |
+| Open decisions | ✅ | [`16-home.spec.ts`](../../tests/e2e/16-home.spec.ts): a decision from a run log, its answer and its application followed live. Order and hints in `tests/home.test.ts`; reading and answering in `tests/decisions.test.ts` |
 | What is new since the last visit | ❌ | Vitest: `tests/home.test.ts` (runs after last seen, later days, the 24-hour default, the count) |
 | Preview a run | ✅ | [`16-home.spec.ts`](../../tests/e2e/16-home.spec.ts): by click, the URL, issues from the run, its place in the strip |
 | Preview an issue, a project or a routine | 🟡 | [`16-home.spec.ts`](../../tests/e2e/16-home.spec.ts): an issue by link after a reload, "Filed by a routine". Project and routine previews not asserted |
@@ -95,6 +96,22 @@ AND "Needs you" lists the first five issues assigned to me and still
     open, reviews first, with a link to the Needs you view
 AND "Projects" lists the four projects not shipped with the latest
     sessions
+```
+
+### Scenario: Open decisions
+
+```
+GIVEN routines whose run logs hold open decisions (`log/YYYY-MM.md`,
+    `### Open decisions`)
+WHEN I open Home
+THEN beside the timeline "Open decisions · <n>" lists them, oldest raised
+    first: the question, the routine (a link to its preview) and what it
+    waits for — "Recommended B: <option>", "Answered A · to apply" or
+    "Interview"
+AND hovering a row shows the decision's id
+WHEN `loopboard routines answer <id>` records an answer or `--applied`
+THEN Home follows the run log: an applied decision leaves the list, and
+    the card is gone when none is left
 ```
 
 ### Scenario: What is new since the last visit

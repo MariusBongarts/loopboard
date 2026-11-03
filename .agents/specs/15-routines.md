@@ -30,7 +30,9 @@ detail in `tests/cron.test.ts` and `tests/routines.test.ts`. Status legend in
 | File the period's issue | ✅ | [`15-routines.spec.ts`](../../tests/e2e/15-routines.spec.ts): fields, due day, recurrence, a second start files nothing. Periods at their edges in `tests/recurrence.test.ts` |
 | Two issues for one period are reported | ✅ | [`15-routines.spec.ts`](../../tests/e2e/15-routines.spec.ts) |
 | Brief a run | 🟡 | [`15-routines.spec.ts`](../../tests/e2e/15-routines.spec.ts): steps, earlier notes, rules and finish command. Every part in `tests/brief.test.ts` |
-| Print the dispatcher prompt | ✅ | [`15-routines.spec.ts`](../../tests/e2e/15-routines.spec.ts): one harness and `--under` |
+| Print the dispatcher prompt | ✅ | [`15-routines.spec.ts`](../../tests/e2e/15-routines.spec.ts): one harness and `--under`. The summary and the decision round in `tests/brief.test.ts` |
+| List the open decisions | ❌ | Vitest: `tests/decisions.test.ts` (newest state wins, months, interviews, `--json`); fields in `tests/routinesDocs.test.ts`. Home shows them: § 16 |
+| Answer a decision | 🟡 | [`16-home.spec.ts`](../../tests/e2e/16-home.spec.ts): an answer and an application through the binary. Refusals, carrying and `--dry-run` in `tests/decisions.test.ts` |
 | See routines on the board | ✅ | [`15-routines.spec.ts`](../../tests/e2e/15-routines.spec.ts): rail entry, rows, paused, issue routines |
 | Open a routine | ✅ | [`15-routines.spec.ts`](../../tests/e2e/15-routines.spec.ts): settings, rendered steps, runs with notes newest first, a live update |
 | See a year of runs as a graph | 🟡 | [`15-routines.spec.ts`](../../tests/e2e/15-routines.spec.ts): the workspace graph's cells, a failed and an ok day, the hover text, a routine's own graph. Day states in `tests/graph.test.ts`, layout in `tests/routineView.test.ts`; contrast in `pnpm verify` |
@@ -299,8 +301,47 @@ THEN it prints docs/dispatcher-prompt.md with the scope filled in: run
     and a `finish` if the sub-agent didn't; a push notification per run
     and per failure where the platform can; never send anything else,
     never commit
+AND it ends the beat with a summary: one line per run, the notes'
+    numbered items merged into one `📬 NEEDS YOU` list, the notes' other
+    lines, and `🤔 OPEN DECISIONS` from `routines decisions … --json` —
+    listed, not asked: a beat that waits keeps the next ones from starting
+AND once the maintainer replies in that session, it asks at most eight
+    decisions in the question UI, oldest first, recommended option first;
+    records each with `routines answer`; applies what the routine's
+    `## On answer` gives the dispatcher and marks it `--applied`; proposes
+    a session for interviews and for answers a session applies
 AND docs/routines.md shows how to run it as a Claude Code scheduled task,
     with Codex and from cron with `claude -p`
+```
+
+### Scenario: List the open decisions
+
+```
+GIVEN routines whose run logs (`log/YYYY-MM.md`) hold decisions under
+    `### Open decisions`
+WHEN I run `loopboard routines decisions [path]` (`--under <dir>`, `--json`)
+THEN it lists every live decision — `open` or `answered` in its newest
+    occurrence, newest month and top section first — oldest raised first,
+    with its options and recommendation, or its brief for an interview
+AND `routines list --json` carries each routine's live decisions
+AND `loopboard check` warns about a section whose heading isn't a date and
+    a decision without a valid id, a state, two to four options (or
+    `ask: interview`) or a recommendation; such a decision is never listed
+```
+
+### Scenario: Answer a decision
+
+```
+GIVEN an open decision
+WHEN I run `loopboard routines answer <id> --choice <letter or words>`
+THEN its state becomes `answered` with `- answer: <A or the words> · <day>`
+    in the routine's newest run-log section — copied there from an older
+    section or month when the last run didn't carry it
+WHEN I run it again with `--applied "<what was done>"`
+THEN its state becomes `applied` with `- applied: <day> · <what>`, and it
+    is no longer live
+AND an unknown id, an option it doesn't have, a second answer and an
+    application before the answer are refused; `--dry-run` writes nothing
 ```
 
 ### Scenario: See routines on the board

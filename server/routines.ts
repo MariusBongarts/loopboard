@@ -15,6 +15,7 @@ import { frontmatterInner, readAnyList, readField, splitFrontmatter } from "../s
 import { idProblem, readIdentity } from "./identity";
 import { ALL_STATUSES, ASSIGNEES } from "./issues";
 import { parseRuns, type Run, type RunsProblem } from "./runs";
+import { routineDecisions, type LogFile } from "./runLog";
 import { slugify } from "./workspaces";
 
 // Routines (#0114, ADR-0010): one folder per routine under <root>/scheduled/,
@@ -40,7 +41,7 @@ export const ISSUE_CATEGORIES = ["task", "user-story", "bug"] as const;
 
 export interface RoutineProblem {
   level: "error" | "warning";
-  file: typeof ROUTINE_FILE | typeof RUNS_FILE;
+  file: typeof ROUTINE_FILE | typeof RUNS_FILE | LogFile;
   message: string;
 }
 
@@ -264,6 +265,8 @@ export function checkRoutines(root: string, known: Set<string>, now = Date.now()
   for (const r of routines) {
     const path = (file: string) => `${SCHEDULED_DIR}/${r.slug}/${file}`;
     for (const p of r.problems) problems.push({ ...p, path: path(p.file) });
+    // #0136: a decision the dispatcher can't read is never asked.
+    for (const p of routineDecisions(r.dir).problems) problems.push({ level: "warning", file: p.file, path: path(p.file), message: `line ${p.line}: ${p.message}` });
     for (const id of r.writesTo) {
       if (idProblem(id) || known.has(id)) continue;
       problems.push({ level: "warning", file: ROUTINE_FILE, path: path(ROUTINE_FILE), message: `writes-to "${id}" is no registered harness here` });

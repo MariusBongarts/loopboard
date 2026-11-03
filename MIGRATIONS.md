@@ -134,3 +134,40 @@ agent asked to "remind me on Friday" created yet another one.
    dispatcher runs this place yet, show
    `loopboard routines dispatcher-prompt` and docs/routines.md; setting up
    the one platform task is the maintainer's step.
+
+---
+
+## M004 — Run logs and open decisions
+
+*2026-10-30 · #0136, webhighlights#1276*
+
+**Changed**
+
+- A routine can keep a **run log**, `log/YYYY-MM.md` in its folder: one
+  section per run, newest on top, with what a run couldn't settle alone as
+  **open decisions** under `### Open decisions`. The scheduled README
+  explains it and `scheduled/_templates/log.md` shows one month.
+- `loopboard routines decisions` lists the open decisions and
+  `loopboard routines answer <id> --choice <option|text>` records an answer
+  (`--applied "<what>"` its application). `check` warns about a decision it
+  can't read, and Home lists the open ones.
+- The dispatcher prompt ends each beat with a summary — headlines, one
+  merged NEEDS YOU list, the notes, the open decisions — and asks the
+  decisions once the maintainer replies in its session.
+
+**Why** — runs are unattended and can't ask. The dispatcher's session is
+where the maintainer can answer, and one contract gives every harness the
+same summary and decisions.
+
+**Apply**
+
+1. Merge the "Run log" and "Open decisions" sections and the two new
+   folder-shape lines into `.agents/scheduled/README.md`, and add
+   `scheduled/_templates/log.md` (`loopboard init --upgrade` adds the
+   template where it's missing; a docs harness takes both from
+   `scaffold/docs/scheduled/`).
+2. Nothing changes for existing routines. Give a routine a run log and an
+   `## On answer` section only where its runs should raise decisions.
+3. **Dispatcher (Confirm first).** Replace the dispatcher task's prompt with
+   the output of `loopboard routines dispatcher-prompt` (or `--under <dir>`).
+   Changing the platform task is the maintainer's step.

@@ -1,3 +1,4 @@
+import { byRaised, type LoggedDecision } from '../shared/decisions';
 import { issueRefs } from '../shared/refs';
 import { needsYou } from './inbox';
 import { newestFirst, runTone, type RunTone } from './routines';
@@ -143,10 +144,17 @@ export interface HomeInput {
   lastSeen: number | null;
 }
 
+// An open decision of a routine's run log (#0136), beside the timeline.
+export interface HomeDecision {
+  routine: RoutineSummary;
+  decision: LoggedDecision;
+}
+
 export interface Home {
   start: string;
   days: HomeDay[];
   health: HealthRow[];
+  decisions: HomeDecision[];
   needsYou: Issue[];
   projects: Project[];
   newCount: number;
@@ -273,7 +281,19 @@ export function buildHome(input: HomeInput): Home {
     .sort((a, b) => (b.lastSession ?? '').localeCompare(a.lastSession ?? ''))
     .slice(0, 4);
 
-  return { start, days, health: input.routines.map(healthOf), needsYou: needs, projects, newCount };
+  const decisions = input.routines.flatMap((routine) => routine.decisions.map((decision) => ({ routine, decision }))).sort((a, b) => byRaised(a.decision, b.decision));
+
+  return { start, days, health: input.routines.map(healthOf), decisions, needsYou: needs, projects, newCount };
+}
+
+// What a decision waits for, in a few words: the recommended option, the
+// answer still to apply, or an interview.
+export function decisionHint(d: LoggedDecision): string {
+  if (d.state === 'answered') return `Answered ${d.answer?.split(' · ')[0] ?? ''} · to apply`;
+  if (d.interview) return 'Interview';
+  const key = d.recommended?.match(/^([A-Z])\b/)?.[1];
+  const option = d.options.find((o) => o.key === key);
+  return option ? `Recommended ${option.key}: ${option.text}` : 'Open';
 }
 
 // Where an issue came from, for its preview: the run that filed it and the

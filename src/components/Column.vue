@@ -12,6 +12,7 @@ const props = defineProps<{
   columnKey: ColumnKey;
   issues: Issue[];
   highlightId?: string | null;
+  showProject?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -88,6 +89,7 @@ function onChange(evt: ChangeEvent) {
           <Card
             :issue="element"
             :highlighted="!!highlightId && element.id === highlightId"
+            :show-project="showProject"
             @open="emit('open', element)"
             @toggle-assignee="emit('toggle-assignee', element)"
           />

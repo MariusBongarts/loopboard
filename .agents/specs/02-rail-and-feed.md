@@ -53,7 +53,7 @@ AND neither is a number after `#`, `&` or `/` (a heading, an entity, a URL
 ```
 GIVEN the rail lists the feed views Inbox, Needs you, Sessions and Issues,
     each with an icon and a count, then a Workspace section with All issues,
-    Projects and Specs
+    Board, Backlog, Projects and Specs
 WHEN I pick Needs you
 THEN the feed shows only live, open issues assigned to human
 WHEN I pick Sessions or Issues
@@ -61,7 +61,8 @@ THEN the feed shows only that kind of item
 WHEN I pick Inbox
 THEN every item is back
 AND there is no second set of filters above the feed
-AND All issues opens the list view (§ 13), Projects the overview (§ 3)
+AND All issues opens the list view (§ 13), Board every issue on one board and
+    Projects the overview (§ 3), Backlog the ordered ideas (§ 5)
 ```
 
 ### Scenario: Collapse the rail

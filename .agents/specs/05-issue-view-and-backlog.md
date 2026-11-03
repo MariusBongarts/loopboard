@@ -17,6 +17,9 @@ Status legend in [`_specs.md`](_specs.md#e2e-coverage).
 | Copy an issue's file path | ✅ | `05-issue-view-and-backlog.spec.ts`: toast and clipboard text |
 | Send an issue to the backlog | ✅ | `05-issue-view-and-backlog.spec.ts`: Status → Backlog |
 | Promote an idea from the backlog | ✅ | `05-issue-view-and-backlog.spec.ts`: the file is back byte for byte |
+| See the backlog by project | ✅ | `05-issue-view-and-backlog.spec.ts`: rail, count, filter, open. Grouping and order unit-tested in `tests/list.test.ts` |
+| Order the backlog | ✅ | `05-issue-view-and-backlog.spec.ts`: drag, Alt+↑, files on disk, order after a reload. Reorder route unit-tested in `tests/handler.test.ts` |
+| Promote an idea from the Backlog view | ✅ | `05-issue-view-and-backlog.spec.ts`: the file with only `status:` changed, toast, empty state; `C` presets Backlog |
 | Close the panel and drawers with Esc | ✅ | `05-issue-view-and-backlog.spec.ts`: menu first, then backlog drawer, then panel |
 | Tick a checklist item in the issue view | ✅ | `05-issue-view-and-backlog.spec.ts`; marker flipping unit-tested in `tests/tasks.test.ts` |
 | See an issue's git history | ✅ | `05-issue-view-and-backlog.spec.ts`; parsing unit-tested against real git in `tests/activity.test.ts` |
@@ -104,11 +107,49 @@ THEN the issue's status becomes `backlog` and its card leaves the board
 GIVEN a project with backlog issues
 THEN the board tools show "Backlog N"
 WHEN I click it
-THEN a drawer lists that project's backlog issues
+THEN a drawer lists that project's backlog issues, in priority order
 WHEN I click "Promote to Todo" on one
 THEN its status becomes `todo` and it leaves the list
 WHEN I click a row
 THEN the backlog drawer closes and that issue opens in the panel
+```
+
+### Scenario: See the backlog by project
+
+```
+WHEN I click Backlog in the rail (or "Go to Backlog" in ⌘K)
+THEN /w/<workspace>/backlog lists every live backlog idea, grouped by project
+    in PRD order, with ideas without a project last under "No project"
+AND each group is in priority order, then by id; rows show their rank, number,
+    title, labels and assignee
+WHEN I type in "Filter backlog"
+THEN only ideas matching every word stay, and the header count follows
+AND the filter is kept in the URL (`?q=`)
+AND an empty backlog says so; a filter that matches nothing says "No ideas
+    match "…""
+WHEN I click a row
+THEN the idea opens in the panel, and j/k step through the list
+AND right-click opens the issue menu (§ 4)
+```
+
+### Scenario: Order the backlog
+
+```
+GIVEN a group with several ideas
+WHEN I drag one above another (or focus a row and press Alt+↑ / Alt+↓)
+THEN its rank changes at once and every backlog idea gets `priority: 1..N`
+AND ideas of other groups, and ones the filter hides, keep their relative order
+AND a row stays in its group; the Project picker moves it to another project
+```
+
+### Scenario: Promote an idea from the Backlog view
+
+```
+GIVEN an idea in the Backlog view
+WHEN I click "Todo" on its row
+THEN its status becomes `todo`, it leaves the list and a toast says so
+WHEN I press "C" here
+THEN the new issue's Status is preset to Backlog, with no project preset
 ```
 
 ### Scenario: Close the panel and drawers with Esc

@@ -60,7 +60,7 @@ Choose the right `status:` and `assignee:`:
   fully specified, ready for the agent to pick up).
 - Set `status: backlog` (assignee still `agent`) when filing a slice
   that captures a future idea but isn't ready to schedule — it lands
-  in loopboard's Backlog drawer instead of the active `Todo` column,
+  in loopboard's Backlog view instead of the active `Todo` column,
   so it doesn't dilute the maintainer's "what's next?" view. Promote
   to `todo` when the call to schedule is made. The slicing act itself
   IS usually the scheduling decision, so reach for `backlog` only when

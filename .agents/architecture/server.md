@@ -31,7 +31,7 @@ Repo data lives under `/api/w/:workspace`; everything else is global.
 | `POST /api/w/:id/issues` | `{ title, category, status?, assignee?, project?, labels? }` | Next free number, the category template's body, YAML-safe frontmatter (201) |
 | `POST /api/w/:id/projects` | `{ title }` | `NN-slug/prd.md` + `wip.md` from the templates (201) |
 | `PATCH /api/w/:id/issues/:issue?archived=<bool>` | `{ status?, assignee?, priority?, reason?, reviewed?, deployed? }` | Rewrites those frontmatter lines; `null` removes a marker |
-| `PATCH /api/w/:id/columns/reorder?archived=<bool>` | `{ status, ids }` | Writes `priority: 1..N`; 400 unless `ids` equals the column on disk |
+| `PATCH /api/w/:id/columns/reorder?archived=<bool>` | `{ status, ids }` | Writes `priority: 1..N`; 400 unless `ids` equals the column on disk (the backlog counts as one) |
 
 Errors are `{ error }` with the thrown status (400 validation, 403 guard,
 404 unknown, 422 no root / no frontmatter, 500 otherwise); only 5xx are
