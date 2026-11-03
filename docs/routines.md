@@ -93,6 +93,12 @@ start or expired entry.
   for the latest slot; that run records the others as one `missed` entry.
 - **Late slots can expire.** With `expires-after: 6h`, a slot noticed seven
   hours late is recorded as `expired` instead of run.
+- **A local time runs once when you travel.** A routine without `timezone:`
+  follows the machine. After a move west, a local time its newest run or
+  expired entry already passed doesn't run again: an hourly routine skips the
+  hours that come back, so it pauses for about as long as the move plus one
+  hour. After a move east it stays on the hour in real time. A routine with
+  `timezone:` doesn't move.
 - **A run blocks a second start** while its `running` entry is younger than
   `timeout`. An older one is recorded as `aborted`, and the routine can run
   again. `host:` pins a routine to one machine — on a folder synced between

@@ -20,6 +20,7 @@ detail in `tests/cron.test.ts` and `tests/routines.test.ts`. Status legend in
 | List the routines of a harness | ✅ | [`15-routines.spec.ts`](../../tests/e2e/15-routines.spec.ts): words, zone, next slot, last run, paused, invalid |
 | List the routines under a folder | ✅ | [`15-routines.spec.ts`](../../tests/e2e/15-routines.spec.ts): nested harnesses; skipped folders in `tests/routines.test.ts` |
 | A schedule keeps its local time across daylight saving | ❌ | Vitest: `tests/cron.test.ts` (Berlin, New York, Kolkata, Lord Howe) |
+| A local time runs once when the machine's zone moves | ❌ | Vitest: `tests/dispatch.test.ts` (west, east, hourly, expired, fixed zone) |
 | Ask what is due | ✅ | [`15-routines.spec.ts`](../../tests/e2e/15-routines.spec.ts): run, filed, invalid, `--json`, `--dry-run`. Every state in `tests/dispatch.test.ts` |
 | Missed slots are caught up once | ❌ | Vitest: `tests/dispatch.test.ts` (the `missed` entry, `created`) |
 | A late slot expires | ❌ | Vitest: `tests/dispatch.test.ts` |
@@ -103,6 +104,20 @@ AND a time the clocks skip (02:30 on the last Sunday of March) runs once, an
     hour later
 AND a time that happens twice (02:30 on the last Sunday of October) runs
     once, the first time
+```
+
+### Scenario: A local time runs once when the machine's zone moves
+
+```
+GIVEN a routine without `timezone:`, run at 08:46 +08:00 for its 08:00 slot
+WHEN the machine moves to +07:00 and 08:00 comes again
+THEN it isn't due, and the next day's 08:00 is due with nothing missed
+AND an hourly routine skips the local hours that come back and runs at the
+    first one after its newest run or expired entry: 09:00 +07:00, nothing
+    missed
+AND after a move east a slot isn't repeated, the next one still runs, and an
+    hourly routine stays on the hour in real time
+AND a routine with `timezone:` compares instants only
 ```
 
 ### Scenario: Check routines

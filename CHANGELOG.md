@@ -43,6 +43,8 @@ must apply are numbered in [MIGRATIONS.md](MIGRATIONS.md).
   run's brief with the last three notes; `dispatcher-prompt` prints the
   dispatcher. `--under <dir>` covers every harness under a folder, and
   `--json` is a documented contract.
+- A routine that follows the machine's zone no longer repeats a slot when
+  the zone moves west: a local time runs once (#0137).
 - A routine with `creates: issue` files the period's issue itself, once,
   with its due date and `recurrence: <slug>@<period>`; `loopboard check`
   validates routines and reports duplicate recurrences. This replaces the

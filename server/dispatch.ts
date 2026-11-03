@@ -27,12 +27,17 @@ export interface Evaluation {
 
 const STATES_OF_A_RUN = ["running", "ok", "failed", "aborted"];
 
+// The time an ISO time reads on the clock, whatever its offset.
+function wallClock(time: string): number {
+  return Date.parse(`${time.replace(/([+-]\d{2}:\d{2}|Z)$/, "")}Z`);
+}
+
 // The newest run start or expiry record: a slot at or before it is handled.
-function handledUntil(runs: Run[]): number | null {
+function handledUntil(runs: Run[], read: (time: string) => number = Date.parse): number | null {
   let latest: number | null = null;
   for (const run of runs) {
     if (!STATES_OF_A_RUN.includes(run.status) && run.status !== "expired") continue;
-    const t = Date.parse(run.status === "expired" ? (run.recorded ?? run.at) : (run.started ?? run.at));
+    const t = read(run.status === "expired" ? (run.recorded ?? run.at) : (run.started ?? run.at));
     if (latest === null || t > latest) latest = t;
   }
   return latest;
@@ -58,10 +63,13 @@ export function evaluate(routine: Routine, now: number, host = machineName()): E
   const slot = previousOccurrence(routine.parsed, now, routine.timezone);
   if (slot === null || (since !== null && slot < since)) return { ...none, open, stale };
   const handled = handledUntil(routine.runs);
-  if (handled !== null && slot <= handled) return { ...none, open, stale };
+  // On the machine's zone a move west brings a local time back: it runs once (#0137).
+  const handledWall = routine.followsMachine ? handledUntil(routine.runs, wallClock) : null;
+  const isHandled = (t: number) => (handled !== null && t <= handled) || (handledWall !== null && wallClock(iso(routine, t)) <= handledWall);
+  if (isHandled(slot)) return { ...none, open, stale };
   // Missed slots count from the last handled one, or from the created day.
   const from = handled ?? (since === null ? null : since - 1);
-  const missed = from === null ? [] : occurrencesBetween(routine.parsed, from, slot - 1, routine.timezone);
+  const missed = from === null ? [] : occurrencesBetween(routine.parsed, from, slot - 1, routine.timezone).filter((t) => !isHandled(t));
   const late = routine.expiresAfter === null ? null : parseDuration(routine.expiresAfter);
   const state = late !== null && now - slot > late ? "expired" : "due";
   return { state, slot, open, stale, missed };

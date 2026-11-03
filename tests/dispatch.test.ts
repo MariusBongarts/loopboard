@@ -8,6 +8,13 @@ import { dueAll, evaluate, finishRun, RoutineRefusal, startRun } from '../server
 import { harnessesUnder, harnessFor, readRoutine } from '../server/routines';
 import { parseRuns } from '../server/runs';
 
+// A routine without `timezone:` follows this zone; null is the real machine's.
+const machine = vi.hoisted(() => ({ zone: null as string | null }));
+vi.mock('../shared/cron', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../shared/cron')>();
+  return { ...actual, systemTimeZone: () => machine.zone ?? actual.systemTimeZone() };
+});
+
 let tmp: string;
 let repo: string;
 const t = (iso: string) => Date.parse(iso);
@@ -44,6 +51,7 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
+  machine.zone = null;
   vi.unstubAllEnvs();
   await rm(tmp, { recursive: true, force: true });
 });
@@ -273,6 +281,96 @@ describe('when a routine is due (#0117)', () => {
     expect(real.filed[0]).toMatchObject({ note: 'Filed #0001 books 2026-11 (issues/0001-books-2026-11.md).' });
     expect(existsSync(join(company, '.agents', 'issues', '0001-books-2026-11.md'))).toBe(true);
     expect((await dueAll(harnessesUnder(repo), t('2026-11-02T08:00:00Z'), { host: HOST })).filed).toEqual([]);
+  });
+});
+
+describe('when the machine changes time zone (#0137)', () => {
+  const [SHANGHAI, SAIGON, TOKYO] = ['Asia/Shanghai', 'Asia/Ho_Chi_Minh', 'Asia/Tokyo']; // +08, +07, +09
+  const DAILY = 'schedule: "0 8 * * *"';
+  const HOURLY = 'schedule: "0 * * * *"';
+  const stateAt = (dir: string, iso: string, zone: string) => {
+    machine.zone = zone;
+    return evaluate(readRoutine(dir), t(iso), HOST);
+  };
+
+  // Started at 08:46 +08:00; the clocks fall back during the run.
+  async function ranAcrossWestwardMove(frontmatter: string): Promise<string> {
+    const dir = await routine('moved', frontmatter);
+    machine.zone = SHANGHAI;
+    await startRun(dir, t('2026-11-02T08:46:00+08:00'), { host: HOST });
+    machine.zone = SAIGON;
+    await finishRun(dir, 'ok', 'Done.', t('2026-11-02T07:55:00+07:00'));
+    return dir;
+  }
+
+  it('does not repeat a slot when the zone moves west during its run', async () => {
+    const dir = await ranAcrossWestwardMove(DAILY);
+    expect((await runsOf(dir)).at(-1)).toMatchObject({ started: '2026-11-02T08:46:00+08:00', slot: '2026-11-02T08:00:00+08:00' });
+    expect(stateAt(dir, '2026-11-02T08:13:00+07:00', SAIGON)).toMatchObject({ state: 'idle', slot: null });
+    expect((await dueAll(here(), t('2026-11-02T08:13:00+07:00'), { host: HOST })).run).toEqual([]);
+  });
+
+  it("still runs the next day's slot after a westward move, with nothing missed", async () => {
+    const dir = await ranAcrossWestwardMove(DAILY);
+    expect(stateAt(dir, '2026-11-03T07:59:00+07:00', SAIGON).state).toBe('idle');
+    expect(stateAt(dir, '2026-11-03T08:00:00+07:00', SAIGON)).toMatchObject({ state: 'due', slot: t('2026-11-03T08:00:00+07:00'), missed: [] });
+  });
+
+  it('counts a slot passed after a westward move as missed only when its local time is new', async () => {
+    const dir = await ranAcrossWestwardMove(DAILY);
+    expect(stateAt(dir, '2026-11-04T08:00:00+07:00', SAIGON)).toMatchObject({ state: 'due', missed: [t('2026-11-03T08:00:00+07:00')] });
+  });
+
+  it('does not repeat an expired slot after a westward move', async () => {
+    const dir = await routine('late', `${DAILY}\nexpires-after: 1h`);
+    machine.zone = SHANGHAI;
+    await dueAll(here(), t('2026-11-02T10:00:00+08:00'), { host: HOST });
+    expect((await runsOf(dir)).at(-1)).toMatchObject({ status: 'expired', slot: '2026-11-02T08:00:00+08:00' });
+    // Three hours west it is 07:05 again, and 08:00 comes a second time.
+    expect(stateAt(dir, '2026-11-02T08:30:00+05:00', 'Asia/Karachi').state).toBe('idle');
+    expect(stateAt(dir, '2026-11-03T08:30:00+05:00', 'Asia/Karachi')).toMatchObject({ state: 'due', missed: [] });
+  });
+
+  it('neither repeats a slot nor loses the next one when the zone moves east', async () => {
+    const dir = await routine('moved', DAILY);
+    machine.zone = SAIGON;
+    await startRun(dir, t('2026-11-02T08:10:00+07:00'), { host: HOST });
+    machine.zone = SHANGHAI;
+    await finishRun(dir, 'ok', 'Done.', t('2026-11-02T09:30:00+08:00'));
+    expect(stateAt(dir, '2026-11-02T09:40:00+08:00', SHANGHAI).state).toBe('idle');
+    expect(stateAt(dir, '2026-11-03T07:59:00+08:00', SHANGHAI).state).toBe('idle');
+    expect(stateAt(dir, '2026-11-03T08:00:00+08:00', SHANGHAI)).toMatchObject({ state: 'due', slot: t('2026-11-03T08:00:00+08:00'), missed: [] });
+  });
+
+  it('skips the local hours an hourly routine already passed when moving west', async () => {
+    const dir = await ranAcrossWestwardMove(HOURLY);
+    expect(stateAt(dir, '2026-11-02T08:13:00+07:00', SAIGON).state).toBe('idle');
+    expect(stateAt(dir, '2026-11-02T09:00:00+07:00', SAIGON)).toMatchObject({ state: 'due', slot: t('2026-11-02T09:00:00+07:00'), missed: [] });
+  });
+
+  it('keeps an hourly routine on the hour in real time when moving east', async () => {
+    const dir = await routine('moved', HOURLY);
+    machine.zone = SAIGON;
+    await startRun(dir, t('2026-11-02T08:10:00+07:00'), { host: HOST });
+    await finishRun(dir, 'ok', 'Done.', t('2026-11-02T08:20:00+07:00'));
+    // 10:30 in Tokyo is 08:30 in Saigon: the same hour, already run.
+    expect(stateAt(dir, '2026-11-02T10:30:00+09:00', TOKYO).state).toBe('idle');
+    expect(stateAt(dir, '2026-11-02T11:00:00+09:00', TOKYO)).toMatchObject({ state: 'due', slot: t('2026-11-02T11:00:00+09:00'), missed: [] });
+  });
+
+  it('leaves a routine with a fixed timezone on instants', async () => {
+    // Runs recorded under another offset: only editing `timezone:` gets here.
+    const dir = await routine('fixed', `${DAILY}\ntimezone: ${SAIGON}`, `# Runs: fixed
+
+## 2026-11-02 08:46 · ok
+- started: 2026-11-02T08:46:00+08:00
+- finished: 2026-11-02T08:55:00+08:00
+- slot: 2026-11-02T08:00:00+08:00
+- host: studio
+
+> Fine.
+`);
+    expect(stateAt(dir, '2026-11-02T08:13:00+07:00', SHANGHAI)).toMatchObject({ state: 'due', slot: t('2026-11-02T08:00:00+07:00') });
   });
 });
 

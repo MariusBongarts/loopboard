@@ -66,6 +66,7 @@ export interface Routine {
   schedule: string | null;
   at: string | null;
   timezone: string;
+  followsMachine: boolean; // no `timezone:`: the zone moves with the machine
   parsed: Schedule | null; // null when the schedule or the zone is broken
   expiresAfter: string | null;
   timeout: string;
@@ -216,6 +217,7 @@ export function readRoutine(dir: string, now = Date.now()): Routine {
     schedule,
     at,
     timezone,
+    followsMachine: zoneText === null,
     parsed: problems.some((p) => p.level === "error") ? null : parsed,
     expiresAfter: field("expires-after"),
     timeout: field("timeout") ?? DEFAULT_TIMEOUT,
