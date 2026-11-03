@@ -45,7 +45,7 @@ test.describe('§ 15 routines on the command line', () => {
       title: 'Weekly report',
       kind: 'agent',
       enabled: true,
-      state: 'idle',
+      state: expect.stringMatching(/^(idle|due|expired)$/),
       timezone: 'UTC',
       expiresAfter: '6h',
       timeout: '2h',

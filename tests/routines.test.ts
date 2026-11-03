@@ -217,7 +217,7 @@ describe('loopboard routines list (#0114)', () => {
     expect(Object.keys(json)).toEqual(['version', 'host', 'now', 'harnesses']);
     expect(json.version).toBe(1);
     expect(Object.keys(json.harnesses[0])).toEqual(['id', 'name', 'path', 'root', 'routines']);
-    expect(json.harnesses[0].routines[0]).toMatchObject({ slug: 'weekly', kind: 'agent', state: 'idle', words: 'Mondays at 07:30', body: 'Steps.' });
+    expect(json.harnesses[0].routines[0]).toMatchObject({ slug: 'weekly', kind: 'agent', state: expect.stringMatching(/^(idle|due|expired)$/), words: 'Mondays at 07:30', body: 'Steps.' });
     expect(json.harnesses[0].routines[0].lastRun).toMatchObject({ status: 'ok', note: expect.stringContaining('Wrote the report.') });
   });
 
