@@ -20,7 +20,7 @@ detail in `tests/cron.test.ts` and `tests/routines.test.ts`. Status legend in
 | List the routines of a harness | ✅ | [`15-routines.spec.ts`](../../tests/e2e/15-routines.spec.ts): words, zone, next slot, last run, paused, invalid |
 | List the routines under a folder | ✅ | [`15-routines.spec.ts`](../../tests/e2e/15-routines.spec.ts): nested harnesses; skipped folders in `tests/routines.test.ts` |
 | A schedule keeps its local time across daylight saving | ❌ | Vitest: `tests/cron.test.ts` (Berlin, New York, Kolkata, Lord Howe) |
-| A local time runs once when the machine's zone moves | ❌ | Vitest: `tests/dispatch.test.ts` (west, east, hourly, expired, fixed zone) |
+| A local time runs once when the machine's zone moves | ❌ | Vitest: `tests/dispatch.test.ts` (west, east, hourly, expired) |
 | Ask what is due | ✅ | [`15-routines.spec.ts`](../../tests/e2e/15-routines.spec.ts): run, filed, invalid, `--json`, `--dry-run`. Every state in `tests/dispatch.test.ts` |
 | Missed slots are caught up once | ❌ | Vitest: `tests/dispatch.test.ts` (the `missed` entry, `created`) |
 | A late slot expires | ❌ | Vitest: `tests/dispatch.test.ts` |
@@ -48,15 +48,16 @@ GIVEN a folder <root>/scheduled/weekly-report/ with routine.md:
     ---
     title: Weekly report
     schedule: "30 7 * * 1"
-    timezone: Europe/Berlin
     expires-after: 6h
     ---
     Write the weekly report to reports/.
 WHEN loopboard reads it
-THEN its schedule is "Mondays at 07:30" in Berlin time, a slot may start
-    up to 6h late, and the body is its steps
+THEN its schedule is "Mondays at 07:30" on the machine's clock, a slot may
+    start up to 6h late, and the body is its steps
 AND left-out fields take their defaults: the title is the folder's name,
-    the zone is the machine's, `enabled: true`, `timeout: 2h`
+    `enabled: true`, `timeout: 2h`
+AND a routine has no zone of its own: a `timezone:` line is ignored with a
+    warning from `loopboard check`
 AND a schedule is five-field cron (`*`, numbers, ranges, steps, lists,
     `MON`/`JAN`, `7` = Sunday, `L` = the last day of the month, @hourly,
     @daily, @weekly, @monthly, @yearly) or a one-time `at: 2026-11-03 09:00`
@@ -70,10 +71,9 @@ AND a folder starting with `_` or `.` is no routine
 ```
 GIVEN a harness with routines
 WHEN I run `loopboard routines` (or `routines list [path]`)
-THEN each routine is a row with its slug, its schedule in words — with its
-    zone when that isn't the machine's —, its next slot and its last run's
-    status and time, times in the routine's zone ("today 15:00",
-    "Mon 2 Nov 07:30")
+THEN each routine is a row with its slug, its schedule in words, its next
+    slot and its last run's status and time, times in the machine's zone
+    ("today 15:00", "Mon 2 Nov 07:30")
 AND a paused routine says "paused", a routine that is running says since
     when, and an invalid one says "invalid" with each problem below it
 AND the last line names this machine as `host:` matches it
@@ -97,7 +97,7 @@ AND naming a harness and --under together is refused
 ### Scenario: A schedule keeps its local time across daylight saving
 
 ```
-GIVEN `schedule: "30 7 * * *"` and `timezone: Europe/Berlin`
+GIVEN `schedule: "30 7 * * *"` on a machine in Europe/Berlin
 WHEN the clocks change
 THEN it runs at 07:30 Berlin time before and after
 AND a time the clocks skip (02:30 on the last Sunday of March) runs once, an
@@ -109,7 +109,7 @@ AND a time that happens twice (02:30 on the last Sunday of October) runs
 ### Scenario: A local time runs once when the machine's zone moves
 
 ```
-GIVEN a routine without `timezone:`, run at 08:46 +08:00 for its 08:00 slot
+GIVEN a routine run at 08:46 +08:00 for its 08:00 slot
 WHEN the machine moves to +07:00 and 08:00 comes again
 THEN it isn't due, and the next day's 08:00 is due with nothing missed
 AND an hourly routine skips the local hours that come back and runs at the
@@ -117,7 +117,6 @@ AND an hourly routine skips the local hours that come back and runs at the
     missed
 AND after a move east a slot isn't repeated, the next one still runs, and an
     hourly routine stays on the hour in real time
-AND a routine with `timezone:` compares instants only
 ```
 
 ### Scenario: Check routines

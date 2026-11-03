@@ -32,7 +32,7 @@ must apply are numbered in [MIGRATIONS.md](MIGRATIONS.md).
 ### Routines
 - Recurring and one-time agent work lives in the harness: one folder per
   routine in `.agents/scheduled/`, `routine.md` (five-field cron or a
-  one-time `at`, in a time zone, and the steps) and an append-only
+  one-time `at`, and the steps) and an append-only
   `runs.md`. One dispatcher per place — a scheduled task of any agent
   platform, or cron with `claude -p` — runs whatever is due; loopboard
   never starts an agent ([docs/routines.md](docs/routines.md), ADR-0010).
@@ -43,8 +43,9 @@ must apply are numbered in [MIGRATIONS.md](MIGRATIONS.md).
   run's brief with the last three notes; `dispatcher-prompt` prints the
   dispatcher. `--under <dir>` covers every harness under a folder, and
   `--json` is a documented contract.
-- A routine that follows the machine's zone no longer repeats a slot when
-  the zone moves west: a local time runs once (#0137).
+- A routine always runs in the machine's zone; `timezone:` is gone and
+  `loopboard check` warns about a leftover line (#0140, M005). A move west
+  no longer repeats a slot: a local time runs once (#0137).
 - A routine with `creates: issue` files the period's issue itself, once,
   with its due date and `recurrence: <slug>@<period>`; `loopboard check`
   validates routines and reports duplicate recurrences. This replaces the

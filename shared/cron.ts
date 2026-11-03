@@ -155,15 +155,6 @@ function formatter(zone: string): Intl.DateTimeFormat {
   return f;
 }
 
-export function isTimeZone(zone: string): boolean {
-  try {
-    formatter(zone);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 export function systemTimeZone(): string {
   return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
 }

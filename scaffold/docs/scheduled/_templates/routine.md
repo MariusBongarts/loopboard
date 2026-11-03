@@ -1,7 +1,6 @@
 ---
 title: Short name of the routine
 schedule: "30 7 * * 1-5"   # five-field cron in quotes, or `at: YYYY-MM-DD HH:MM` for once
-timezone: Europe/Berlin    # IANA zone; the machine's when left out
 expires-after: 6h          # optional: a later start is recorded as expired
 created: YYYY-MM-DD
 # timeout: 2h              # optional: a run older than this counts as aborted

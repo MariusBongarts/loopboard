@@ -111,12 +111,10 @@ function printHarness(h: HarnessRoutines, now: number, indent: string): void {
     console.log(`${indent}No routines in ${printable(relative(h.path, `${h.root}/${SCHEDULED_DIR}`))}/.`);
     return;
   }
-  const zone = systemTimeZone();
   const rows = [["ROUTINE", "SCHEDULE", "NEXT", "LAST RUN"]];
   const notes = new Map<number, string[]>();
   for (const r of h.routines) {
-    const words = r.timezone === zone || r.state === "invalid" ? r.words : `${r.words} · ${r.timezone}`;
-    rows.push([printable(r.slug), r.state === "invalid" ? "—" : words, nextCell(r, now), lastCell(r, now)]);
+    rows.push([printable(r.slug), r.state === "invalid" ? "—" : r.words, nextCell(r, now), lastCell(r, now)]);
     if (r.problems.length) notes.set(rows.length - 1, r.problems.map((p) => `${p.level === "error" ? "✗" : "!"} ${p.file}: ${printable(p.message)}`));
   }
   table(rows, indent).forEach((line, i) => {

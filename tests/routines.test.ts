@@ -39,6 +39,7 @@ async function run(...argv: string[]): Promise<{ code: number; out: string; err:
 beforeEach(async () => {
   tmp = await realpath(await mkdtemp(join(tmpdir(), 'loopboard-routines-')));
   vi.stubEnv('LOOPBOARD_CONFIG_DIR', join(tmp, 'config'));
+  vi.stubEnv('TZ', 'Europe/Berlin');
 });
 
 afterEach(async () => {
@@ -107,7 +108,6 @@ describe('reading routines (#0114)', () => {
       'mail-check',
       `title: "Mail check: inbox"
 schedule: */15 * * * 1-5
-timezone: Europe/Berlin
 enabled: false
 expires-after: 1h30m
 timeout: 30m
@@ -149,9 +149,9 @@ created: 2026-10-27`,
     expect(r.creates).toEqual({ period: 'month', title: 'monthly-books {period}', category: 'task', status: 'todo', assignee: 'agent', labels: [], project: null, dueAfter: null });
   });
 
-  it('gives the next slot in the routine’s zone', async () => {
+  it('gives the next slot in the machine’s zone', async () => {
     const repo = await harness('site');
-    const dir = await routine(repo, 'brief', 'schedule: "30 7 * * 1-5"\ntimezone: Europe/Berlin');
+    const dir = await routine(repo, 'brief', 'schedule: "30 7 * * 1-5"');
     const summary = summarizeRoutine(readRoutine(dir), Date.parse('2026-10-30T12:00:00Z'));
     expect(summary).toMatchObject({ state: 'due', words: 'Weekdays at 07:30', next: '2026-11-02T07:30:00+01:00', slot: '2026-10-30T07:30:00+01:00' });
   });
@@ -192,15 +192,16 @@ describe('harnesses under a folder (#0114)', () => {
 
 describe('loopboard routines list (#0114)', () => {
   it('lists each routine with its schedule in words, its next slot and its last run', async () => {
+    vi.stubEnv('TZ', 'Pacific/Auckland');
     const repo = await harness('shop');
-    await routine(repo, 'weekly', 'schedule: "30 7 * * 1"\ntimezone: Pacific/Auckland', 'x\n', RUNS);
+    await routine(repo, 'weekly', 'schedule: "30 7 * * 1"', 'x\n', RUNS);
     await routine(repo, 'paused', 'schedule: "@daily"\nenabled: false');
     await routine(repo, 'broken', 'schedule: "61 * * * *"');
     const r = await run('routines', repo);
     expect(r.code).toBe(0);
     expect(r.out).toMatch(/ROUTINE\s+SCHEDULE\s+NEXT\s+LAST RUN/);
-    // Times read in the routine's zone: 07:30 in Berlin is 19:30 in Auckland.
-    expect(r.out).toMatch(/weekly\s+Mondays at 07:30 · Pacific\/Auckland\s+.+07:30\s+ok · .+19:30/);
+    // Times read in the machine's zone: 07:30 in Berlin is 19:30 in Auckland.
+    expect(r.out).toMatch(/weekly\s+Mondays at 07:30\s+.+07:30\s+ok · .+19:30/);
     expect(r.out).toMatch(/paused\s+Every day at 00:00\s+paused/);
     expect(r.out).toMatch(/broken\s+—\s+invalid/);
     expect(r.out).toContain('✗ routine.md: schedule "61 * * * *": minute "61" is out of range (0–59)');
@@ -210,7 +211,7 @@ describe('loopboard routines list (#0114)', () => {
 
   it('prints the documented JSON shape', async () => {
     const repo = await harness('shop');
-    await routine(repo, 'weekly', 'schedule: "30 7 * * 1"\ntimezone: UTC', 'Steps.\n', RUNS);
+    await routine(repo, 'weekly', 'schedule: "30 7 * * 1"', 'Steps.\n', RUNS);
     const r = await run('routines', repo, '--json');
     const json = JSON.parse(r.out);
     expect(Object.keys(json)).toEqual(['version', 'host', 'now', 'harnesses']);
@@ -254,7 +255,6 @@ describe('loopboard check (#0115)', () => {
     await routine(repo, 'cron', 'schedule: "0 25 * * *"');
     await routine(repo, 'never', 'schedule: "0 0 31 4 *"');
     await routine(repo, 'at', 'at: 3 Nov 2026');
-    await routine(repo, 'zone', 'schedule: "@daily"\ntimezone: Mars/Olympus');
     await routine(repo, 'durations', 'schedule: "@daily"\nexpires-after: soon\ntimeout: 0m');
     await routine(repo, 'enabled', 'schedule: "@daily"\nenabled: yes');
     await routine(repo, 'creates', 'schedule: "@daily"\ncreates: report');
@@ -271,7 +271,6 @@ describe('loopboard check (#0115)', () => {
       '✗ scheduled/cron/routine.md: schedule "0 25 * * *": hour "25" is out of range (0–23)',
       '✗ scheduled/never/routine.md: schedule "0 0 31 4 *" never occurs',
       '✗ scheduled/at/routine.md: at: "3 Nov 2026" is no time — write YYYY-MM-DD HH:MM',
-      '✗ scheduled/zone/routine.md: timezone "Mars/Olympus" is no IANA time zone, such as Europe/Berlin',
       '✗ scheduled/durations/routine.md: expires-after "soon" is no duration — write 30m, 6h, 2d or 1h30m',
       '✗ scheduled/durations/routine.md: timeout "0m" is no duration — write 30m, 6h, 2d or 1h30m',
       '✗ scheduled/enabled/routine.md: enabled is true or false, not "yes"',
@@ -298,6 +297,7 @@ describe('loopboard check (#0115)', () => {
     const leben = await harness('leben');
     await writeFile(join(leben, '.agents', 'harness.md'), '---\nschema: 1\nid: leben\nname: Leben\naliases: [life]\n---\n');
     await writeFile(join(tmp, 'config', 'workspaces.json'), JSON.stringify({ workspaces: [{ id: 'my-life', name: 'leben', repoPath: leben, root: join(leben, '.agents') }] }));
+    await routine(repo, 'zoned', 'schedule: "@daily"\ntimezone: Mars/Olympus');
     await routine(repo, 'weekly', 'schedule: "@weekly"\nexpire-after: 6h\nwrites-to: [leben, life, my-life, steuern]', 'x\n', RUNS);
     await routine(repo, 'books', 'schedule: "@monthly"\ncreates: issue\nperiod: month\nissue-project: 09-nothing');
     await routine(repo, 'stray', 'schedule: "@daily"\nissue-title: Report');
@@ -305,6 +305,7 @@ describe('loopboard check (#0115)', () => {
     expect(r.code).toBe(0);
     for (const line of [
       '! scheduled/weekly/routine.md: unknown field "expire-after"',
+      "! scheduled/zoned/routine.md: `timezone` is ignored: a routine runs in the machine's zone",
       '! scheduled/weekly/routine.md: writes-to "steuern" is no registered harness here',
       '! scheduled/weekly/runs.md: line 26: unknown status "nonsense"',
       '! scheduled/books/routine.md: issue-project "09-nothing" is no project in this harness',
@@ -314,7 +315,7 @@ describe('loopboard check (#0115)', () => {
     }
     expect(r.out).not.toContain('"leben" is no registered');
     expect(r.out).not.toContain('"life" is no registered');
-    expect(r.out).toContain('✓ no duplicate numbers, 3 routines valid (5 routine warnings)');
+    expect(r.out).toContain('✓ no duplicate numbers, 4 routines valid (6 routine warnings)');
     const strict = await run('check', repo, '--strict');
     expect(strict.code).toBe(1);
     expect(strict.out).toContain('✗ scheduled/weekly/routine.md: unknown field "expire-after"');

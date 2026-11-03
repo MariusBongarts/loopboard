@@ -63,8 +63,8 @@ export function evaluate(routine: Routine, now: number, host = machineName()): E
   const slot = previousOccurrence(routine.parsed, now, routine.timezone);
   if (slot === null || (since !== null && slot < since)) return { ...none, open, stale };
   const handled = handledUntil(routine.runs);
-  // On the machine's zone a move west brings a local time back: it runs once (#0137).
-  const handledWall = routine.followsMachine ? handledUntil(routine.runs, wallClock) : null;
+  // A move west brings a local time back: it runs once (#0137).
+  const handledWall = handledUntil(routine.runs, wallClock);
   const isHandled = (t: number) => (handled !== null && t <= handled) || (handledWall !== null && wallClock(iso(routine, t)) <= handledWall);
   if (isHandled(slot)) return { ...none, open, stale };
   // Missed slots count from the last handled one, or from the created day.
@@ -134,7 +134,7 @@ export async function switchOff(routine: Routine): Promise<boolean> {
   const text = await readFile(file, "utf8");
   const inner = frontmatterInner(text.replace(/^﻿/, ""));
   if (inner === null) return false;
-  const next = setLine(inner, "enabled", "false", ["timezone", "at", "title"]);
+  const next = setLine(inner, "enabled", "false", ["at", "title"]);
   await writeFileAtomic(file, text.replace(/^(﻿?)---\r?\n[\s\S]*?\r?\n---/, (_m, bom: string) => `${bom}---\n${next}\n---`));
   return true;
 }

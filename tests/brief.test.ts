@@ -39,6 +39,7 @@ beforeEach(async () => {
   await mkdir(join(repo, '.agents', 'issues'), { recursive: true });
   await writeFile(join(repo, '.agents', 'harness.md'), '---\nschema: 1\nid: shop\nname: Web Shop\nkind: harness\n---\n\n<!-- One paragraph. -->\n\nThe shop: storefront, checkout and the newsletter.\n\nMore text.\n');
   vi.stubEnv('LOOPBOARD_CONFIG_DIR', join(tmp, 'config'));
+  vi.stubEnv('TZ', 'Europe/Berlin');
 });
 
 afterEach(async () => {
@@ -53,7 +54,7 @@ const RUNS = ['ok', 'failed', 'aborted', 'ok']
 describe('the brief (#0119)', () => {
   it('holds the routine, the harness, the last three notes, the rules and the finish commands', async () => {
     const leben = join(tmp, 'leben');
-    const dir = await routine('weekly', 'title: Weekly report\nschedule: "30 7 * * 1"\ntimezone: Europe/Berlin\nwrites-to: [leben, steuern]', 'Write reports/{date}.md.\n', RUNS);
+    const dir = await routine('weekly', 'title: Weekly report\nschedule: "30 7 * * 1"\nwrites-to: [leben, steuern]', 'Write reports/{date}.md.\n', RUNS);
     await startRun(dir, t('2026-10-26T06:30:04Z'), { host: 'studio' });
     const brief = buildBrief(readRoutine(dir), [{ id: 'leben', name: 'leben', repoPath: leben, root: join(leben, '.agents') }]);
     expect(brief).toContain('# Routine: Weekly report');

@@ -25,7 +25,7 @@ const when = (iso: string | null | undefined, r: RoutineSummary) => routineWhen(
 
 function scheduleText(r: RoutineSummary): string {
   if (r.state === 'invalid') return '—';
-  return r.timezone === zone ? r.words : `${r.words} · ${r.timezone}`;
+  return r.words;
 }
 
 const nextText = (r: RoutineSummary) => nextSlotText(r, now.value);

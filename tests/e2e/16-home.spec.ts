@@ -43,11 +43,11 @@ function harness() {
   const triage = routine(
     app,
     'triage',
-    'title: Morning triage\nschedule: "0 8 * * *"\ntimezone: UTC',
+    'title: Morning triage\nschedule: "0 8 * * *"',
     entry(yesterday, '08:00', 'ok', 'Quiet night, nothing filed.') + entry(today, '08:00', 'ok', 'Filed #0002 · mentions #0001\n\n**Filed**\n* #0002 the badge bug, see #0001'),
   );
-  routine(app, 'e2e', 'title: Nightly e2e\nschedule: "0 2 * * *"\ntimezone: UTC', entry(today, '02:00', 'failed', 'Playwright could not start.'));
-  routine(app, 'grooming', 'title: Weekly grooming\nschedule: "0 6 * * 1"\ntimezone: UTC\ncreates: issue\nperiod: week', entry(today, '06:00', 'ok', 'Week filed.'));
+  routine(app, 'e2e', 'title: Nightly e2e\nschedule: "0 2 * * *"', entry(today, '02:00', 'failed', 'Playwright could not start.'));
+  routine(app, 'grooming', 'title: Weekly grooming\nschedule: "0 6 * * 1"\ncreates: issue\nperiod: week', entry(today, '06:00', 'ok', 'Week filed.'));
   return { app, triage };
 }
 

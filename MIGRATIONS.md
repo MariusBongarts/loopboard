@@ -171,3 +171,27 @@ same summary and decisions.
 3. **Dispatcher (Confirm first).** Replace the dispatcher task's prompt with
    the output of `loopboard routines dispatcher-prompt` (or `--under <dir>`).
    Changing the platform task is the maintainer's step.
+
+---
+
+## M005 — A routine runs in the machine's zone
+
+*2026-11-03 · #0140*
+
+**Changed**
+
+- `timezone:` is gone from `routine.md`. Every schedule is the machine's
+  local time and follows its zone; `loopboard check` warns about a leftover
+  line and the routine ignores it.
+
+**Why** — a harness travels with its machine. One clock for all routines,
+and one rule when the zone moves: a local time runs once.
+
+**Apply**
+
+1. Remove `timezone:` from the routine template and README in
+   `.agents/scheduled/` (`upgrade-harness` merges them).
+2. **Routines (Confirm first).** For each routine with a `timezone:` line:
+   if the zone differs from the machine's, ask whether to convert its times,
+   because it now runs at those times on the machine's clock. Then remove the
+   line.

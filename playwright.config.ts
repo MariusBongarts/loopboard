@@ -25,6 +25,8 @@ if (!process.env.LOOPBOARD_E2E_ROOT) {
   );
   process.env.LOOPBOARD_E2E_ROOT = tmp;
 }
+// Routines run in the machine's zone (#0140); the server and the CLI inherit this.
+process.env.TZ = 'UTC';
 const tmp = process.env.LOOPBOARD_E2E_ROOT;
 const PORT = 5199;
 

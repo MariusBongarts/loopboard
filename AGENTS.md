@@ -10,7 +10,7 @@ folder. This repo is also the reference example of that workflow: its own
 The block below is exactly what `loopboard init` puts into other repos.
 
 <!-- loopboard:start — managed by `loopboard init` / upgrade-harness; edit outside these markers -->
-<!-- loopboard:migration M004 -->
+<!-- loopboard:migration M005 -->
 ## Workflow
 
 Issues, PRDs and specs live in `.agents/` as markdown; `npx loopboard` shows

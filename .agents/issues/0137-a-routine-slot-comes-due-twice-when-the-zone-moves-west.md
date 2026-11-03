@@ -28,7 +28,7 @@ A local time runs once, however the machine's zone moves. Same rule as a time th
 - [x] The next day's slot is still due after it, with nothing missed
 - [x] An eastward move neither repeats a slot nor loses the next one
 - [x] An hourly routine crossing a move behaves as described in Memory
-- [x] A routine with a fixed `timezone:` behaves as before
+- [x] ~~A routine with a fixed `timezone:` behaves as before~~ dropped: #0140 removes the field
 - [x] An expired slot isn't repeated either
 - [x] `pnpm verify`: types, contrast and 541 of 542 tests pass. The one failure, `tests/routines.test.ts` "prints the documented JSON shape", fails without this change too: it reads the real clock against a run from 2026-10-26 and has been due since the slot of 2026-11-02
 
@@ -39,10 +39,10 @@ A local time runs once, however the machine's zone moves. Same rule as a time th
 
 ## Memory
 
-- **The rule.** Only for a routine without `timezone:`: a slot is handled when its instant is at or before the newest run start or expiry record (as before), *or* its local time is at or before that record's local time, read from the ISO string without its offset. `missed` applies the same test, since `occurrencesBetween` from the last handled instant would otherwise list the repeated local time.
+- **The rule.** A slot is handled when its instant is at or before the newest run start or expiry record (as before), *or* its local time is at or before that record's local time, read from the ISO string without its offset. `missed` applies the same test, since `occurrencesBetween` from the last handled instant would otherwise list the repeated local time.
 - **Why the newest local time, not the same slot.** A catch-up run records one `slot`; the slots it covered are only a `from`/`to` range. Matching exact slots would run those again after a move west.
 - **Hourly, moving west.** The local hours that come back don't run again: the next run is the first local hour after the newest recorded start. One zone west, run at 08:46 +08:00: 08:00 +07:00 is skipped and 09:00 +07:00 runs, two real hours after the last slot, with nothing missed. N zones west leaves about N+1 real hours between runs, so 7 hours west means a quiet 8 hours. Accepted: the cost of one rule for every schedule, and most long moves are flights.
 - **Hourly, moving east.** Stays on the hour in real time: the instant test holds. Two zones east after the 08:00 +07:00 run, 10:00 +09:00 is the same moment and doesn't run; 11:00 +09:00 does, with nothing missed. Local hours jumped over aren't missed.
 - **Daily, moving east.** The instant test can hide a slot only if the newest run started after that slot's moment: a run at 23:00 in Los Angeles hides 08:00 the next day in Tokyo. The slot after it runs normally. Same as before this fix.
-- **Fixed `timezone:`.** Stays on instants. Its offset only differs for daylight saving, whose doubled time already has one occurrence, or after someone edits the field.
-- **Tests** pin the machine's zone with a `vi.mock` of `systemTimeZone` in `shared/cron`.
+- **Daylight saving.** The local-time test changes nothing there: a time that happens twice already has one occurrence.
+- **Tests** pin the machine's zone with `vi.stubEnv('TZ', …)`.

@@ -23,17 +23,17 @@ function routine(repoPath: string, slug: string, frontmatter: string, body = 'Do
 test.describe('§ 15 routines on the command line', () => {
   test('write a routine and list the routines of a harness', () => {
     const app = repo(box.dir, 'shop');
-    const weekly = routine(app, 'weekly-report', 'title: Weekly report\nschedule: "30 7 * * 1"\ntimezone: Pacific/Auckland\nexpires-after: 6h', 'Write the weekly report.\n');
+    const weekly = routine(app, 'weekly-report', 'title: Weekly report\nschedule: "30 7 * * 1"\nexpires-after: 6h', 'Write the weekly report.\n');
     writeFileSync(
       join(weekly, 'runs.md'),
-      '# Runs: Weekly report\n\n## 2026-10-26 07:30 · ok\n- started: 2026-10-26T07:30:04+13:00\n- finished: 2026-10-26T07:41:15+13:00\n- host: studio\n\n> Wrote the report.\n',
+      '# Runs: Weekly report\n\n## 2026-10-26 07:30 · ok\n- started: 2026-10-26T07:30:04+00:00\n- finished: 2026-10-26T07:41:15+00:00\n- host: studio\n\n> Wrote the report.\n',
     );
     routine(app, 'paused', 'schedule: "@daily"\nenabled: false');
     routine(app, 'broken', 'schedule: "61 * * * *"');
 
     const text = loopboard(['routines'], app, box.config);
     expect(text.status).toBe(0);
-    expect(text.stdout).toMatch(/weekly-report\s+Mondays at 07:30 · Pacific\/Auckland\s+.+07:30\s+ok · .+07:30/);
+    expect(text.stdout).toMatch(/weekly-report\s+Mondays at 07:30\s+.+07:30\s+ok · .+07:30/);
     expect(text.stdout).toMatch(/paused\s+Every day at 00:00\s+paused/);
     expect(text.stdout).toMatch(/broken\s+—\s+invalid/);
     expect(text.stdout).toContain('✗ routine.md: schedule "61 * * * *": minute "61" is out of range (0–59)');
@@ -46,7 +46,7 @@ test.describe('§ 15 routines on the command line', () => {
       kind: 'agent',
       enabled: true,
       state: 'idle',
-      timezone: 'Pacific/Auckland',
+      timezone: 'UTC',
       expiresAfter: '6h',
       timeout: '2h',
       body: 'Write the weekly report.',
@@ -181,12 +181,12 @@ test.describe('§ 15 routines on the board', () => {
       return `${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d.getUTCDay()]} ${d.getUTCDate()} ${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.getUTCMonth()]} ${d.getUTCFullYear()}`;
     };
     const app = repo(box.dir, 'shop');
-    const brief = routine(app, 'morning-brief', 'title: Morning brief\nschedule: "30 7 * * *"\ntimezone: UTC', '1. Read the calendar.\n2. Write **the brief**.\n');
+    const brief = routine(app, 'morning-brief', 'title: Morning brief\nschedule: "30 7 * * *"', '1. Read the calendar.\n2. Write **the brief**.\n');
     writeFileSync(
       join(brief, 'runs.md'),
       `# Runs: Morning brief\n\n## ${older} 07:30 · ok\n- started: ${older}T07:30:04+00:00\n- finished: ${older}T07:41:00+00:00\n- slot: ${older}T07:30:00+00:00\n- host: studio\n\n> Wrote the brief.\n\n## ${newer} 07:30 · failed\n- started: ${newer}T07:30:04+00:00\n- finished: ${newer}T07:32:00+00:00\n- slot: ${newer}T07:30:00+00:00\n- host: studio\n\n> The calendar API timed out.\n`,
     );
-    routine(app, 'books', 'title: Monthly books\nschedule: "0 6 1 * *"\ntimezone: UTC\ncreates: issue\nperiod: month');
+    routine(app, 'books', 'title: Monthly books\nschedule: "0 6 1 * *"\ncreates: issue\nperiod: month');
     routine(app, 'sweep', 'title: Inbox sweep\nschedule: "*/30 * * * *"\nenabled: false');
     const server = await serve(['--port', '0'], app, box.config);
     try {

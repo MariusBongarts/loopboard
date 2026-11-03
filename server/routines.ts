@@ -2,7 +2,6 @@ import { existsSync, readdirSync, readFileSync, type Dirent } from "node:fs";
 import { hostname } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import {
-  isTimeZone,
   nextOccurrence,
   parseAt,
   parseCron,
@@ -29,7 +28,7 @@ export const RUNS_FILE = "runs.md";
 export const DEFAULT_TIMEOUT = "2h";
 
 const ROUTINE_FIELDS = [
-  "title", "schedule", "at", "timezone", "enabled", "expires-after", "timeout", "host", "writes-to", "created", "creates",
+  "title", "schedule", "at", "enabled", "expires-after", "timeout", "host", "writes-to", "created", "creates",
 ] as const;
 const ISSUE_FIELDS = [
   "period", "issue-title", "issue-category", "issue-status", "issue-assignee", "issue-labels", "issue-project", "issue-due-after",
@@ -66,7 +65,6 @@ export interface Routine {
   schedule: string | null;
   at: string | null;
   timezone: string;
-  followsMachine: boolean; // no `timezone:`: the zone moves with the machine
   parsed: Schedule | null; // null when the schedule or the zone is broken
   expiresAfter: string | null;
   timeout: string;
@@ -124,13 +122,11 @@ export function readRoutine(dir: string, now = Date.now()): Routine {
   };
 
   for (const [, key] of fm.matchAll(TOP_KEY)) {
-    if (!(ROUTINE_FIELDS as readonly string[]).includes(key) && !(ISSUE_FIELDS as readonly string[]).includes(key)) warn(`unknown field "${key}"`);
+    if (key === "timezone") warn("`timezone` is ignored: a routine runs in the machine's zone");
+    else if (!(ROUTINE_FIELDS as readonly string[]).includes(key) && !(ISSUE_FIELDS as readonly string[]).includes(key)) warn(`unknown field "${key}"`);
   }
 
-  const zoneText = field("timezone");
-  const zoneOk = zoneText === null || isTimeZone(zoneText);
-  if (!zoneOk) error(`timezone "${zoneText}" is no IANA time zone, such as Europe/Berlin`);
-  const timezone = zoneText !== null && zoneOk ? zoneText : systemTimeZone();
+  const timezone = systemTimeZone();
 
   const schedule = field("schedule");
   const at = field("at");
@@ -149,7 +145,6 @@ export function readRoutine(dir: string, now = Date.now()): Routine {
       parsed = null;
     }
   }
-  if (!zoneOk) parsed = null;
 
   const enabledText = field("enabled");
   if (enabledText !== null && !/^(true|false)$/.test(enabledText)) error(`enabled is true or false, not "${enabledText}"`);
@@ -217,7 +212,6 @@ export function readRoutine(dir: string, now = Date.now()): Routine {
     schedule,
     at,
     timezone,
-    followsMachine: zoneText === null,
     parsed: problems.some((p) => p.level === "error") ? null : parsed,
     expiresAfter: field("expires-after"),
     timeout: field("timeout") ?? DEFAULT_TIMEOUT,

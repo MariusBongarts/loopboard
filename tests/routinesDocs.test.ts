@@ -33,6 +33,7 @@ async function run(...argv: string[]): Promise<string> {
 beforeEach(async () => {
   tmp = await realpath(await mkdtemp(join(tmpdir(), 'loopboard-json-')));
   vi.stubEnv('LOOPBOARD_CONFIG_DIR', join(tmp, 'config'));
+  vi.stubEnv('TZ', 'UTC');
 });
 
 afterEach(async () => {
@@ -46,7 +47,7 @@ describe('the documented JSON (#0123)', () => {
     await mkdir(join(repo, '.agents', 'issues'), { recursive: true });
     const dir = join(repo, '.agents', 'scheduled', 'hourly');
     await mkdir(dir, { recursive: true });
-    await writeFile(join(dir, 'routine.md'), '---\nschedule: "@hourly"\ntimezone: UTC\n---\n\nSteps.\n');
+    await writeFile(join(dir, 'routine.md'), '---\nschedule: "@hourly"\n---\n\nSteps.\n');
     const day = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
     await writeFile(
       join(dir, 'runs.md'),
@@ -58,7 +59,7 @@ describe('the documented JSON (#0123)', () => {
     );
     const books = join(repo, '.agents', 'scheduled', 'books');
     await mkdir(books, { recursive: true });
-    await writeFile(join(books, 'routine.md'), '---\nschedule: "@monthly"\ntimezone: UTC\ncreates: issue\nperiod: month\n---\n\nBooks.\n');
+    await writeFile(join(books, 'routine.md'), '---\nschedule: "@monthly"\ncreates: issue\nperiod: month\n---\n\nBooks.\n');
     const docs = documented();
 
     const list = JSON.parse(await run('routines', repo, '--json'));

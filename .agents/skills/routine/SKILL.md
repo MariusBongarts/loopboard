@@ -25,8 +25,8 @@ the request already answers.
    `{previous}`, `{date}`), the `issue-` fields and `issue-due-after`.
 2. **When?** Turn the words into a five-field cron expression with the
    README's table ("weekdays 07:30" → `"30 7 * * 1-5"`, "last day of the
-   month" → `L`), or `at: YYYY-MM-DD HH:MM` for once. Use the user's time
-   zone in `timezone:` unless they name another.
+   month" → `L`), or `at: YYYY-MM-DD HH:MM` for once. Times are the
+   machine's local time; a routine has no zone of its own.
 3. **How late may it still start?** For anything tied to a time of day (a
    morning brief), recommend `expires-after` — `4h` or `6h`. Without it a
    slot missed overnight still runs when the dispatcher wakes.

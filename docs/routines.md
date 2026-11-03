@@ -35,7 +35,6 @@ steps in its body. Fields are read line by line, not as YAML, so
 | `title` | display name | the folder's name |
 | `schedule` | five-field cron: minute, hour, day of month, month, day of week. `*`, numbers, ranges `1-5`, steps `*/15`, lists `1,15`, names `MON`/`JAN`, `7` = Sunday, `L` in the day of month = its last day; `@hourly`, `@daily`, `@weekly`, `@monthly`, `@yearly` | — |
 | `at` | one time instead of `schedule`: `YYYY-MM-DD HH:MM`; switches itself off (`enabled: false`) after its run | — |
-| `timezone` | an IANA zone, `Europe/Berlin` | the machine's zone |
 | `enabled` | `false` pauses it | `true` |
 | `expires-after` | `30m`, `6h`, `2d`, `1h30m`: a slot older than this is recorded as expired, not run | none |
 | `timeout` | a run older than this without `finish` counts as aborted | `2h` |
@@ -48,7 +47,6 @@ steps in its body. Fields are read line by line, not as YAML, so
 ---
 title: Weekly report
 schedule: "30 7 * * 1"
-timezone: Europe/Berlin
 expires-after: 6h
 created: 2026-10-27
 ---
@@ -93,12 +91,11 @@ start or expired entry.
   for the latest slot; that run records the others as one `missed` entry.
 - **Late slots can expire.** With `expires-after: 6h`, a slot noticed seven
   hours late is recorded as `expired` instead of run.
-- **A local time runs once when you travel.** A routine without `timezone:`
-  follows the machine. After a move west, a local time its newest run or
-  expired entry already passed doesn't run again: an hourly routine skips the
-  hours that come back, so it pauses for about as long as the move plus one
-  hour. After a move east it stays on the hour in real time. A routine with
-  `timezone:` doesn't move.
+- **A local time runs once when you travel.** Schedules are the machine's
+  local time and follow its zone. After a move west, a local time the newest
+  run or expired entry already passed doesn't run again: an hourly routine
+  skips the hours that come back, so it pauses for about as long as the move
+  plus one hour. After a move east it stays on the hour in real time.
 - **A run blocks a second start** while its `running` entry is younger than
   `timeout`. An older one is recorded as `aborted`, and the routine can run
   again. `host:` pins a routine to one machine — on a folder synced between
@@ -310,7 +307,7 @@ Times are ISO 8601 strings with an offset; `null` means "none".
 | `state` | `due`, `running`, `idle`, `paused`, `pinned` (another `host:`), `expired` (its slot expired, not yet recorded) or `invalid` |
 | `schedule` | the cron expression, or `null` |
 | `at` | the one-time `at:`, or `null` |
-| `timezone` | the zone its times are in |
+| `timezone` | the machine's zone, which its times are in |
 | `words` | the schedule in words |
 | `expiresAfter` | `expires-after:`, or `null` |
 | `timeout` | `timeout:`, default `2h` |

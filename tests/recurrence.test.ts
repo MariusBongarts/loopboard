@@ -71,6 +71,7 @@ beforeEach(async () => {
   await mkdir(join(root, 'projects', '03-finances'), { recursive: true });
   await writeFile(join(root, 'issues', '0001-first.md'), '---\nid: 0001\ntitle: First\nstatus: todo\n---\n');
   vi.stubEnv('LOOPBOARD_CONFIG_DIR', join(tmp, 'config'));
+  vi.stubEnv('TZ', 'Europe/Berlin');
 });
 
 afterEach(async () => {
@@ -80,7 +81,6 @@ afterEach(async () => {
 
 const MONTHLY = `title: Monthly books
 schedule: "0 6 1 * *"
-timezone: Europe/Berlin
 creates: issue
 period: month
 issue-title: "Books for {previous}"
@@ -139,15 +139,17 @@ Send the 2026-12 books to the accountant by 2027-01-01.
   });
 
   it('files on the last day of February and on 29 February', async () => {
-    const dir = await routine('closing', 'schedule: "0 18 L * *"\ntimezone: UTC\ncreates: issue\nperiod: month\nissue-title: "Close {period}"', 'Close it.\n');
+    vi.stubEnv('TZ', 'UTC');
+    const dir = await routine('closing', 'schedule: "0 18 L * *"\ncreates: issue\nperiod: month\nissue-title: "Close {period}"', 'Close it.\n');
     const feb = await startRun(dir, t('2028-02-29T18:00:10Z'), { host: 'studio' });
     expect(feb).toMatchObject({ slot: t('2028-02-29T18:00:00Z'), issue: { title: 'Close 2028-02' } });
-    const leap = await routine('leap', 'schedule: "0 9 29 2 *"\ntimezone: UTC\ncreates: issue\nperiod: day', 'Leap.\n');
+    const leap = await routine('leap', 'schedule: "0 9 29 2 *"\ncreates: issue\nperiod: day', 'Leap.\n');
     expect(await startRun(leap, t('2028-02-29T09:00:05Z'), { host: 'studio' })).toMatchObject({ issue: { title: 'leap 2028-02-29', recurrence: 'leap@2028-02-29' } });
   });
 
   it('records a failed run when the issue can’t be filed', async () => {
-    const dir = await routine('broken', 'schedule: "@monthly"\ntimezone: UTC\ncreates: issue\nperiod: month\nissue-project: 99-gone', 'x\n');
+    vi.stubEnv('TZ', 'UTC');
+    const dir = await routine('broken', 'schedule: "@monthly"\ncreates: issue\nperiod: month\nissue-project: 99-gone', 'x\n');
     const r = await run('routines', 'start', dir);
     expect(r.code).toBe(1);
     expect(r.err).toBe('broken: Filing the issue failed: unknown project: 99-gone');
@@ -155,7 +157,8 @@ Send the 2026-12 books to the accountant by 2027-01-01.
   });
 
   it('names the issue it would file with --dry-run and writes nothing', async () => {
-    const dir = await routine('quarterly', 'schedule: "0 6 1 1,4,7,10 *"\ntimezone: UTC\ncreates: issue\nperiod: quarter\nissue-title: "VAT {previous}"', 'x\n');
+    vi.stubEnv('TZ', 'UTC');
+    const dir = await routine('quarterly', 'schedule: "0 6 1 1,4,7,10 *"\ncreates: issue\nperiod: quarter\nissue-title: "VAT {previous}"', 'x\n');
     const r = await run('routines', 'start', dir, '--dry-run');
     expect(r.code).toBe(0);
     expect(r.out).toMatch(/^would file #0002 VAT \d{4}-Q\d for quarterly — slot \S+$/);

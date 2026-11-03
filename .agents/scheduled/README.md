@@ -38,7 +38,6 @@ cron expression, since YAML reads a leading `*` as something else.
 | `title` | display name | the slug |
 | `schedule` | five-field cron in quotes: minute, hour, day of month, month, day of week; `L` in the day of month is its last day; `@hourly`, `@daily`, `@weekly`, `@monthly`, `@yearly` | — |
 | `at` | one time instead: `YYYY-MM-DD HH:MM`; the routine switches itself off after its run | — |
-| `timezone` | an IANA zone, `Europe/Berlin` | the machine's zone |
 | `enabled` | `false` pauses it | `true` |
 | `expires-after` | `30m`, `6h`, `2d`: a slot older than this is recorded as expired instead of run | none |
 | `timeout` | a run older than this counts as aborted | `2h` |
@@ -58,7 +57,6 @@ is filed once.
 ---
 title: Weekly report
 schedule: "30 7 * * 1"
-timezone: Europe/Berlin
 expires-after: 6h
 created: 2026-10-27
 ---
