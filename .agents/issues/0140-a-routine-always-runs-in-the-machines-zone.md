@@ -25,7 +25,7 @@ Marius' decision on 2026-11-03, after #0137: "Always use the timezone of the mac
 - [x] The field is gone from the docs, spec, READMEs, templates (both copies) and the `routine` skill
 - [x] Migration M005, marker moved
 - [x] Tests pin the machine's zone with `TZ`; E2E runs in UTC
-- [ ] `pnpm verify` green: blocked only by the date-dependent `tests/routines.test.ts` "prints the documented JSON shape", which also fails without this change. `tests/e2e/15-routines.spec.ts` "write a routine and list the routines of a harness" fails on the same `state: 'idle'` assertion, and the other 11 tests in the routine and Home specs pass
+- [x] `pnpm verify` green
 
 ## Out of scope
 

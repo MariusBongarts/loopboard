@@ -43,6 +43,7 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
+  vi.useRealTimers();
   vi.unstubAllEnvs();
   await rm(tmp, { recursive: true, force: true });
 });
@@ -210,6 +211,7 @@ describe('loopboard routines list (#0114)', () => {
   });
 
   it('prints the documented JSON shape', async () => {
+    vi.useFakeTimers({ toFake: ['Date'], now: Date.parse('2026-10-27T12:00:00Z') });
     const repo = await harness('shop');
     await routine(repo, 'weekly', 'schedule: "30 7 * * 1"', 'Steps.\n', RUNS);
     const r = await run('routines', repo, '--json');
@@ -217,7 +219,7 @@ describe('loopboard routines list (#0114)', () => {
     expect(Object.keys(json)).toEqual(['version', 'host', 'now', 'harnesses']);
     expect(json.version).toBe(1);
     expect(Object.keys(json.harnesses[0])).toEqual(['id', 'name', 'path', 'root', 'routines']);
-    expect(json.harnesses[0].routines[0]).toMatchObject({ slug: 'weekly', kind: 'agent', state: expect.stringMatching(/^(idle|due|expired)$/), words: 'Mondays at 07:30', body: 'Steps.' });
+    expect(json.harnesses[0].routines[0]).toMatchObject({ slug: 'weekly', kind: 'agent', state: 'idle', words: 'Mondays at 07:30', body: 'Steps.' });
     expect(json.harnesses[0].routines[0].lastRun).toMatchObject({ status: 'ok', note: expect.stringContaining('Wrote the report.') });
   });
 
