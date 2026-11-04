@@ -19,9 +19,9 @@ export default defineConfig(({ isSsrBuild }) => ({
     port: 5180,
     strictPort: false,
   },
-  // Playwright owns tests/e2e (#0006).
+  // Playwright owns tests/e2e (#0006); .claude/ holds other checkouts' worktrees.
   test: {
-    exclude: [...configDefaults.exclude, 'tests/e2e/**'],
+    exclude: [...configDefaults.exclude, 'tests/e2e/**', '.claude/**'],
     // A test that sets no config directory still can't reach the user's (#0111).
     env: { LOOPBOARD_CONFIG_DIR: join(tmpdir(), 'loopboard-vitest') },
   },

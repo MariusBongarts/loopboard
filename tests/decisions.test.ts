@@ -16,7 +16,7 @@ let repo: string;
 async function routine(slug: string, logs: Record<string, string>): Promise<string> {
   const dir = join(repo, '.agents', 'scheduled', slug);
   await mkdir(join(dir, 'log'), { recursive: true });
-  await writeFile(join(dir, 'routine.md'), '---\nschedule: "0 8 * * *"\ntimezone: UTC\n---\n\nSteps.\n');
+  await writeFile(join(dir, 'routine.md'), '---\nschedule: "0 8 * * *"\n---\n\nSteps.\n');
   for (const [file, text] of Object.entries(logs)) await writeFile(join(dir, 'log', file), text);
   return dir;
 }
@@ -79,6 +79,8 @@ beforeEach(async () => {
   repo = join(tmp, 'shop');
   await mkdir(join(repo, '.agents', 'issues'), { recursive: true });
   vi.stubEnv('LOOPBOARD_CONFIG_DIR', join(tmp, 'config'));
+  // `today()` is the UTC day; an answer takes the machine's day (#0140).
+  vi.stubEnv('TZ', 'UTC');
 });
 
 afterEach(async () => {
