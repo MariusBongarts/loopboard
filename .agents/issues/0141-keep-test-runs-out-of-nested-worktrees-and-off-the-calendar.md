@@ -16,7 +16,7 @@ created: 2026-11-04
 - **The local day.** `tests/decisions.test.ts` expected the UTC day, while an answer is stamped with the machine's day. The fixture's `timezone: UTC` has been ignored since #0140, so it failed whenever the two differ: 00:00–07:00 on a machine at UTC+7. The test now pins `TZ` and the leftover line is gone.
 - **Scaffold count.** `tests/e2e/cli.spec.ts` expected 13 files from `init --kind docs`. #0136 added `scheduled/_templates/log.md`, so it's 14.
 
-The two routine tests that expected `state: 'idle'` already pass at any date since af4b25a on `main`, which accepts `idle`, `due` or `expired`. They stay as they are here: `claude/pin-routine-clock` (81e3c1e, not merged, under #0140) pins the clock and asserts `idle` again.
+The two routine tests that expected `state: 'idle'` already pass at any date since af4b25a on `main`, which accepts `idle`, `due` or `expired`. They stay as they are here: `claude/pin-routine-clock` (81e3c1e, under #0140, merged in aa5dd9f) pins the clock and asserts `idle` again.
 
 ## Why
 
@@ -32,7 +32,7 @@ No product behavior changes. A red `verify` that has nothing to do with the task
 
 ## Out of scope
 
-- Merging `claude/pin-routine-clock`. It touches none of the files changed here and its two test files pass at the same dates; ticking #0140's open `pnpm verify` criterion is part of it
+- The change on `claude/pin-routine-clock`: it touches none of the files changed here, its two test files pass at the same dates, and it ticks #0140's `pnpm verify` criterion
 - Any product change
 
 ## Memory
