@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { formatIso, parseCron, previousOccurrence } from '../../shared/cron';
 import { spawnSync } from 'node:child_process';
 import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -24,9 +25,11 @@ test.describe('§ 15 routines on the command line', () => {
   test('write a routine and list the routines of a harness', () => {
     const app = repo(box.dir, 'shop');
     const weekly = routine(app, 'weekly-report', 'title: Weekly report\nschedule: "30 7 * * 1"\nexpires-after: 6h', 'Write the weekly report.\n');
+    // The CLI reads the real clock: the latest Monday's slot is the one this run handled.
+    const slot = formatIso(previousOccurrence({ kind: 'cron', cron: parseCron('30 7 * * 1') }, Date.now(), 'UTC') as number, 'UTC');
     writeFileSync(
       join(weekly, 'runs.md'),
-      '# Runs: Weekly report\n\n## 2026-10-26 07:30 · ok\n- started: 2026-10-26T07:30:04+00:00\n- finished: 2026-10-26T07:41:15+00:00\n- host: studio\n\n> Wrote the report.\n',
+      `# Runs: Weekly report\n\n## ${slot.slice(0, 10)} 07:30 · ok\n- started: ${slot.slice(0, 16)}:04+00:00\n- finished: ${slot.slice(0, 11)}07:41:15+00:00\n- host: studio\n\n> Wrote the report.\n`,
     );
     routine(app, 'paused', 'schedule: "@daily"\nenabled: false');
     routine(app, 'broken', 'schedule: "61 * * * *"');
@@ -45,7 +48,7 @@ test.describe('§ 15 routines on the command line', () => {
       title: 'Weekly report',
       kind: 'agent',
       enabled: true,
-      state: expect.stringMatching(/^(idle|due|expired)$/),
+      state: 'idle',
       timezone: 'UTC',
       expiresAfter: '6h',
       timeout: '2h',
